@@ -4,6 +4,7 @@ import 'quen_mk.dart';
 import 'package:giao_tiep_sv_user/Home_screen/home.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../Data/global_state.dart';
 
 class DangNhap extends StatefulWidget {
   const DangNhap({super.key});
@@ -24,7 +25,7 @@ class _DangNhapState extends State<DangNhap> {
     super.dispose();
   }
 
- // Hàm đăng nhập
+  // Hàm đăng nhập
   void _dangNhap(BuildContext context) async {
     String email = _emailController.text.trim();
     String password = _passwordController.text;
@@ -39,8 +40,7 @@ class _DangNhapState extends State<DangNhap> {
       return;
     }
 
-    
-    final id_user = email.split('@').first.toUpperCase();
+    final id_user = email.split('@').first.toUpperCase(); // Lấy ID người dùng
 
     try {
       // Đăng nhập bằng Firebase Auth
@@ -53,10 +53,10 @@ class _DangNhapState extends State<DangNhap> {
         return;
       }
 
-      
+      // 1. Kiểm tra thông tin người dùng trong Firestore
       DocumentSnapshot doc = await FirebaseFirestore.instance
           .collection("Users")
-          .doc(id_user)  
+          .doc(id_user)
           .get();
 
       if (!doc.exists) {
@@ -65,6 +65,10 @@ class _DangNhapState extends State<DangNhap> {
       }
 
       String name = doc['fullname'] ?? "Người dùng";
+
+      //  LƯU ID VÀ TÊN VÀO TRẠNG THÁI TOÀN CỤC
+      GlobalState.currentUserId = id_user;
+      GlobalState.currentFullname = name;
 
       _showSnackBar(context, "Xin chào $name!", isError: false);
 
@@ -79,7 +83,11 @@ class _DangNhapState extends State<DangNhap> {
     }
   }
 
-  void _showSnackBar(BuildContext context, String message, {bool isError = true}) {
+  void _showSnackBar(
+    BuildContext context,
+    String message, {
+    bool isError = true,
+  }) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
@@ -169,12 +177,16 @@ class _DangNhapState extends State<DangNhap> {
               _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
               color: Colors.black54,
             ),
-            onPressed: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
+            onPressed: () =>
+                setState(() => _isPasswordVisible = !_isPasswordVisible),
           ),
           hintText: 'Mật khẩu',
           hintStyle: const TextStyle(color: Colors.black54),
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+          contentPadding: const EdgeInsets.symmetric(
+            vertical: 16,
+            horizontal: 20,
+          ),
         ),
       ),
     );
@@ -185,8 +197,14 @@ class _DangNhapState extends State<DangNhap> {
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
         TextButton(
-          onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const QuenMatKhau())),
-          child: const Text("Quên mật khẩu?", style: TextStyle(color: Colors.red)),
+          onPressed: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const QuenMatKhau()),
+          ),
+          child: const Text(
+            "Quên mật khẩu?",
+            style: TextStyle(color: Colors.red),
+          ),
         ),
       ],
     );
@@ -200,10 +218,15 @@ class _DangNhapState extends State<DangNhap> {
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFF1F65DE),
           foregroundColor: const Color.fromARGB(255, 255, 255, 255),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(25),
+          ),
         ),
         onPressed: () => _dangNhap(context),
-        child: const Text("Đăng nhập", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        child: const Text(
+          "Đăng nhập",
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
       ),
     );
   }
@@ -212,10 +235,22 @@ class _DangNhapState extends State<DangNhap> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const Text("Bạn chưa có tài khoản? ", style: TextStyle(color: Colors.black)),
+        const Text(
+          "Bạn chưa có tài khoản? ",
+          style: TextStyle(color: Colors.black),
+        ),
         GestureDetector(
-          onTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const DangKi())),
-          child: const Text("Đăng ký ngay", style: TextStyle(color: Color(0xFF1F65DE), fontWeight: FontWeight.bold)),
+          onTap: () => Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const DangKi()),
+          ),
+          child: const Text(
+            "Đăng ký ngay",
+            style: TextStyle(
+              color: Color(0xFF1F65DE),
+              fontWeight: FontWeight.bold,
+            ),
+          ),
         ),
       ],
     );
