@@ -1,0 +1,43 @@
+name: giao_tiep_sv_user
+description: "A new Flutter project."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.9.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Plugin cơ bản
+  image_picker: ^1.1.1
+  file_picker: ^8.0.7   # 🔽 hạ xuống cho tương thích Flutter 3.9.x
+  cupertino_icons: ^1.0.8
+  top_snackbar_flutter: ^3.1.0
+  flutter_screenutil: ^5.9.3
+  url_launcher: ^6.3.0
+  firebase_core: ^4.2.0
+  firebase_auth: ^6.1.1
+  firebase_database: ^12.0.3
+  cloud_firestore: ^6.0.3
+
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_launcher_icons: ^0.13.1
+  flutter_lints: ^5.0.0
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icons/FIT-TDC_logo.png"
+  min_sdk_android: 21
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
+    - assets/icons/

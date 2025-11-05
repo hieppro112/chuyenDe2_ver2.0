@@ -1,0 +1,69 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+class GetPosts {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  /// Hỗ trợ tra cứu thông tin người dùng từ Collection 'Users'
+  Future<Map<String, dynamic>> _fetchUserDetail(String userId) async {
+    try {
+      final userDoc = await _firestore.collection('Users').doc(userId).get();
+      if (userDoc.exists && userDoc.data() != null) {
+        final userData = userDoc.data()!;
+        return {
+          // Lấy key 'fullname'
+          "fullname": userData["fullname"] ?? "Ẩn danh",
+          // Lấy key 'avt' từ Firestore (avatar)
+          "avatar":
+              userData["avt"] ??
+              "https://cellphones.com.vn/sforum/wp-content/uploads/2023/10/avatar-trang-4.jpg",
+        };
+      }
+    } catch (e) {
+      print("Lỗi tra cứu thông tin người dùng: $e");
+    }
+    return {}; // Trả về rỗng nếu không tìm thấy
+  }
+
+  /// Lấy tất cả bài viết từ Firestore
+  Future<List<Map<String, dynamic>>> fetchPosts() async {
+    try {
+      final snapshot = await _firestore
+          .collection('Post')
+          .orderBy('date_created', descending: true)
+          .get();
+
+      final postsWithDetails = await Future.wait(
+        snapshot.docs.map((doc) async {
+          final data = doc.data();
+          final userId = data["user_id"] as String?;
+          Map<String, dynamic> userDetails = {};
+
+          if (userId != null && userId.isNotEmpty) {
+            userDetails = await _fetchUserDetail(userId);
+          }
+
+          return {
+            "id": doc.id,
+            "user_id": userId ?? "Ẩn danh",
+            "fullname": userDetails["fullname"] ?? "Ẩn danh",
+            "avatar": userDetails["avatar"],
+            "group": data["group_id"] ?? "Không rõ",
+            "title": data["content"] ?? "Không có nội dung",
+            "date": (data["date_created"] is Timestamp)
+                ? (data["date_created"] as Timestamp).toDate().toString()
+                : null,
+            "image": data["file_url"],
+            "likes": 0,
+            "isLiked": false,
+            "comments": <Map<String, dynamic>>[],
+          };
+        }).toList(),
+      );
+
+      return postsWithDetails;
+    } catch (e) {
+      print("🔥 Lỗi tải bài viết từ PostService: $e");
+      return [];
+    }
+  }
+}
