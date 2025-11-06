@@ -18,13 +18,15 @@ class _DangKiState extends State<DangKi> {
 
   bool _obscurePassword = true;
   bool _obscureConfirm = true;
+  bool _isLoading = false;
+  String? _hienThiLoi;
 
   String? tenNganh;
   String? maNganh;
 
+  // ==================== KIỂM TRA EMAIL ====================
   void _kiemTraEmail() async {
     String email = emailController.text.trim();
-
     final RegExp pattern = RegExp(
       r'^[0-9]{5}([A-Za-z]{2})[0-9]{4}@mail\.tdc\.edu\.vn$',
       caseSensitive: false,
@@ -60,236 +62,323 @@ class _DangKiState extends State<DangKi> {
     }
   }
 
+  // ==================== HÀM ĐĂNG KÝ ====================
   Future<void> _dangKy(BuildContext context) async {
     final email = emailController.text.trim();
     final password = passwordController.text.trim();
     final confirm = confirmController.text.trim();
     final name = nameController.text.trim();
 
-    // Kiểm tra rỗng
     if (email.isEmpty || password.isEmpty || confirm.isEmpty || name.isEmpty) {
-      _showSnackBar(context, "Vui lòng nhập đầy đủ thông tin!");
+      _showSnackBar("Vui lòng nhập đầy đủ thông tin!");
       return;
     }
 
     if (password != confirm) {
-      _showSnackBar(context, "Mật khẩu không khớp!");
+      _showSnackBar("Mật khẩu không khớp!");
       return;
     }
 
-    // LẤY id_user
-    final id_user = email.split('@').first.toUpperCase();
-
-    // Kiểm tra định dạng email + mã ngành
     final RegExp pattern = RegExp(
       r'^[0-9]{5}([A-Za-z]{2})[0-9]{4}@mail\.tdc\.edu\.vn$',
       caseSensitive: false,
     );
+
     final match = pattern.firstMatch(email);
     if (match == null) {
-      _showSnackBar(context, "Email sai định dạng!");
+      _showSnackBar("Email sai định dạng!");
       return;
     }
 
     final ma = match.group(1)!.toUpperCase();
+    final idUser = email.split('@').first.toUpperCase();
 
-    // Kiểm tra mã ngành
-    final query = await FirebaseFirestore.instance
-        .collection("Faculty")
-        .where("id", isEqualTo: ma)
-        .get();
-
-    if (query.docs.isEmpty) {
-      _showSnackBar(context, "Mã ngành $ma không tồn tại!", isError: true);
-      return;
-    }
-
-    final nganh = query.docs.first['name'];
+    setState(() => _isLoading = true);
 
     try {
-      // Tạo tài khoản Auth
-      final credential = await FirebaseAuth.instance
+      // Kiểm tra mã ngành có tồn tại không
+      final query = await FirebaseFirestore.instance
+          .collection("Faculty")
+          .where("id", isEqualTo: ma)
+          .get();
+
+      if (query.docs.isEmpty) {
+        _showSnackBar("Mã ngành $ma không tồn tại!");
+        setState(() => _isLoading = false);
+        return;
+      }
+
+      // Tạo tài khoản Firebase Auth
+      final userCredential = await FirebaseAuth.instance
           .createUserWithEmailAndPassword(email: email, password: password);
-      await FirebaseFirestore.instance.collection("Users").doc(id_user).set({
+
+      // Gửi email xác thực
+      await userCredential.user!.sendEmailVerification();
+
+      // Lưu dữ liệu người dùng vào Firestore
+      await FirebaseFirestore.instance.collection("Users").doc(idUser).set({
         "email": email,
         "fullname": name,
         "phone": "",
         "address": "",
         "avt":
-            "https://www.homepaylater.vn/static/091138555b138c04878fa60cea715e28/7b48c/tdc_computer_logo_68b779e149.jpg", // ảnh mặc định
+            "https://cellphones.com.vn/sforum/wp-content/uploads/2023/10/avatar-trang-4.jpg",
         "role": 1,
         "faculty_id": ma,
       });
 
-      // Đăng nhập ngay
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
-
-      _showSnackBar(context, "Đăng ký thành công!", isError: false);
-
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const DangNhap()),
-      );
-    } on FirebaseAuthException catch (e) {
       _showSnackBar(
-        context,
-        "Đăng ký thất bại! Tài khoản đã tồn tại.",
-        isError: true,
+        "Đăng ký thành công!\nVui lòng kiểm tra email để xác nhận tài khoản.",
+        isError: false,
       );
+
+      // Đăng xuất user chưa xác thực
+      await FirebaseAuth.instance.signOut();
+
+      // Chờ 3s rồi chuyển sang trang đăng nhập
+      await Future.delayed(const Duration(seconds: 3));
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const DangNhap()),
+        );
+      }
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'email-already-in-use') {
+        _showSnackBar("Email đã được sử dụng!");
+      } else {
+        _showSnackBar("Lỗi đăng ký: ${e.message}");
+      }
     } catch (e) {
-      _showSnackBar(context, "Lỗi kết nối. Vui lòng thử lại!", isError: true);
+      _showSnackBar("Đã xảy ra lỗi, vui lòng thử lại!");
+    } finally {
+      setState(() => _isLoading = false);
     }
   }
 
-  // Hiển thị thông báo
-  void _showSnackBar(
-    BuildContext context,
-    String message, {
-    bool isError = true,
-  }) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: isError ? Colors.red : Colors.green,
-        duration: const Duration(seconds: 3),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(color: Colors.white),
-        child: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Image.asset('assets/images/logo.png', width: 150),
-                  const SizedBox(height: 20),
-                  const Text(
-                    "TẠO TÀI KHOẢN",
-                    style: TextStyle(
-                      fontStyle: FontStyle.italic,
-                      fontSize: 26,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blue,
-                      fontFamily: 'Georgia',
-                    ),
-                  ),
-                  const SizedBox(height: 31),
-                  _buildEmailField(),
-                  if (tenNganh != null) ...[
-                    const SizedBox(height: 8),
-                    Text(
-                      tenNganh!,
-                      style: TextStyle(
-                        color:
-                            tenNganh!.contains("Không") ||
-                                tenNganh!.contains("Lỗi")
-                            ? Colors.red
-                            : Colors.green,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 20),
-                  _buildNameField(),
-                  const SizedBox(height: 20),
-                  _buildPasswordField(),
-                  const SizedBox(height: 15),
-                  _buildConfirmPasswordField(),
-                  const SizedBox(height: 20),
-                  _buildRegisterButton(context),
-                  const SizedBox(height: 20),
-                  _buildLoginLink(context),
-                ],
+void _showSnackBar(String message, {bool isError = true}) {
+  final overlay = Overlay.of(context);
+  final entry = OverlayEntry(
+    builder: (context) => Positioned(
+      top: MediaQuery.of(context).size.height * 0.4,
+      left: 40,
+      right: 40,
+      child: Material(
+        color: Colors.transparent,
+        child: AnimatedOpacity(
+          opacity: 1,
+          duration: const Duration(milliseconds: 300),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: isError ? Colors.red.shade600 : Colors.blue.shade600,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black26,
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                )
+              ],
+            ),
+            child: Center(
+              child: Text(
+                message,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.white, fontSize: 16),
               ),
             ),
           ),
         ),
       ),
+    ),
+  );
+
+  overlay.insert(entry);
+  Future.delayed(const Duration(seconds: 2)).then((_) => entry.remove());
+}
+
+  // ==================== GIAO DIỆN ====================
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor:
+          Colors.white, // Thêm dòng này để set background màu trắng
+      body: Stack(
+        children: [
+          SafeArea(
+            child: Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 16,
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    if (_hienThiLoi != null) ...[
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+                        margin: const EdgeInsets.only(bottom: 10),
+                        decoration: BoxDecoration(
+                          color: Colors.red.shade100,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.error_outline,
+                              color: Colors.red.shade700,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                _hienThiLoi!,
+                                style: TextStyle(
+                                  color: Colors.red.shade700,
+                                  fontSize: 14,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+
+                    Image.asset('assets/images/logo.png', width: 150),
+                    const SizedBox(height: 20),
+                    const Text(
+                      "TẠO TÀI KHOẢN",
+                      style: TextStyle(
+                        fontSize: 26,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue,
+                        fontFamily: 'Georgia',
+                      ),
+                    ),
+                    const SizedBox(height: 30),
+                    _buildEmailField(),
+                    if (tenNganh != null) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        tenNganh!,
+                        style: TextStyle(
+                          color:
+                              tenNganh!.contains("Không") ||
+                                  tenNganh!.contains("Lỗi")
+                              ? Colors.red
+                              : Colors.blue,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 20),
+                    _buildNameField(),
+                    const SizedBox(height: 20),
+                    _buildPasswordField(),
+                    const SizedBox(height: 15),
+                    _buildConfirmPasswordField(),
+                    const SizedBox(height: 25),
+                    _buildRegisterButton(context),
+                    const SizedBox(height: 20),
+                    _buildLoginLink(context),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          if (_isLoading)
+            Container(
+              color: Colors.black.withOpacity(0.4),
+              child: const Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircularProgressIndicator(color: Colors.white),
+                    SizedBox(height: 12),
+                    Text(
+                      "Đang xử lý...",
+                      style: TextStyle(color: Colors.white, fontSize: 16),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 
+  // ==================== FIELD BUILDERS ====================
   Widget _buildEmailField() => _textField(
     emailController,
     Icons.email,
     'Email sinh viên',
     onChanged: (_) => _kiemTraEmail(),
   );
+
   Widget _buildNameField() =>
       _textField(nameController, Icons.person, 'Họ và tên');
+
   Widget _buildPasswordField() => _textField(
     passwordController,
     Icons.lock,
     'Mật khẩu',
-    obscure: true,
-    isPassword: true,
+    obscure: _obscurePassword,
+    suffixIcon: IconButton(
+      icon: Icon(
+        _obscurePassword ? Icons.visibility_off : Icons.visibility,
+        color: Colors.white,
+      ),
+      onPressed: () => setState(() {
+        _obscurePassword = !_obscurePassword;
+      }),
+    ),
   );
+
   Widget _buildConfirmPasswordField() => _textField(
     confirmController,
     Icons.lock_outline,
     'Xác nhận mật khẩu',
-    obscure: true,
-    isConfirm: true,
+    obscure: _obscureConfirm,
+    suffixIcon: IconButton(
+      icon: Icon(
+        _obscureConfirm ? Icons.visibility_off : Icons.visibility,
+        color: Colors.white,
+      ),
+      onPressed: () => setState(() {
+        _obscureConfirm = !_obscureConfirm;
+      }),
+    ),
   );
 
   Widget _textField(
     TextEditingController controller,
     IconData icon,
     String hint, {
-    Function(String)? onChanged,
     bool obscure = false,
-    bool isPassword = false,
-    bool isConfirm = false,
+    Widget? suffixIcon,
+    Function(String)? onChanged,
   }) {
-    return Container(
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.black),
-        borderRadius: BorderRadius.circular(25),
-      ),
-      child: TextField(
-        controller: controller,
-        onChanged: onChanged,
-        obscureText: obscure
-            ? (isPassword ? _obscurePassword : _obscureConfirm)
-            : false,
-        style: const TextStyle(color: Colors.black87),
-        decoration: InputDecoration(
-          prefixIcon: Icon(icon, color: Colors.black),
-          hintText: hint,
-          hintStyle: const TextStyle(color: Colors.black54, fontSize: 14),
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(
-            vertical: 16,
-            horizontal: 20,
-          ),
-          suffixIcon: (isPassword || isConfirm)
-              ? IconButton(
-                  icon: Icon(
-                    (isPassword ? _obscurePassword : _obscureConfirm)
-                        ? Icons.visibility_off
-                        : Icons.visibility,
-                    color: Colors.black54,
-                  ),
-                  onPressed: () => setState(() {
-                    if (isPassword) _obscurePassword = !_obscurePassword;
-                    if (isConfirm) _obscureConfirm = !_obscureConfirm;
-                  }),
-                )
-              : null,
-        ),
+    return TextField(
+      controller: controller,
+      obscureText: obscure,
+      onChanged: onChanged,
+      decoration: InputDecoration(
+        prefixIcon: Icon(icon, color: Colors.black),
+        suffixIcon: suffixIcon,
+        hintText: hint,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(25)),
       ),
     );
   }
 
+  // ==================== BUTTONS ====================
   Widget _buildRegisterButton(BuildContext context) {
     return SizedBox(
       width: double.infinity,
@@ -297,12 +386,12 @@ class _DangKiState extends State<DangKi> {
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFF1F65DE),
-          foregroundColor: const Color.fromARGB(255, 255, 255, 255),
+          foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(25),
           ),
         ),
-        onPressed: () => _dangKy(context),
+        onPressed: _isLoading ? null : () => _dangKy(context),
         child: const Text(
           "Đăng ký",
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -315,10 +404,7 @@ class _DangKiState extends State<DangKi> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const Text(
-          "Bạn đã có tài khoản? ",
-          style: TextStyle(color: Colors.black),
-        ),
+        const Text("Bạn đã có tài khoản? "),
         GestureDetector(
           onTap: () => Navigator.pushReplacement(
             context,

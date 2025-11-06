@@ -95,7 +95,83 @@ class _DangNhapState extends State<DangNhap> {
         duration: const Duration(seconds: 3),
       ),
     );
+    return;
   }
+
+  // Lấy thông tin người dùng trong Firestore
+  DocumentSnapshot doc = await FirebaseFirestore.instance
+      .collection("Users")
+      .doc(id_user)
+      .get();
+
+  if (!doc.exists) {
+    _showSnackBar(context, "Tài khoản hoặc mật khẩu không đúng!");
+    return;
+  }
+
+  String name = doc['fullname'] ?? "Người dùng";
+
+  _showSnackBar(context, "Xin chào $name!", isError: false);
+
+  Navigator.pushReplacement(
+    context,
+    MaterialPageRoute(builder: (context) => const Home()),
+  );
+} on FirebaseAuthException {
+  // Gộp tất cả các lỗi Firebase về cùng một thông báo
+  _showSnackBar(context, "Tài khoản hoặc mật khẩu không đúng!");
+} catch (e) {
+  // Bắt mọi lỗi khác (mạng, Firebase lỗi,...)
+  _showSnackBar(context, "Tài khoản hoặc mật khẩu không đúng!");
+}
+
+  }
+// hiển thị thông báo lỗi
+void _showSnackBar(
+  BuildContext context,
+  String message, {
+  bool isError = true,
+}) {
+  final overlay = Overlay.of(context);
+  final entry = OverlayEntry(
+    builder: (context) => Positioned(
+      top: MediaQuery.of(context).size.height * 0.4,
+      left: 40,
+      right: 40,
+      child: Material(
+        color: Colors.transparent,
+        child: AnimatedOpacity(
+          opacity: 1,
+          duration: const Duration(milliseconds: 300),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: isError ? Colors.red.shade600 : Colors.blue.shade600,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                   color: Colors.black26,
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Center(
+              child: Text(
+                message,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.white, fontSize: 16),
+              ),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+  overlay.insert(entry);
+  Future.delayed(const Duration(seconds: 2)).then((_) => entry.remove());
+}
+
 
   @override
   Widget build(BuildContext context) {
