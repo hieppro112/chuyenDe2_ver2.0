@@ -27,7 +27,7 @@ class PostCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final images = _extractImages(post); // ✅ lấy danh sách ảnh chuẩn
+    final images = _extractImages(post);
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -153,26 +153,14 @@ class PostCard extends StatelessWidget {
 
   ///  Chuẩn hóa danh sách ảnh
   List<String> _extractImages(Map<String, dynamic> post) {
-    final data = post["images"];
-    if (data == null) {
-      if (post["image"] != null && post["image"].toString().isNotEmpty) {
-        return [post["image"]];
-      }
-      return [];
+    // Ưu tiên mảng image_urls (nhiều ảnh)
+    if (post["images"] is List && (post["images"] as List).isNotEmpty) {
+      return (post["images"] as List).cast<String>();
     }
 
-    if (data is List) {
-      return data.map((e) => e.toString()).toList();
-    }
-
-    if (data is String && data.contains('[')) {
-      // Nếu là chuỗi dạng JSON
-      return data
-          .replaceAll('[', '')
-          .replaceAll(']', '')
-          .split(',')
-          .map((e) => e.trim())
-          .toList();
+    // Fallback: nếu chỉ có 1 ảnh từ file_url cũ
+    if (post["image"] != null && post["image"].toString().isNotEmpty) {
+      return [post["image"].toString()];
     }
 
     return [];
