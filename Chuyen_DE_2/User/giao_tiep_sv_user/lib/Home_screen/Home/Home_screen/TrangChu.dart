@@ -5,7 +5,6 @@ import 'dang_bai_dialog.dart';
 import 'left_panel.dart';
 import 'group_info_dialog.dart';
 import 'search_page.dart';
-// Import service lấy nhóm và global state
 import '../../../FireBase_Service/get_joined_groups.dart';
 import '../../../Data/global_state.dart';
 
@@ -21,13 +20,14 @@ class _TrangChuState extends State<TrangChu> {
   final GetJoinedGroupsService _groupService = GetJoinedGroupsService();
 
   bool _isOpen = false;
-  // ✅ currentGroup: Đặt nhóm mặc định là nhóm đầu tiên người dùng thấy
   String currentGroup = "CNTT";
 
   List<Map<String, dynamic>> allPosts = [];
   List<Map<String, dynamic>> filteredPosts = [];
 
-  // Nơi lưu trữ danh sách nhóm đã tham gia (name)
+  // Nơi lưu trữ DANH SÁCH OBJECT nhóm đã tham gia (bao gồm tên và avatar_url)
+  List<Map<String, dynamic>> _joinedGroupsData = [];
+  // Nơi lưu trữ danh sách TÊN nhóm (chỉ dùng cho DangBaiDialog)
   List<String> _joinedGroupNames = [];
 
   void _changeGroup(String newGroup) {
@@ -48,7 +48,7 @@ class _TrangChuState extends State<TrangChu> {
     });
   }
 
-  // HÀM MỚI: LẤY DANH SÁCH TÊN NHÓM ĐÃ THAM GIA
+  // LẤY DANH SÁCH TÊN NHÓM VÀ DATA NHÓM
   Future<void> _fetchJoinedGroupNames() async {
     final userId = GlobalState.currentUserId.isNotEmpty
         ? GlobalState.currentUserId
@@ -56,17 +56,20 @@ class _TrangChuState extends State<TrangChu> {
 
     final groups = await _groupService.fetchJoinedGroups(userId);
 
-    // Lọc ra chỉ lấy TÊN nhóm và loại bỏ "Tất cả"
-    final names = groups
-        .map((g) => g['name'].toString())
-        .where((name) => name != "Tất cả")
+    // Lọc ra data nhóm hợp lệ (không phải "Tất cả")
+    final validGroupsData = groups
+        .where((group) => group["name"] != "Tất cả")
         .toList();
 
-    setState(() {
-      _joinedGroupNames = names;
+    // Lọc ra chỉ lấy TÊN nhóm
+    final names = validGroupsData.map((g) => g['name'].toString()).toList();
 
-      // ✅ CẬP NHẬT NHÓM HIỂN THỊ MẶC ĐỊNH LÀ NHÓM ĐẦU TIÊN ĐÃ THAM GIA
-      if (names.isNotEmpty) {
+    setState(() {
+      _joinedGroupsData = validGroupsData; // Lưu data nhóm
+      _joinedGroupNames = names; // Lưu tên nhóm
+
+      //  CẬP NHẬT NHÓM HIỂN THỊ MẶC ĐỊNH
+      if (names.isNotEmpty && currentGroup == "CNTT") {
         currentGroup = names.first;
       }
       _filterPosts();
@@ -75,9 +78,7 @@ class _TrangChuState extends State<TrangChu> {
 
   //  HÀM LỌC BÀI VIẾT DỰA TRÊN currentGroup
   void _filterPosts() {
-    // ✅ LOẠI BỎ LOGIC LỌC TẤT CẢ (chỉ lọc theo tên nhóm cụ thể)
     if (currentGroup == "Tất cả") {
-      // Nếu currentGroup vẫn là "Tất cả" (chưa load được nhóm), hiển thị rỗng hoặc tất cả (tạm thời)
       filteredPosts = allPosts;
     } else {
       filteredPosts = allPosts
@@ -106,8 +107,22 @@ class _TrangChuState extends State<TrangChu> {
     _fetchPosts();
   }
 
+  // Hàm tra cứu URL Avatar của nhóm đang hiển thị
+  String _getCurrentGroupAvatar() {
+    final currentGroupData = _joinedGroupsData.firstWhere(
+      (group) => group['name'] == currentGroup,
+      orElse: () => {"avatar_url": null},
+    );
+    // URL mặc định
+    return currentGroupData['avatar_url'] ??
+        "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSTaXZWZglx63-gMfBzslxSUQdqqvCp0QJiOA&s";
+  }
+
   @override
   Widget build(BuildContext context) {
+    // Lấy URL avatar của nhóm đang hiển thị
+    final groupAvatarUrl = _getCurrentGroupAvatar();
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: Stack(
@@ -212,7 +227,7 @@ class _TrangChuState extends State<TrangChu> {
                     ),
                   ),
 
-                  //Thông tin nhóm
+                  //Thông tin nhóm (AVATAR NHÓM HIỂN THỊ Ở ĐÂY)
                   Padding(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16.0,
@@ -223,11 +238,10 @@ class _TrangChuState extends State<TrangChu> {
                       children: [
                         Row(
                           children: [
-                            const CircleAvatar(
+                            //  SỬ DỤNG AVATAR CỦA NHÓM ĐANG HIỂN THỊ
+                            CircleAvatar(
                               radius: 16,
-                              backgroundImage: NetworkImage(
-                                "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSTaXZWZglx63-gMfBzslxSUQdqqvCp0QJiOA&s",
-                              ),
+                              backgroundImage: NetworkImage(groupAvatarUrl),
                             ),
                             const SizedBox(width: 8),
                             Text(
@@ -322,7 +336,7 @@ class _TrangChuState extends State<TrangChu> {
 
   // Mở dialog đăng bài
   void _openDangBaiDialog() async {
-    // ✅ TRUYỀN DANH SÁCH NHÓM ĐÃ THAM GIA (KHÔNG BAO GỒM "Tất cả")
+    // TRUYỀN DANH SÁCH TÊN NHÓM ĐÃ THAM GIA
     final isSuccess = await showDialog<bool>(
       context: context,
       builder: (_) => DangBaiDialog(availableGroups: _joinedGroupNames),

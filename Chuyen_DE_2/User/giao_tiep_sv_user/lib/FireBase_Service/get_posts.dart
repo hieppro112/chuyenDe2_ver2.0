@@ -29,7 +29,7 @@ class GetPosts {
     try {
       final snapshot = await _firestore
           .collection('Post')
-          // ✅ LỌC THEO STATUS_ID
+          // LỌC THEO STATUS_ID
           .where('status_id', isEqualTo: 1)
           .orderBy('date_created', descending: true)
           .get();
@@ -55,7 +55,7 @@ class GetPosts {
             "date": (data["date_created"] is Timestamp)
                 ? (data["date_created"] as Timestamp).toDate().toString()
                 : null,
-            "image": data["file_url"],
+            "images": data["image_urls"] ?? [],
             "likes": 0,
             "isLiked": false,
             "comments": <Map<String, dynamic>>[],
