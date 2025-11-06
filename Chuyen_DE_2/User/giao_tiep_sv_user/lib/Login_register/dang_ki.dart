@@ -24,7 +24,6 @@ class _DangKiState extends State<DangKi> {
   String? tenNganh;
   String? maNganh;
 
-  // ==================== KIỂM TRA EMAIL ====================
   void _kiemTraEmail() async {
     String email = emailController.text.trim();
     final RegExp pattern = RegExp(
