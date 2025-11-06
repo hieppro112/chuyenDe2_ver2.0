@@ -20,8 +20,7 @@ class CreatePostService {
         "group_id": groupId,
         "date_created": FieldValue.serverTimestamp(),
         "file_url": fileUrl,
-        "status_id": 1,
-        "id_port": "ABC",
+        "status_id": 0,
       };
 
       await _firestore.collection('Post').add(postData);
