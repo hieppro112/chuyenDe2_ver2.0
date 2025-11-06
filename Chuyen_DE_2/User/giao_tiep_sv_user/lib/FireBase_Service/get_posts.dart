@@ -21,17 +21,20 @@ class GetPosts {
     } catch (e) {
       print("Lỗi tra cứu thông tin người dùng: $e");
     }
-    return {}; // Trả về rỗng nếu không tìm thấy
+    return {};
   }
 
-  /// Lấy tất cả bài viết từ Firestore
+  /// Lấy tất cả bài viết từ Firestore với status_id = 1
   Future<List<Map<String, dynamic>>> fetchPosts() async {
     try {
       final snapshot = await _firestore
           .collection('Post')
+          // ✅ LỌC THEO STATUS_ID
+          .where('status_id', isEqualTo: 1)
           .orderBy('date_created', descending: true)
           .get();
 
+      // ... (Phần tra cứu chi tiết người dùng)
       final postsWithDetails = await Future.wait(
         snapshot.docs.map((doc) async {
           final data = doc.data();
@@ -63,6 +66,9 @@ class GetPosts {
       return postsWithDetails;
     } catch (e) {
       print("🔥 Lỗi tải bài viết từ PostService: $e");
+      print(
+        ">>> Gợi ý: Kiểm tra Firebase Console nếu có thông báo thiếu Index cho Query OrderBy + Where.",
+      );
       return [];
     }
   }

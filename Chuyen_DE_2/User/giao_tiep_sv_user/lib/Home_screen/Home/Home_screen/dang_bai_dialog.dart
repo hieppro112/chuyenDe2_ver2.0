@@ -3,6 +3,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:io';
 import '../../../FireBase_Service/create_post.dart';
+import '../../../Data/global_state.dart';
 
 class DangBaiDialog extends StatefulWidget {
   final List<String> availableGroups;
@@ -15,7 +16,7 @@ class DangBaiDialog extends StatefulWidget {
 
 class _DangBaiDialogState extends State<DangBaiDialog> {
   final CreatePostService _createPostService = CreatePostService();
-
+  final userId = GlobalState.currentUserId;
   late String selectedGroup;
   final TextEditingController contentController = TextEditingController();
 
@@ -98,6 +99,7 @@ class _DangBaiDialogState extends State<DangBaiDialog> {
         : null;
 
     final success = await _createPostService.uploadPost(
+      currentUserId: userId,
       content: contentController.text.trim(),
       groupId: selectedGroup,
       fileUrl: uploadedFileUrl,

@@ -4,6 +4,7 @@ import 'quen_mk.dart';
 import 'package:giao_tiep_sv_user/Home_screen/home.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../Data/global_state.dart';
 
 class DangNhap extends StatefulWidget {
   const DangNhap({super.key});
@@ -24,7 +25,7 @@ class _DangNhapState extends State<DangNhap> {
     super.dispose();
   }
 
-  // ------------------ HÀM ĐĂNG NHẬP ------------------
+  // Hàm đăng nhập
   void _dangNhap(BuildContext context) async {
     String email = _emailController.text.trim();
     String password = _passwordController.text;
@@ -39,26 +40,60 @@ class _DangNhapState extends State<DangNhap> {
       return;
     }
 
-    final id_user = email.split('@').first.toUpperCase();
+    final id_user = email.split('@').first.toUpperCase(); // Lấy ID người dùng
 
     try {
-  // Đăng nhập bằng Firebase Auth
-  UserCredential credential = await FirebaseAuth.instance
-      .signInWithEmailAndPassword(email: email, password: password);
+      // Đăng nhập bằng Firebase Auth
+      UserCredential credential = await FirebaseAuth.instance
+          .signInWithEmailAndPassword(email: email, password: password);
 
-  User? user = credential.user;
-  if (user == null) {
-    _showSnackBar(context, "Tài khoản hoặc mật khẩu không đúng!");
-    return;
+      User? user = credential.user;
+      if (user == null) {
+        _showSnackBar(context, "Đăng nhập thất bại!");
+        return;
+      }
+
+      // 1. Kiểm tra thông tin người dùng trong Firestore
+      DocumentSnapshot doc = await FirebaseFirestore.instance
+          .collection("Users")
+          .doc(id_user)
+          .get();
+
+      if (!doc.exists) {
+        _showSnackBar(context, "Không tìm thấy thông tin người dùng!");
+        return;
+      }
+
+      String name = doc['fullname'] ?? "Người dùng";
+
+      //  LƯU ID VÀ TÊN VÀO TRẠNG THÁI TOÀN CỤC
+      GlobalState.currentUserId = id_user;
+      GlobalState.currentFullname = name;
+
+      _showSnackBar(context, "Xin chào $name!", isError: false);
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const Home()),
+      );
+    } on FirebaseAuthException catch (e) {
+      _showSnackBar(context, "Tài khoản hoặc mật khẩu không đúng!");
+    } catch (e) {
+      _showSnackBar(context, "Lỗi kết nối. Vui lòng thử lại!");
+    }
   }
 
-  // Kiểm tra email xác thực
-  await user.reload();
-  if (!user.emailVerified) {
-    await FirebaseAuth.instance.signOut();
-    _showSnackBar(
-      context,
-      "Tài khoản chưa xác thực email.\nVui lòng kiểm tra hộp thư và xác nhận!",
+  void _showSnackBar(
+    BuildContext context,
+    String message, {
+    bool isError = true,
+  }) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Colors.red : Colors.green,
+        duration: const Duration(seconds: 3),
+      ),
     );
     return;
   }

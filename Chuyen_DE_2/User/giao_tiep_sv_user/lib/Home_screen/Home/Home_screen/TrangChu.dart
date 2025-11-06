@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
-import '../../../FireBase_Service/get_posts.dart'; // Đã có sẵn
+import '../../../FireBase_Service/get_posts.dart';
 import 'port_card.dart';
 import 'dang_bai_dialog.dart';
 import 'left_panel.dart';
 import 'group_info_dialog.dart';
 import 'search_page.dart';
+// Import service lấy nhóm và global state
+import '../../../FireBase_Service/get_joined_groups.dart';
+import '../../../Data/global_state.dart';
 
 class TrangChu extends StatefulWidget {
   const TrangChu({super.key});
@@ -15,11 +18,17 @@ class TrangChu extends StatefulWidget {
 
 class _TrangChuState extends State<TrangChu> {
   final GetPosts _postService = GetPosts();
+  final GetJoinedGroupsService _groupService = GetJoinedGroupsService();
 
-  bool _isOpen = false; // trạng thái mở menu trái
-  String currentGroup = "Tất cả";
+  bool _isOpen = false;
+  // ✅ currentGroup: Đặt nhóm mặc định là nhóm đầu tiên người dùng thấy
+  String currentGroup = "CNTT";
+
   List<Map<String, dynamic>> allPosts = [];
   List<Map<String, dynamic>> filteredPosts = [];
+
+  // Nơi lưu trữ danh sách nhóm đã tham gia (name)
+  List<String> _joinedGroupNames = [];
 
   void _changeGroup(String newGroup) {
     setState(() {
@@ -29,6 +38,7 @@ class _TrangChuState extends State<TrangChu> {
     });
   }
 
+  // Hàm lấy bài viết (giữ nguyên)
   Future<void> _fetchPosts() async {
     final fetchedPosts = await _postService.fetchPosts();
 
@@ -38,12 +48,38 @@ class _TrangChuState extends State<TrangChu> {
     });
   }
 
+  // HÀM MỚI: LẤY DANH SÁCH TÊN NHÓM ĐÃ THAM GIA
+  Future<void> _fetchJoinedGroupNames() async {
+    final userId = GlobalState.currentUserId.isNotEmpty
+        ? GlobalState.currentUserId
+        : "23211TT4679"; // ID mặc định nếu chưa đăng nhập
+
+    final groups = await _groupService.fetchJoinedGroups(userId);
+
+    // Lọc ra chỉ lấy TÊN nhóm và loại bỏ "Tất cả"
+    final names = groups
+        .map((g) => g['name'].toString())
+        .where((name) => name != "Tất cả")
+        .toList();
+
+    setState(() {
+      _joinedGroupNames = names;
+
+      // ✅ CẬP NHẬT NHÓM HIỂN THỊ MẶC ĐỊNH LÀ NHÓM ĐẦU TIÊN ĐÃ THAM GIA
+      if (names.isNotEmpty) {
+        currentGroup = names.first;
+      }
+      _filterPosts();
+    });
+  }
+
   //  HÀM LỌC BÀI VIẾT DỰA TRÊN currentGroup
   void _filterPosts() {
+    // ✅ LOẠI BỎ LOGIC LỌC TẤT CẢ (chỉ lọc theo tên nhóm cụ thể)
     if (currentGroup == "Tất cả") {
+      // Nếu currentGroup vẫn là "Tất cả" (chưa load được nhóm), hiển thị rỗng hoặc tất cả (tạm thời)
       filteredPosts = allPosts;
     } else {
-      // Lọc bài viết có tên nhóm khớp với currentGroup
       filteredPosts = allPosts
           .where((post) => post["group"] == currentGroup)
           .toList();
@@ -65,11 +101,10 @@ class _TrangChuState extends State<TrangChu> {
   @override
   void initState() {
     super.initState();
-    _filterPosts();
+    // Khởi tạo nhóm trước khi tải bài viết
+    _fetchJoinedGroupNames();
     _fetchPosts();
   }
-
-  // --- WIDGET BUILD ---
 
   @override
   Widget build(BuildContext context) {
@@ -82,7 +117,6 @@ class _TrangChuState extends State<TrangChu> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Thanh trên cùng (Menu, Search, Đăng bài)
                   Padding(
                     padding: const EdgeInsets.all(12.0),
                     child: Row(
@@ -286,31 +320,20 @@ class _TrangChuState extends State<TrangChu> {
     );
   }
 
-  // --- LOGIC HÀM ---
-
   // Mở dialog đăng bài
   void _openDangBaiDialog() async {
-    // Kiểu trả về đã được đặt đúng là bool?
+    // ✅ TRUYỀN DANH SÁCH NHÓM ĐÃ THAM GIA (KHÔNG BAO GỒM "Tất cả")
     final isSuccess = await showDialog<bool>(
       context: context,
-      builder: (_) => DangBaiDialog(
-        availableGroups: const [
-          "Tất cả",
-          "Mobile - (Flutter, Kotlin)",
-          "Thiết kế đồ họa",
-          "DEV - vui vẻ",
-          "CNTT",
-        ],
-      ),
+      builder: (_) => DangBaiDialog(availableGroups: _joinedGroupNames),
     );
 
-    // Nếu đăng bài thành công (nhận được true), tải lại dữ liệu từ Firebase
     if (isSuccess == true) {
       await _fetchPosts();
     }
   }
 
-  // Hàm hiển thị BOTTOM SHEET BÌNH LUẬN MỚI
+  // Hàm hiển thị BOTTOM SHEET BÌNH LUẬN MỚI (giữ nguyên)
   void _showCommentSheet(Map<String, dynamic> post) {
     TextEditingController commentCtrl = TextEditingController();
 
