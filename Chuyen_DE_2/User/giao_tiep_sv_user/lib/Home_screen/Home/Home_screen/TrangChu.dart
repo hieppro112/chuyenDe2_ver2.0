@@ -1,5 +1,3 @@
-// trang_chu.dart (ĐÃ SỬA)
-
 import 'package:flutter/material.dart';
 import '../../../FireBase_Service/get_posts.dart';
 import 'port_card.dart';
@@ -20,11 +18,12 @@ class TrangChu extends StatefulWidget {
 
 class _TrangChuState extends State<TrangChu> {
   final GetPosts _postService = GetPosts();
-  // Khởi tạo service lấy nhóm
   final GetJoinedGroupsService _groupService = GetJoinedGroupsService();
 
   bool _isOpen = false;
-  String currentGroup = "Tất cả";
+  // ✅ currentGroup: Đặt nhóm mặc định là nhóm đầu tiên người dùng thấy
+  String currentGroup = "CNTT";
+
   List<Map<String, dynamic>> allPosts = [];
   List<Map<String, dynamic>> filteredPosts = [];
 
@@ -57,7 +56,7 @@ class _TrangChuState extends State<TrangChu> {
 
     final groups = await _groupService.fetchJoinedGroups(userId);
 
-    // Lọc ra chỉ lấy TÊN nhóm và loại bỏ "Tất cả" (vì không thể đăng bài vào "Tất cả")
+    // Lọc ra chỉ lấy TÊN nhóm và loại bỏ "Tất cả"
     final names = groups
         .map((g) => g['name'].toString())
         .where((name) => name != "Tất cả")
@@ -65,12 +64,20 @@ class _TrangChuState extends State<TrangChu> {
 
     setState(() {
       _joinedGroupNames = names;
+
+      // ✅ CẬP NHẬT NHÓM HIỂN THỊ MẶC ĐỊNH LÀ NHÓM ĐẦU TIÊN ĐÃ THAM GIA
+      if (names.isNotEmpty) {
+        currentGroup = names.first;
+      }
+      _filterPosts();
     });
   }
 
-  //  HÀM LỌC BÀI VIẾT DỰA TRÊN currentGroup (giữ nguyên)
+  //  HÀM LỌC BÀI VIẾT DỰA TRÊN currentGroup
   void _filterPosts() {
+    // ✅ LOẠI BỎ LOGIC LỌC TẤT CẢ (chỉ lọc theo tên nhóm cụ thể)
     if (currentGroup == "Tất cả") {
+      // Nếu currentGroup vẫn là "Tất cả" (chưa load được nhóm), hiển thị rỗng hoặc tất cả (tạm thời)
       filteredPosts = allPosts;
     } else {
       filteredPosts = allPosts
@@ -94,8 +101,9 @@ class _TrangChuState extends State<TrangChu> {
   @override
   void initState() {
     super.initState();
+    // Khởi tạo nhóm trước khi tải bài viết
+    _fetchJoinedGroupNames();
     _fetchPosts();
-    _fetchJoinedGroupNames(); // ⬅️ Gọi hàm mới khi khởi tạo
   }
 
   @override
@@ -314,13 +322,10 @@ class _TrangChuState extends State<TrangChu> {
 
   // Mở dialog đăng bài
   void _openDangBaiDialog() async {
-    // 💡 SỬ DỤNG DANH SÁCH NHÓM ĐÃ LOAD TỪ FIREBASE
+    // ✅ TRUYỀN DANH SÁCH NHÓM ĐÃ THAM GIA (KHÔNG BAO GỒM "Tất cả")
     final isSuccess = await showDialog<bool>(
       context: context,
-      builder: (_) => DangBaiDialog(
-        availableGroups:
-            _joinedGroupNames, // ✅ Truyền danh sách nhóm đã tham gia
-      ),
+      builder: (_) => DangBaiDialog(availableGroups: _joinedGroupNames),
     );
 
     if (isSuccess == true) {
