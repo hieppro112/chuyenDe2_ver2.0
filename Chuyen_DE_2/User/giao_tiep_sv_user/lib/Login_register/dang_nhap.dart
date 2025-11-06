@@ -24,7 +24,7 @@ class _DangNhapState extends State<DangNhap> {
     super.dispose();
   }
 
- // Hàm đăng nhập
+  // ------------------ HÀM ĐĂNG NHẬP ------------------
   void _dangNhap(BuildContext context) async {
     String email = _emailController.text.trim();
     String password = _passwordController.text;
@@ -39,55 +39,104 @@ class _DangNhapState extends State<DangNhap> {
       return;
     }
 
-    
     final id_user = email.split('@').first.toUpperCase();
 
     try {
-      // Đăng nhập bằng Firebase Auth
-      UserCredential credential = await FirebaseAuth.instance
-          .signInWithEmailAndPassword(email: email, password: password);
+  // Đăng nhập bằng Firebase Auth
+  UserCredential credential = await FirebaseAuth.instance
+      .signInWithEmailAndPassword(email: email, password: password);
 
-      User? user = credential.user;
-      if (user == null) {
-        _showSnackBar(context, "Đăng nhập thất bại!");
-        return;
-      }
-
-      
-      DocumentSnapshot doc = await FirebaseFirestore.instance
-          .collection("Users")
-          .doc(id_user)  
-          .get();
-
-      if (!doc.exists) {
-        _showSnackBar(context, "Không tìm thấy thông tin người dùng!");
-        return;
-      }
-
-      String name = doc['fullname'] ?? "Người dùng";
-
-      _showSnackBar(context, "Xin chào $name!", isError: false);
-
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const Home()),
-      );
-    } on FirebaseAuthException catch (e) {
-      _showSnackBar(context, "Tài khoản hoặc mật khẩu không đúng!");
-    } catch (e) {
-      _showSnackBar(context, "Lỗi kết nối. Vui lòng thử lại!");
-    }
+  User? user = credential.user;
+  if (user == null) {
+    _showSnackBar(context, "Tài khoản hoặc mật khẩu không đúng!");
+    return;
   }
 
-  void _showSnackBar(BuildContext context, String message, {bool isError = true}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: isError ? Colors.red : Colors.green,
-        duration: const Duration(seconds: 3),
-      ),
+  // Kiểm tra email xác thực
+  await user.reload();
+  if (!user.emailVerified) {
+    await FirebaseAuth.instance.signOut();
+    _showSnackBar(
+      context,
+      "Tài khoản chưa xác thực email.\nVui lòng kiểm tra hộp thư và xác nhận!",
     );
+    return;
   }
+
+  // Lấy thông tin người dùng trong Firestore
+  DocumentSnapshot doc = await FirebaseFirestore.instance
+      .collection("Users")
+      .doc(id_user)
+      .get();
+
+  if (!doc.exists) {
+    _showSnackBar(context, "Tài khoản hoặc mật khẩu không đúng!");
+    return;
+  }
+
+  String name = doc['fullname'] ?? "Người dùng";
+
+  _showSnackBar(context, "Xin chào $name!", isError: false);
+
+  Navigator.pushReplacement(
+    context,
+    MaterialPageRoute(builder: (context) => const Home()),
+  );
+} on FirebaseAuthException {
+  // Gộp tất cả các lỗi Firebase về cùng một thông báo
+  _showSnackBar(context, "Tài khoản hoặc mật khẩu không đúng!");
+} catch (e) {
+  // Bắt mọi lỗi khác (mạng, Firebase lỗi,...)
+  _showSnackBar(context, "Tài khoản hoặc mật khẩu không đúng!");
+}
+
+  }
+// hiển thị thông báo lỗi
+void _showSnackBar(
+  BuildContext context,
+  String message, {
+  bool isError = true,
+}) {
+  final overlay = Overlay.of(context);
+  final entry = OverlayEntry(
+    builder: (context) => Positioned(
+      top: MediaQuery.of(context).size.height * 0.4,
+      left: 40,
+      right: 40,
+      child: Material(
+        color: Colors.transparent,
+        child: AnimatedOpacity(
+          opacity: 1,
+          duration: const Duration(milliseconds: 300),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: isError ? Colors.red.shade600 : Colors.blue.shade600,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                   color: Colors.black26,
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Center(
+              child: Text(
+                message,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.white, fontSize: 16),
+              ),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+  overlay.insert(entry);
+  Future.delayed(const Duration(seconds: 2)).then((_) => entry.remove());
+}
+
 
   @override
   Widget build(BuildContext context) {
@@ -169,12 +218,16 @@ class _DangNhapState extends State<DangNhap> {
               _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
               color: Colors.black54,
             ),
-            onPressed: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
+            onPressed: () =>
+                setState(() => _isPasswordVisible = !_isPasswordVisible),
           ),
           hintText: 'Mật khẩu',
           hintStyle: const TextStyle(color: Colors.black54),
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+          contentPadding: const EdgeInsets.symmetric(
+            vertical: 16,
+            horizontal: 20,
+          ),
         ),
       ),
     );
@@ -185,8 +238,14 @@ class _DangNhapState extends State<DangNhap> {
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
         TextButton(
-          onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const QuenMatKhau())),
-          child: const Text("Quên mật khẩu?", style: TextStyle(color: Colors.red)),
+          onPressed: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const QuenMatKhau()),
+          ),
+          child: const Text(
+            "Quên mật khẩu?",
+            style: TextStyle(color: Colors.red),
+          ),
         ),
       ],
     );
@@ -200,10 +259,15 @@ class _DangNhapState extends State<DangNhap> {
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFF1F65DE),
           foregroundColor: const Color.fromARGB(255, 255, 255, 255),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(25),
+          ),
         ),
         onPressed: () => _dangNhap(context),
-        child: const Text("Đăng nhập", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        child: const Text(
+          "Đăng nhập",
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
       ),
     );
   }
@@ -212,10 +276,22 @@ class _DangNhapState extends State<DangNhap> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const Text("Bạn chưa có tài khoản? ", style: TextStyle(color: Colors.black)),
+        const Text(
+          "Bạn chưa có tài khoản? ",
+          style: TextStyle(color: Colors.black),
+        ),
         GestureDetector(
-          onTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const DangKi())),
-          child: const Text("Đăng ký ngay", style: TextStyle(color: Color(0xFF1F65DE), fontWeight: FontWeight.bold)),
+          onTap: () => Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const DangKi()),
+          ),
+          child: const Text(
+            "Đăng ký ngay",
+            style: TextStyle(
+              color: Color(0xFF1F65DE),
+              fontWeight: FontWeight.bold,
+            ),
+          ),
         ),
       ],
     );
