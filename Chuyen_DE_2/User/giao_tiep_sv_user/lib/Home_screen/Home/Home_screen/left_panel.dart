@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'Group_create/tham_gia_nhom.dart';
 import 'package:giao_tiep_sv_user/Home_screen/home.dart';
+import 'package:giao_tiep_sv_user/Data/global_state.dart';
+import 'package:giao_tiep_sv_user/FireBase_Service/get_joined_groups.dart';
 
 class LeftPanel extends StatefulWidget {
   final VoidCallback onClose;
@@ -19,37 +21,57 @@ class LeftPanel extends StatefulWidget {
 }
 
 class _LeftPanelState extends State<LeftPanel> {
-  //  Dữ liệu nhóm gốc
-  final List<Map<String, dynamic>> _groups = const [
-    {"name": "Tất cả", "icon": Icons.public},
-    {"name": "Mobile - (Flutter, Kotlin)", "icon": Icons.phone_android},
-    {"name": "Thiết kế đồ họa", "icon": Icons.computer},
-    {"name": "DEV - vui vẻ", "icon": Icons.developer_mode},
-    {"name": "CNTT", "icon": Icons.school},
-  ];
-
-  //  Danh sách nhóm đang hiển thị
-  late List<Map<String, dynamic>> _filteredGroups;
-
-  //  Controller cho ô tìm kiếm
+  final GetJoinedGroupsService _groupService = GetJoinedGroupsService();
   final TextEditingController _searchController = TextEditingController();
+
+  // ID người dùng hiện tại (Lấy từ global state hoặc mặc định)
+  final String _currentUserId = GlobalState.currentUserId.isNotEmpty
+      ? GlobalState.currentUserId
+      : "23211TT4679"; // ID mặc định nếu chưa đăng nhập
+
+  List<Map<String, dynamic>> _groups = [];
+  List<Map<String, dynamic>> _filteredGroups = [];
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _filteredGroups = _groups; // mặc định hiển thị toàn bộ
+    _fetchGroups();
+    _searchController.addListener(_filterGroups);
   }
 
-  //  Hàm lọc nhóm
-  void _filterGroups(String query) {
-    final lowerQuery = query.toLowerCase();
+  @override
+  void dispose() {
+    _searchController.removeListener(_filterGroups);
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  // Hàm tải danh sách nhóm từ Firebase
+  Future<void> _fetchGroups() async {
+    setState(() => _isLoading = true);
+    final fetched = await _groupService.fetchJoinedGroups(_currentUserId);
 
     setState(() {
-      if (lowerQuery.isEmpty) {
+      // ✅ Bỏ nhóm "Tất cả" khỏi danh sách hiển thị
+      _groups = fetched.where((group) => group["name"] != "Tất cả").toList();
+      _filteredGroups = _groups;
+      _isLoading = false;
+      if (_searchController.text.isNotEmpty) _filterGroups();
+    });
+  }
+
+  // Hàm lọc nhóm theo tên
+  void _filterGroups() {
+    final query = _searchController.text.toLowerCase();
+    setState(() {
+      if (query.isEmpty) {
         _filteredGroups = _groups;
       } else {
         _filteredGroups = _groups
-            .where((group) => group["name"].toLowerCase().contains(lowerQuery))
+            .where(
+              (group) => (group["name"] ?? "").toLowerCase().contains(query),
+            )
             .toList();
       }
     });
@@ -111,10 +133,9 @@ class _LeftPanelState extends State<LeftPanel> {
             ),
             const SizedBox(height: 12),
 
-            //  Thanh tìm kiếm
+            // Thanh tìm kiếm
             TextField(
               controller: _searchController,
-              onChanged: _filterGroups,
               decoration: InputDecoration(
                 hintText: "Tìm nhóm...",
                 prefixIcon: const Icon(Icons.search),
@@ -128,7 +149,7 @@ class _LeftPanelState extends State<LeftPanel> {
             ),
             const SizedBox(height: 12),
 
-            //  Nút "Trang chủ"
+            // Nút "Trang chủ"
             ListTile(
               leading: const Icon(Icons.home),
               title: const Text("Trang chủ"),
@@ -142,13 +163,16 @@ class _LeftPanelState extends State<LeftPanel> {
             ),
             const Divider(),
 
-            //  Danh sách nhóm có lọc
+            // Danh sách nhóm
             Expanded(
-              child: _filteredGroups.isEmpty
-                  ? const Center(
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _filteredGroups.isEmpty
+                  ? Center(
                       child: Text(
-                        "Không tìm thấy nhóm nào",
-                        style: TextStyle(color: Colors.grey),
+                        "Không tìm thấy nhóm.\nUser ID: $_currentUserId",
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: Colors.grey),
                       ),
                     )
                   : ListView.builder(
@@ -157,10 +181,26 @@ class _LeftPanelState extends State<LeftPanel> {
                       itemBuilder: (context, index) {
                         final group = _filteredGroups[index];
                         return ListTile(
-                          leading: Icon(group["icon"]),
+                          leading: group["avatar_url"] != null
+                              ? CircleAvatar(
+                                  radius: 18,
+                                  backgroundImage: NetworkImage(
+                                    group["avatar_url"],
+                                  ),
+                                  backgroundColor: Colors.grey.shade200,
+                                )
+                              : CircleAvatar(
+                                  radius: 18,
+                                  backgroundColor: Colors.grey.shade200,
+                                  child: Icon(
+                                    group["icon"] as IconData,
+                                    color: Colors.grey.shade700,
+                                  ),
+                                ),
                           title: Text(group["name"]),
                           onTap: () {
                             widget.onGroupSelected(group["name"]);
+                            widget.onClose();
                           },
                         );
                       },

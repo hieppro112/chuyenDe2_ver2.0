@@ -1,12 +1,39 @@
+// lib/widgets/DangBaiDialog.dart
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
-import 'dart:io';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../FireBase_Service/create_post.dart';
+import '../../../Data/global_state.dart';
+
+// ======== UPLOAD SERVICE (giữ nguyên hoặc thêm vào file riêng) ========
+class UploadService {
+  final FirebaseStorage _storage = FirebaseStorage.instance;
+
+  Future<String?> uploadFile(File file, String userId) async {
+    final fileName = file.path.split('/').last;
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final path = 'groups/$userId/$now-$fileName';
+
+    try {
+      final ref = _storage.ref().child(path);
+      final uploadTask = ref.putFile(file);
+      final snapshot = await uploadTask;
+      final downloadUrl = await snapshot.ref.getDownloadURL();
+      print("Upload thành công: $downloadUrl");
+      return downloadUrl;
+    } catch (e) {
+      print("Lỗi upload: $e");
+      return null;
+    }
+  }
+}
+// ====================================================================
 
 class DangBaiDialog extends StatefulWidget {
   final List<String> availableGroups;
-
   const DangBaiDialog({super.key, required this.availableGroups});
 
   @override
@@ -15,58 +42,19 @@ class DangBaiDialog extends StatefulWidget {
 
 class _DangBaiDialogState extends State<DangBaiDialog> {
   final CreatePostService _createPostService = CreatePostService();
+  final String? userId = GlobalState.currentUserId;
+  final UploadService _uploadService = UploadService();
 
   late String selectedGroup;
   final TextEditingController contentController = TextEditingController();
 
   List<File> selectedImages = [];
   List<String> selectedFileNames = [];
+  List<File> selectedFiles = []; // Lưu File thực để upload
   String? firstImagePath;
 
   final ImagePicker _picker = ImagePicker();
-
-  Future<void> _pickImages() async {
-    final pickedFiles = await _picker.pickMultiImage();
-    if (pickedFiles.isNotEmpty) {
-      setState(() {
-        selectedImages.addAll(
-          pickedFiles.map((xfile) => File(xfile.path)).toList(),
-        );
-        firstImagePath = selectedImages.first.path;
-        selectedFileNames.clear();
-      });
-    }
-  }
-
-  Future<void> _pickFiles() async {
-    final result = await FilePicker.platform.pickFiles(allowMultiple: true);
-    if (result != null) {
-      setState(() {
-        selectedFileNames.addAll(
-          result.files.map((file) => file.name).toList(),
-        );
-        selectedImages.clear();
-        firstImagePath = null;
-      });
-    }
-  }
-
-  void _removeFile(int index) {
-    setState(() {
-      selectedFileNames.removeAt(index);
-    });
-  }
-
-  void _removeImage(int index) {
-    setState(() {
-      selectedImages.removeAt(index);
-      if (index == 0 && selectedImages.isNotEmpty) {
-        firstImagePath = selectedImages.first.path;
-      } else if (selectedImages.isEmpty) {
-        firstImagePath = null;
-      }
-    });
-  }
+  bool _isUploading = false;
 
   @override
   void initState() {
@@ -86,29 +74,120 @@ class _DangBaiDialogState extends State<DangBaiDialog> {
     super.dispose();
   }
 
-  // HÀM XỬ LÝ ĐĂNG BÀI (ĐÃ SỬA LỖI TRẢ VỀ TYPE)
+  Future<void> _pickImages() async {
+    final picked = await _picker.pickMultiImage();
+    if (picked.isNotEmpty) {
+      setState(() {
+        selectedImages.addAll(picked.map((x) => File(x.path)));
+        selectedFileNames.clear();
+        selectedFiles.clear();
+        firstImagePath = selectedImages.first.path;
+      });
+    }
+  }
+
+  Future<void> _pickFiles() async {
+    final result = await FilePicker.platform.pickFiles(allowMultiple: true);
+    if (result != null && result.files.isNotEmpty) {
+      setState(() {
+        selectedFiles = result.files
+            .where((f) => f.path != null)
+            .map((f) => File(f.path!))
+            .toList();
+        selectedFileNames = result.files.map((f) => f.name).toList();
+        selectedImages.clear();
+        firstImagePath = null;
+      });
+    }
+  }
+
+  void _removeImage(int index) {
+    setState(() {
+      selectedImages.removeAt(index);
+      if (selectedImages.isEmpty) firstImagePath = null;
+    });
+  }
+
+  void _removeFile(int index) {
+    setState(() {
+      selectedFiles.removeAt(index);
+      selectedFileNames.removeAt(index);
+    });
+  }
+
   Future<void> _submitPost() async {
-    if (contentController.text.trim().isEmpty) {
-      return Navigator.pop(context); // Đóng dialog nếu nội dung trống
+    final content = contentController.text.trim();
+
+    if (content.isEmpty && selectedImages.isEmpty && selectedFiles.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Vui lòng nhập nội dung hoặc chọn tệp!")),
+      );
+      return;
     }
 
-    // TẠM THỜI: Dùng local path. Cần thay thế bằng URL của Firebase Storage sau này.
-    final String? uploadedFileUrl = selectedImages.isNotEmpty
-        ? selectedImages.first.path
-        : null;
+    if (userId == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Lỗi: Chưa đăng nhập!")));
+      return;
+    }
 
-    final success = await _createPostService.uploadPost(
-      content: contentController.text.trim(),
-      groupId: selectedGroup,
-      fileUrl: uploadedFileUrl,
-    );
+    setState(() => _isUploading = true);
 
-    if (success) {
-      // ✅ Trả về TRUE (Kiểu bool)
-      Navigator.pop(context, true);
-    } else {
-      // Trả về FALSE (Kiểu bool)
-      Navigator.pop(context, false);
+    List<String> imageUrls = [];
+    String? fileUrl;
+
+    try {
+      // Upload ảnh
+      if (selectedImages.isNotEmpty) {
+        final futures = selectedImages.map(
+          (img) => _uploadService.uploadFile(img, userId!),
+        );
+        final results = await Future.wait(futures);
+        imageUrls = results.whereType<String>().toList();
+
+        if (imageUrls.length != selectedImages.length) {
+          throw Exception("Một số ảnh không tải lên được");
+        }
+      }
+
+      // Upload file đính kèm (chỉ 1 file đầu tiên)
+      if (selectedFiles.isNotEmpty) {
+        final url = await _uploadService.uploadFile(
+          selectedFiles.first,
+          userId!,
+        );
+        if (url != null) fileUrl = url;
+      }
+
+      // Đăng bài
+      final success = await _createPostService.uploadPost(
+        currentUserId: userId!,
+        content: content,
+        groupId: selectedGroup,
+        imageUrls: imageUrls,
+        fileUrl: fileUrl,
+      );
+
+      if (!success) throw Exception("Đăng bài thất bại");
+
+      if (mounted) {
+        Navigator.pop(context, true);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Đăng bài thành công!"),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Lỗi: $e"), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isUploading = false);
     }
   }
 
@@ -123,7 +202,7 @@ class _DangBaiDialogState extends State<DangBaiDialog> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: SingleChildScrollView(
         child: Container(
-          width: 500,
+          width: 520,
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
             color: Colors.white,
@@ -147,266 +226,209 @@ class _DangBaiDialogState extends State<DangBaiDialog> {
                 children: [
                   const Text(
                     'Đăng Bài Viết Mới',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Color.fromARGB(255, 33, 37, 41),
-                    ),
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close, color: Colors.grey, size: 24),
+                    icon: const Icon(Icons.close),
                     onPressed: () => Navigator.pop(context),
                   ),
                 ],
               ),
-              const Divider(height: 25, thickness: 1, color: Colors.grey),
+              const Divider(),
 
-              // Ô nhập nội dung
+              // Nội dung
               Container(
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: Colors.grey.shade50,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey.shade200),
+                  border: Border.all(color: Colors.grey.shade300),
                 ),
                 child: TextField(
                   controller: contentController,
+                  maxLines: 6,
                   decoration: const InputDecoration(
                     hintText: "Bạn đang nghĩ gì? Chia sẻ ngay...",
-                    hintStyle: TextStyle(color: Colors.grey, fontSize: 16),
                     border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 16,
-                    ),
                   ),
-                  maxLines: 6,
-                  minLines: 4,
-                  keyboardType: TextInputType.multiline,
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
 
-              // Khu vực đính kèm
+              // Đính kèm
               const Text(
                 'Đính kèm:',
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
-                ),
+                style: TextStyle(fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 8),
-
               Container(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
+                  horizontal: 12,
                   vertical: 8,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: Colors.grey.shade300),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
                   children: [
                     Tooltip(
-                      message: 'Đính kèm tệp tin (nhiều file)',
+                      message: 'Chọn ảnh',
+                      child: IconButton(
+                        icon: const Icon(Icons.image, color: primaryColor),
+                        onPressed: _pickImages,
+                      ),
+                    ),
+                    Tooltip(
+                      message: 'Chọn file',
                       child: IconButton(
                         icon: const Icon(
                           Icons.attach_file,
-                          size: 28,
                           color: primaryColor,
                         ),
                         onPressed: _pickFiles,
                       ),
                     ),
-                    Tooltip(
-                      message: 'Tải ảnh từ thư viện (nhiều ảnh)',
-                      child: IconButton(
-                        icon: const Icon(
-                          Icons.image_outlined,
-                          size: 28,
-                          color: primaryColor,
-                        ),
-                        onPressed: _pickImages,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: Text(
                         hasAttachments
-                            ? 'Đã đính kèm ${selectedImages.length + selectedFileNames.length} tệp'
-                            : 'Chưa có tệp nào được chọn',
+                            ? 'Đã chọn ${selectedImages.length + selectedFileNames.length} tệp'
+                            : 'Chưa có tệp nào',
                         style: TextStyle(
                           color: hasAttachments ? Colors.black87 : Colors.grey,
-                          fontStyle: hasAttachments ? null : FontStyle.italic,
                         ),
-                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ],
                 ),
               ),
 
-              if (selectedFileNames.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(top: 16),
-                  child: Wrap(
-                    spacing: 8.0,
-                    runSpacing: 4.0,
-                    children: selectedFileNames.asMap().entries.map((entry) {
-                      int index = entry.key;
-                      String fileName = entry.value;
-                      return Chip(
-                        avatar: const Icon(Icons.insert_drive_file, size: 18),
-                        label: Text(
-                          fileName,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontSize: 14),
-                        ),
-                        deleteIcon: const Icon(Icons.close, size: 18),
-                        onDeleted: () => _removeFile(index),
-                        backgroundColor: Colors.blue.shade50,
-                      );
-                    }).toList(),
-                  ),
-                ),
-
+              // Hiển thị ảnh
               if (selectedImages.isNotEmpty)
                 Padding(
-                  padding: const EdgeInsets.only(top: 16),
+                  padding: const EdgeInsets.only(top: 12),
                   child: GridView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     gridDelegate:
                         const SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: 4,
-                          crossAxisSpacing: 8.0,
-                          mainAxisSpacing: 8.0,
+                          crossAxisSpacing: 8,
+                          mainAxisSpacing: 8,
                         ),
                     itemCount: selectedImages.length,
-                    itemBuilder: (context, index) {
-                      return ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: GridTile(
-                          child: Stack(
-                            fit: StackFit.expand,
-                            children: [
-                              Image.file(
-                                selectedImages[index],
-                                fit: BoxFit.cover,
-                              ),
-                              Positioned(
-                                top: 4,
-                                right: 4,
-                                child: InkWell(
-                                  onTap: () => _removeImage(index),
-                                  child: Container(
-                                    padding: const EdgeInsets.all(2),
-                                    decoration: BoxDecoration(
-                                      color: Colors.black54,
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    child: const Icon(
-                                      Icons.close,
-                                      color: Colors.white,
-                                      size: 16,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
+                    itemBuilder: (ctx, i) => Stack(
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.file(
+                            selectedImages[i],
+                            fit: BoxFit.cover,
                           ),
                         ),
+                        Positioned(
+                          top: 4,
+                          right: 4,
+                          child: InkWell(
+                            onTap: () => _removeImage(i),
+                            child: const CircleAvatar(
+                              radius: 12,
+                              backgroundColor: Colors.black54,
+                              child: Icon(
+                                Icons.close,
+                                size: 16,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+              // Hiển thị file
+              if (selectedFileNames.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 12),
+                  child: Wrap(
+                    spacing: 8,
+                    children: selectedFileNames.asMap().entries.map((e) {
+                      return Chip(
+                        label: Text(e.value, overflow: TextOverflow.ellipsis),
+                        deleteIcon: const Icon(Icons.close, size: 16),
+                        onDeleted: () => _removeFile(e.key),
                       );
-                    },
+                    }).toList(),
                   ),
                 ),
 
               const SizedBox(height: 20),
 
-              // 🔹 Chọn nhóm (dùng danh sách từ availableGroups)
+              // Chọn nhóm
               const Text(
                 'Chọn nhóm:',
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
-                ),
+                style: TextStyle(fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
                 value: selectedGroup,
-                items: widget.availableGroups.map((groupName) {
-                  return DropdownMenuItem(
-                    value: groupName,
-                    child: Text(groupName),
-                  );
+                items: widget.availableGroups.map((g) {
+                  return DropdownMenuItem(value: g, child: Text(g));
                 }).toList(),
-                onChanged: (value) {
-                  if (value != null) setState(() => selectedGroup = value);
-                },
+                onChanged: (v) => setState(() => selectedGroup = v!),
                 decoration: InputDecoration(
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide(color: Colors.grey.shade300),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide(color: Colors.grey.shade300),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: const BorderSide(color: primaryColor, width: 2),
                   ),
                   contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 15,
+                    horizontal: 14,
                     vertical: 10,
                   ),
-                  isDense: true,
                 ),
               ),
 
               const SizedBox(height: 30),
 
+              // Nút hành động
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   OutlinedButton(
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.grey.shade700,
-                      side: BorderSide(color: Colors.grey.shade300),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 25,
-                        vertical: 12,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
                     onPressed: () => Navigator.pop(context),
-                    child: const Text('Hủy', style: TextStyle(fontSize: 16)),
+                    child: const Text('Hủy'),
                   ),
-                  const SizedBox(width: 15),
+                  const SizedBox(width: 16),
                   ElevatedButton(
+                    onPressed: _isUploading ? null : _submitPost,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: primaryColor,
-                      foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 25,
-                        vertical: 12,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      elevation: 5,
-                    ),
-                    onPressed: _submitPost,
-                    child: const Text(
-                      'Đăng Bài',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
+                        horizontal: 32,
+                        vertical: 14,
                       ),
                     ),
+                    child: _isUploading
+                        ? const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                              SizedBox(width: 8),
+                              Text("Đang đăng..."),
+                            ],
+                          )
+                        : const Text(
+                            "Đăng Bài",
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
                   ),
                 ],
               ),

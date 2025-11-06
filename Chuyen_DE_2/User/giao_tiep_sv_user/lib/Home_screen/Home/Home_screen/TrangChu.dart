@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
-import '../../../FireBase_Service/get_posts.dart'; // Đã có sẵn
+import '../../../FireBase_Service/get_posts.dart';
 import 'port_card.dart';
 import 'dang_bai_dialog.dart';
 import 'left_panel.dart';
 import 'group_info_dialog.dart';
 import 'search_page.dart';
+import '../../../FireBase_Service/get_joined_groups.dart';
+import '../../../Data/global_state.dart';
 
 class TrangChu extends StatefulWidget {
   const TrangChu({super.key});
@@ -15,11 +17,18 @@ class TrangChu extends StatefulWidget {
 
 class _TrangChuState extends State<TrangChu> {
   final GetPosts _postService = GetPosts();
+  final GetJoinedGroupsService _groupService = GetJoinedGroupsService();
 
-  bool _isOpen = false; // trạng thái mở menu trái
-  String currentGroup = "Tất cả";
+  bool _isOpen = false;
+  String currentGroup = "CNTT";
+
   List<Map<String, dynamic>> allPosts = [];
   List<Map<String, dynamic>> filteredPosts = [];
+
+  // Nơi lưu trữ DANH SÁCH OBJECT nhóm đã tham gia (bao gồm tên và avatar_url)
+  List<Map<String, dynamic>> _joinedGroupsData = [];
+  // Nơi lưu trữ danh sách TÊN nhóm (chỉ dùng cho DangBaiDialog)
+  List<String> _joinedGroupNames = [];
 
   void _changeGroup(String newGroup) {
     setState(() {
@@ -29,6 +38,7 @@ class _TrangChuState extends State<TrangChu> {
     });
   }
 
+  // Hàm lấy bài viết (giữ nguyên)
   Future<void> _fetchPosts() async {
     final fetchedPosts = await _postService.fetchPosts();
 
@@ -38,12 +48,39 @@ class _TrangChuState extends State<TrangChu> {
     });
   }
 
+  // LẤY DANH SÁCH TÊN NHÓM VÀ DATA NHÓM
+  Future<void> _fetchJoinedGroupNames() async {
+    final userId = GlobalState.currentUserId.isNotEmpty
+        ? GlobalState.currentUserId
+        : "23211TT4679"; // ID mặc định nếu chưa đăng nhập
+
+    final groups = await _groupService.fetchJoinedGroups(userId);
+
+    // Lọc ra data nhóm hợp lệ (không phải "Tất cả")
+    final validGroupsData = groups
+        .where((group) => group["name"] != "Tất cả")
+        .toList();
+
+    // Lọc ra chỉ lấy TÊN nhóm
+    final names = validGroupsData.map((g) => g['name'].toString()).toList();
+
+    setState(() {
+      _joinedGroupsData = validGroupsData; // Lưu data nhóm
+      _joinedGroupNames = names; // Lưu tên nhóm
+
+      //  CẬP NHẬT NHÓM HIỂN THỊ MẶC ĐỊNH
+      if (names.isNotEmpty && currentGroup == "CNTT") {
+        currentGroup = names.first;
+      }
+      _filterPosts();
+    });
+  }
+
   //  HÀM LỌC BÀI VIẾT DỰA TRÊN currentGroup
   void _filterPosts() {
     if (currentGroup == "Tất cả") {
       filteredPosts = allPosts;
     } else {
-      // Lọc bài viết có tên nhóm khớp với currentGroup
       filteredPosts = allPosts
           .where((post) => post["group"] == currentGroup)
           .toList();
@@ -65,14 +102,27 @@ class _TrangChuState extends State<TrangChu> {
   @override
   void initState() {
     super.initState();
-    _filterPosts();
+    // Khởi tạo nhóm trước khi tải bài viết
+    _fetchJoinedGroupNames();
     _fetchPosts();
   }
 
-  // --- WIDGET BUILD ---
+  // Hàm tra cứu URL Avatar của nhóm đang hiển thị
+  String _getCurrentGroupAvatar() {
+    final currentGroupData = _joinedGroupsData.firstWhere(
+      (group) => group['name'] == currentGroup,
+      orElse: () => {"avatar_url": null},
+    );
+    // URL mặc định
+    return currentGroupData['avatar_url'] ??
+        "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSTaXZWZglx63-gMfBzslxSUQdqqvCp0QJiOA&s";
+  }
 
   @override
   Widget build(BuildContext context) {
+    // Lấy URL avatar của nhóm đang hiển thị
+    final groupAvatarUrl = _getCurrentGroupAvatar();
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: Stack(
@@ -82,7 +132,6 @@ class _TrangChuState extends State<TrangChu> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Thanh trên cùng (Menu, Search, Đăng bài)
                   Padding(
                     padding: const EdgeInsets.all(12.0),
                     child: Row(
@@ -178,7 +227,7 @@ class _TrangChuState extends State<TrangChu> {
                     ),
                   ),
 
-                  //Thông tin nhóm
+                  //Thông tin nhóm (AVATAR NHÓM HIỂN THỊ Ở ĐÂY)
                   Padding(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16.0,
@@ -189,11 +238,10 @@ class _TrangChuState extends State<TrangChu> {
                       children: [
                         Row(
                           children: [
-                            const CircleAvatar(
+                            //  SỬ DỤNG AVATAR CỦA NHÓM ĐANG HIỂN THỊ
+                            CircleAvatar(
                               radius: 16,
-                              backgroundImage: NetworkImage(
-                                "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSTaXZWZglx63-gMfBzslxSUQdqqvCp0QJiOA&s",
-                              ),
+                              backgroundImage: NetworkImage(groupAvatarUrl),
                             ),
                             const SizedBox(width: 8),
                             Text(
@@ -286,31 +334,20 @@ class _TrangChuState extends State<TrangChu> {
     );
   }
 
-  // --- LOGIC HÀM ---
-
   // Mở dialog đăng bài
   void _openDangBaiDialog() async {
-    // Kiểu trả về đã được đặt đúng là bool?
+    // TRUYỀN DANH SÁCH TÊN NHÓM ĐÃ THAM GIA
     final isSuccess = await showDialog<bool>(
       context: context,
-      builder: (_) => DangBaiDialog(
-        availableGroups: const [
-          "Tất cả",
-          "Mobile - (Flutter, Kotlin)",
-          "Thiết kế đồ họa",
-          "DEV - vui vẻ",
-          "CNTT",
-        ],
-      ),
+      builder: (_) => DangBaiDialog(availableGroups: _joinedGroupNames),
     );
 
-    // Nếu đăng bài thành công (nhận được true), tải lại dữ liệu từ Firebase
     if (isSuccess == true) {
       await _fetchPosts();
     }
   }
 
-  // Hàm hiển thị BOTTOM SHEET BÌNH LUẬN MỚI
+  // Hàm hiển thị BOTTOM SHEET BÌNH LUẬN MỚI (giữ nguyên)
   void _showCommentSheet(Map<String, dynamic> post) {
     TextEditingController commentCtrl = TextEditingController();
 

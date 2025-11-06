@@ -5,6 +5,7 @@ import 'quen_mk.dart';
 import 'package:giao_tiep_sv_user/Home_screen/home.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../Data/global_state.dart';
 
 class DangNhap extends StatefulWidget {
   const DangNhap({super.key});
@@ -33,16 +34,16 @@ class _DangNhapState extends State<DangNhap> {
     String password = _passwordController.text;
 
     if (email.isEmpty || password.isEmpty) {
-      _showSnackBar(context, "Vui lòng nhập đầy đủ thông tin!");
+      _showOverlayMessage(context, "Vui lòng nhập đầy đủ thông tin!");
       return;
     }
 
     if (!email.endsWith("@mail.tdc.edu.vn")) {
-      _showSnackBar(context, "Email phải thuộc TDC!");
+      _showOverlayMessage(context, "Email phải thuộc TDC!");
       return;
     }
 
-    final id_user = email.split('@').first.toUpperCase();
+    final id_user = email.split('@').first.toUpperCase(); // Lấy ID người dùng
 
     try {
       // Đăng nhập bằng Firebase Auth
@@ -51,10 +52,11 @@ class _DangNhapState extends State<DangNhap> {
 
       User? user = credential.user;
       if (user == null) {
-        _showSnackBar(context, "Đăng nhập thất bại!");
+        _showOverlayMessage(context, "Tài khoản hoặc mật khẩu không đúng!");
         return;
       }
 
+      // Lấy thông tin người dùng từ Firestore
       DocumentSnapshot doc = await FirebaseFirestore.instance
           .collection("Users")
           .doc(id_user)
@@ -64,44 +66,82 @@ class _DangNhapState extends State<DangNhap> {
       _profileService.setUserId(id_user);
 
       if (!doc.exists) {
-        _showSnackBar(context, "Không tìm thấy thông tin người dùng!");
+        _showOverlayMessage(context, "Tài khoản hoặc mật khẩu không đúng!");
         return;
       }
 
       String name = doc['fullname'] ?? "Người dùng";
 
-      _showSnackBar(context, "Xin chào $name!", isError: false);
+      // Lưu vào trạng thái toàn cục
+      GlobalState.currentUserId = id_user;
+      GlobalState.currentFullname = name;
 
+      _showOverlayMessage(context, "Xin chào $name!", isError: false);
+
+      // Chuyển sang trang chủ
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const Home()),
       );
-    } on FirebaseAuthException catch (e) {
-      _showSnackBar(context, "Tài khoản hoặc mật khẩu không đúng!");
+    } on FirebaseAuthException {
+      _showOverlayMessage(context, "Tài khoản hoặc mật khẩu không đúng!");
     } catch (e) {
-      _showSnackBar(context, "Lỗi kết nối. Vui lòng thử lại!");
+      _showOverlayMessage(context, "Tài khoản hoặc mật khẩu không đúng!");
     }
   }
 
-  void _showSnackBar(
+  // Hiển thị thông báo giữa màn hình, tự ẩn sau vài giây
+  void _showOverlayMessage(
     BuildContext context,
     String message, {
     bool isError = true,
   }) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: isError ? Colors.red : Colors.green,
-        duration: const Duration(seconds: 3),
+    final overlay = Overlay.of(context);
+    final entry = OverlayEntry(
+      builder: (context) => Positioned(
+        top: MediaQuery.of(context).size.height * 0.4,
+        left: 40,
+        right: 40,
+        child: Material(
+          color: Colors.transparent,
+          child: AnimatedOpacity(
+            opacity: 1,
+            duration: const Duration(milliseconds: 300),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: isError ? Colors.red.shade600 : Colors.blue.shade600,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Colors.black26,
+                    blurRadius: 10,
+                    offset: Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Center(
+                child: Text(
+                  message,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.white, fontSize: 16),
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
     );
+
+    overlay.insert(entry);
+    Future.delayed(const Duration(seconds: 2)).then((_) => entry.remove());
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(color: Colors.white),
+        color: Colors.white,
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
@@ -217,7 +257,7 @@ class _DangNhapState extends State<DangNhap> {
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFF1F65DE),
-          foregroundColor: const Color.fromARGB(255, 255, 255, 255),
+          foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(25),
           ),
