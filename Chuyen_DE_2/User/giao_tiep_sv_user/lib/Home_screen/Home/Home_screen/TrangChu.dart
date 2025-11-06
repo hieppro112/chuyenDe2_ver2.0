@@ -1,10 +1,15 @@
+// trang_chu.dart (ĐÃ SỬA)
+
 import 'package:flutter/material.dart';
-import '../../../FireBase_Service/get_posts.dart'; // Đã có sẵn
+import '../../../FireBase_Service/get_posts.dart';
 import 'port_card.dart';
 import 'dang_bai_dialog.dart';
 import 'left_panel.dart';
 import 'group_info_dialog.dart';
 import 'search_page.dart';
+// Import service lấy nhóm và global state
+import '../../../FireBase_Service/get_joined_groups.dart';
+import '../../../Data/global_state.dart';
 
 class TrangChu extends StatefulWidget {
   const TrangChu({super.key});
@@ -15,11 +20,16 @@ class TrangChu extends StatefulWidget {
 
 class _TrangChuState extends State<TrangChu> {
   final GetPosts _postService = GetPosts();
+  // Khởi tạo service lấy nhóm
+  final GetJoinedGroupsService _groupService = GetJoinedGroupsService();
 
-  bool _isOpen = false; // trạng thái mở menu trái
+  bool _isOpen = false;
   String currentGroup = "Tất cả";
   List<Map<String, dynamic>> allPosts = [];
   List<Map<String, dynamic>> filteredPosts = [];
+
+  // Nơi lưu trữ danh sách nhóm đã tham gia (name)
+  List<String> _joinedGroupNames = [];
 
   void _changeGroup(String newGroup) {
     setState(() {
@@ -29,6 +39,7 @@ class _TrangChuState extends State<TrangChu> {
     });
   }
 
+  // Hàm lấy bài viết (giữ nguyên)
   Future<void> _fetchPosts() async {
     final fetchedPosts = await _postService.fetchPosts();
 
@@ -38,12 +49,30 @@ class _TrangChuState extends State<TrangChu> {
     });
   }
 
-  //  HÀM LỌC BÀI VIẾT DỰA TRÊN currentGroup
+  // HÀM MỚI: LẤY DANH SÁCH TÊN NHÓM ĐÃ THAM GIA
+  Future<void> _fetchJoinedGroupNames() async {
+    final userId = GlobalState.currentUserId.isNotEmpty
+        ? GlobalState.currentUserId
+        : "23211TT4679"; // ID mặc định nếu chưa đăng nhập
+
+    final groups = await _groupService.fetchJoinedGroups(userId);
+
+    // Lọc ra chỉ lấy TÊN nhóm và loại bỏ "Tất cả" (vì không thể đăng bài vào "Tất cả")
+    final names = groups
+        .map((g) => g['name'].toString())
+        .where((name) => name != "Tất cả")
+        .toList();
+
+    setState(() {
+      _joinedGroupNames = names;
+    });
+  }
+
+  //  HÀM LỌC BÀI VIẾT DỰA TRÊN currentGroup (giữ nguyên)
   void _filterPosts() {
     if (currentGroup == "Tất cả") {
       filteredPosts = allPosts;
     } else {
-      // Lọc bài viết có tên nhóm khớp với currentGroup
       filteredPosts = allPosts
           .where((post) => post["group"] == currentGroup)
           .toList();
@@ -65,11 +94,9 @@ class _TrangChuState extends State<TrangChu> {
   @override
   void initState() {
     super.initState();
-    _filterPosts();
     _fetchPosts();
+    _fetchJoinedGroupNames(); // ⬅️ Gọi hàm mới khi khởi tạo
   }
-
-  // --- WIDGET BUILD ---
 
   @override
   Widget build(BuildContext context) {
@@ -82,7 +109,6 @@ class _TrangChuState extends State<TrangChu> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Thanh trên cùng (Menu, Search, Đăng bài)
                   Padding(
                     padding: const EdgeInsets.all(12.0),
                     child: Row(
@@ -286,31 +312,23 @@ class _TrangChuState extends State<TrangChu> {
     );
   }
 
-  // --- LOGIC HÀM ---
-
   // Mở dialog đăng bài
   void _openDangBaiDialog() async {
-    // Kiểu trả về đã được đặt đúng là bool?
+    // 💡 SỬ DỤNG DANH SÁCH NHÓM ĐÃ LOAD TỪ FIREBASE
     final isSuccess = await showDialog<bool>(
       context: context,
       builder: (_) => DangBaiDialog(
-        availableGroups: const [
-          "Tất cả",
-          "Mobile - (Flutter, Kotlin)",
-          "Thiết kế đồ họa",
-          "DEV - vui vẻ",
-          "CNTT",
-        ],
+        availableGroups:
+            _joinedGroupNames, // ✅ Truyền danh sách nhóm đã tham gia
       ),
     );
 
-    // Nếu đăng bài thành công (nhận được true), tải lại dữ liệu từ Firebase
     if (isSuccess == true) {
       await _fetchPosts();
     }
   }
 
-  // Hàm hiển thị BOTTOM SHEET BÌNH LUẬN MỚI
+  // Hàm hiển thị BOTTOM SHEET BÌNH LUẬN MỚI (giữ nguyên)
   void _showCommentSheet(Map<String, dynamic> post) {
     TextEditingController commentCtrl = TextEditingController();
 
