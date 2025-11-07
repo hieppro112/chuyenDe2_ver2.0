@@ -93,12 +93,25 @@ class _ProfileHeaderWidgetState extends State<ProfileHeaderWidget> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    widget.name,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+                  Row(
+                    children: [
+                      Text(
+                        widget.name,
+                        style: const TextStyle(
+                          fontSize: 21,
+                          color: Colors.blue,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        "• ${widget.postCount} bài viết", // Dấu chấm giữa
+                        style: const TextStyle(
+                          color: Colors.blueAccent,
+                          fontSize: 18,
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 6),
                   if (_isLoading)
@@ -107,21 +120,14 @@ class _ProfileHeaderWidgetState extends State<ProfileHeaderWidget> {
                       child: LinearProgressIndicator(minHeight: 2),
                     )
                   else
-                    Row(
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         _buildInfoItem("Ngành học: ", _faculty),
-                        const SizedBox(width: 20),
+                        const SizedBox(height: 10),
                         _buildInfoItem("Niên khóa: ", _academicYear),
                       ],
                     ),
-                  const SizedBox(height: 4),
-                  Text(
-                    "${widget.postCount} bài viết",
-                    style: const TextStyle(
-                      color: Colors.blue,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
                 ],
               ),
             ),
