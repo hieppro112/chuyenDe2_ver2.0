@@ -121,7 +121,7 @@ class _DangKiState extends State<DangKi> {
         "phone": "",
         "address": "",
         "avt":
-            "https://cellphones.com.vn/sforum/wp-content/uploads/2023/10/avatar-trang-4.jpg",
+            "https://cellphones.com.vn/sforum/wp-content/uploads/2023/10/avatar-trang-4.jpg", // anh mac dinh
         "role": 1,
         "faculty_id": ma,
       });
@@ -155,54 +155,54 @@ class _DangKiState extends State<DangKi> {
     }
   }
 
-void _showSnackBar(String message, {bool isError = true}) {
-  final overlay = Overlay.of(context);
-  final entry = OverlayEntry(
-    builder: (context) => Positioned(
-      top: MediaQuery.of(context).size.height * 0.4,
-      left: 40,
-      right: 40,
-      child: Material(
-        color: Colors.transparent,
-        child: AnimatedOpacity(
-          opacity: 1,
-          duration: const Duration(milliseconds: 300),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: isError ? Colors.red.shade600 : Colors.blue.shade600,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black26,
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                )
-              ],
-            ),
-            child: Center(
-              child: Text(
-                message,
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.white, fontSize: 16),
+  void _showSnackBar(String message, {bool isError = true}) {
+    final overlay = Overlay.of(context);
+    final entry = OverlayEntry(
+      builder: (context) => Positioned(
+        top: MediaQuery.of(context).size.height * 0.4,
+        left: 40,
+        right: 40,
+        child: Material(
+          color: Colors.transparent,
+          child: AnimatedOpacity(
+            opacity: 1,
+            duration: const Duration(milliseconds: 300),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: isError ? Colors.red.shade600 : Colors.blue.shade600,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black26,
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Center(
+                child: Text(
+                  message,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.white, fontSize: 16),
+                ),
               ),
             ),
           ),
         ),
       ),
-    ),
-  );
+    );
 
-  overlay.insert(entry);
-  Future.delayed(const Duration(seconds: 2)).then((_) => entry.remove());
-}
+    overlay.insert(entry);
+    Future.delayed(const Duration(seconds: 2)).then((_) => entry.remove());
+  }
 
   // ==================== GIAO DIỆN ====================
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor:
-          Colors.white, // Thêm dòng này để set background màu trắng
+          Colors.white, 
       body: Stack(
         children: [
           SafeArea(
@@ -313,7 +313,7 @@ void _showSnackBar(String message, {bool isError = true}) {
     );
   }
 
-  // ==================== FIELD BUILDERS ====================
+  // TEXT FIELDS
   Widget _buildEmailField() => _textField(
     emailController,
     Icons.email,
@@ -332,7 +332,7 @@ void _showSnackBar(String message, {bool isError = true}) {
     suffixIcon: IconButton(
       icon: Icon(
         _obscurePassword ? Icons.visibility_off : Icons.visibility,
-        color: Colors.white,
+        color: Colors.black54,
       ),
       onPressed: () => setState(() {
         _obscurePassword = !_obscurePassword;
@@ -348,7 +348,7 @@ void _showSnackBar(String message, {bool isError = true}) {
     suffixIcon: IconButton(
       icon: Icon(
         _obscureConfirm ? Icons.visibility_off : Icons.visibility,
-        color: Colors.white,
+        color: Colors.black54,
       ),
       onPressed: () => setState(() {
         _obscureConfirm = !_obscureConfirm;
@@ -377,7 +377,7 @@ void _showSnackBar(String message, {bool isError = true}) {
     );
   }
 
-  // ==================== BUTTONS ====================
+  
   Widget _buildRegisterButton(BuildContext context) {
     return SizedBox(
       width: double.infinity,
