@@ -91,17 +91,11 @@ class ScreenMessageState extends State<ScreenMessage> {
                     print(value.path);
                   }
                 },
-                onTapSend: (value) {
-                  
-                  Message newValue = Message(
-                    id_message: "a",
-                    sender_id: myId,
-                    content: value,
-                    isread: true,
-                    create_at: DateTime.now(),
-                  );
+                onTapSend: (value) async{
+                  //value tra ve doan tin nhan da nhap
+                  final newValue = await messageService.sendMessage(roomId: widget.idRoom, senderID: widget.myId,content: value??"null nha");
                   setState(() {
-                    listMessage.add(newValue);
+                    listMessage.add(newValue!);
                     print(listMessage.length);
                   });
                   _scrollToBottom();
@@ -115,7 +109,6 @@ class ScreenMessageState extends State<ScreenMessage> {
   
 //hien thi list tin nhan 
   Widget createListMessage() {
-
     //lay avt nguoi dung 
     return StreamBuilder(stream: messageService.streamMessage(widget.idRoom), 
     builder: (context, snapshot) {
