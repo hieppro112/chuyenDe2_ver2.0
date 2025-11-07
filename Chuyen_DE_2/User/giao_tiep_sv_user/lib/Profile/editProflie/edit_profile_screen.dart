@@ -205,19 +205,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       _showErrorSnackBar('Vui lòng nhập họ và tên!');
       return;
     } else if (full_name.length < 4) {
-      _showErrorSnackBar('Họ và tên phải có ít nhất 8 ký tự!');
+      _showErrorSnackBar('Họ và tên phải có ít nhất 4 ký tự!');
       return;
-    } else if (full_name.length > 50) {
-      _showErrorSnackBar('Họ và tên không được vượt quá 50 ký tự!');
+    } else if (full_name.length > 35) {
+      _showErrorSnackBar('Họ và tên không được vượt quá 35 ký tự!');
       return;
     }
 
     // Kiểm tra trường địa chỉ
-    if (address.isEmpty) {
-      _showErrorSnackBar('Vui lòng nhập địa chỉ!');
-      return;
-    } else if (address.length < 10) {
-      _showErrorSnackBar('Địa chỉ phải có ít nhất 20 ký tự!');
+    if (address.length < 10) {
+      _showErrorSnackBar('Địa chỉ phải có ít nhất 10 ký tự!');
       return;
     } else if (address.length > 70) {
       _showErrorSnackBar('Địa chỉ không được vượt quá 70 ký tự!');
@@ -225,12 +222,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
 
     // Kiểm tra trường số điện thoại
-    if (phone.isEmpty) {
-      _showErrorSnackBar('Vui lòng nhập số điện thoại!');
-      return;
-    }
     if (phone.length != 10 || !RegExp(r'^[0-9]+$').hasMatch(phone)) {
-      _showErrorSnackBar('Số điện thoại phải có đúng 10 chữ số!');
+      _showErrorSnackBar('Số điện thoại phải có 10 chữ số!');
       return;
     }
 
