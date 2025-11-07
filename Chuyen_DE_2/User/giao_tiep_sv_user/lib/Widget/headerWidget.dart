@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:giao_tiep_sv_user/Data/Users.dart';
 
 class Headerwidget extends StatelessWidget {
-  final String url_avt;
-  final String fullname;
-  final String email;
+  final Users myUs;
   final double width;
   final Widget? chucnang;
-  const Headerwidget({super.key, required this.url_avt, required this.fullname, this.chucnang, required this.email, required this.width});
+  const Headerwidget({super.key, this.chucnang, required this.width, required this.myUs});
 
   @override
   Widget build(BuildContext context) {
@@ -26,7 +25,7 @@ class Headerwidget extends StatelessWidget {
   }
 
   Widget createHeader(){
-    String idUS = email.split('@')[0];
+    String idUS = myUs.email.split('@')[0];
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceAround,
       children: [
@@ -34,7 +33,7 @@ class Headerwidget extends StatelessWidget {
           children: [
             //custom avatar and info
             ClipOval(
-              child: Image.asset(url_avt,fit: BoxFit.fill,width: 45,height: 45,),
+              child: Image.network(myUs.url_avt,fit: BoxFit.fill,width: 45,height: 45,),
             ),
 
             SizedBox(width: 15,),
@@ -42,7 +41,7 @@ class Headerwidget extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text("${fullname}",style: TextStyle(
+                Text("${myUs.fullname}",style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold
                 ),),

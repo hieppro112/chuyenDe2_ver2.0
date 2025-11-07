@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:giao_tiep_sv_user/Data/Users.dart';
+import 'package:giao_tiep_sv_user/Data/room_chat.dart';
 
 class CustomChatMember extends StatefulWidget {
   final String id_chat;
-  final String url_avt;
-  final String fullname;
+  final ChatRoom userInfo;
   final String content;
   final bool isnew;
   final ValueChanged ontap;
-  const CustomChatMember({super.key, required this.url_avt, required this.fullname, required this.content, required this.isnew, required this.id_chat, required this.ontap});
+  const CustomChatMember({super.key, required this.content, required this.isnew, required this.id_chat, required this.ontap, required this.userInfo});
 
   @override
   State<CustomChatMember> createState() => _CustomChatMemberState();
@@ -16,6 +17,8 @@ class CustomChatMember extends StatefulWidget {
 class _CustomChatMemberState extends State<CustomChatMember> {
   @override
   Widget build(BuildContext context) {
+    final name = widget.userInfo.name.toString();
+    print("name $name");
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 10,vertical: 10),
       padding: EdgeInsets.symmetric(horizontal: 20,vertical: 5),
@@ -40,13 +43,14 @@ class _CustomChatMemberState extends State<CustomChatMember> {
         Row(
           children: [
             ClipOval(
-              child: Image.asset(widget.url_avt,width: 45,height: 45,),
+              child: Image.network(widget.userInfo.avatarUrl,width: 45,height: 45,),
             ),
             SizedBox(width: 10,),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(widget.fullname,style: TextStyle(
+                
+                Text(widget.userInfo.name,style: TextStyle(
                   color: Colors.black,
                   fontSize: 16,
                   fontWeight: FontWeight.bold
