@@ -8,7 +8,8 @@ class Message {
   final String? media_url;
   final DateTime create_at;
   final bool isread;
-
+    final String sender_name;  
+  final String sender_avatar; 
   Message({
     required this.isread,
     required this.id_message,
@@ -16,6 +17,8 @@ class Message {
     this.content,
     this.media_url,
     required this.create_at,
+    required this.sender_name,
+    required this.sender_avatar
   });
 
   //doc du lieu
@@ -30,6 +33,9 @@ class Message {
       media_url:
           data['media_url'] ??
           "",
+      sender_avatar: data['avt_sender']??"https://tse1.mm.bing.net/th/id/OIP.Kn_AdPUU9nsSfHQfFmHPDgHaH4?rs=1&pid=ImgDetMain&o=7&rm=3",
+      sender_name: data['name_sender']??"khong xac dinh", 
+
     );
   }
 
@@ -41,8 +47,9 @@ class Message {
       'media_url':media_url,
       'isRead':isread,
       'sender_id':sender_id,
+      'avt_sender':sender_avatar,
+      'name_sender':sender_name,
       'create_at':FieldValue.serverTimestamp(),
-
     };
   }
 }

@@ -52,13 +52,15 @@ class _LeftPanelState extends State<LeftPanel> {
     setState(() => _isLoading = true);
     final fetched = await _groupService.fetchJoinedGroups(_currentUserId);
 
-    setState(() {
+    if(mounted){
+      setState(() {
       // ✅ Bỏ nhóm "Tất cả" khỏi danh sách hiển thị
       _groups = fetched.where((group) => group["name"] != "Tất cả").toList();
       _filteredGroups = _groups;
       _isLoading = false;
       if (_searchController.text.isNotEmpty) _filterGroups();
     });
+    }
   }
 
   // Hàm lọc nhóm theo tên
