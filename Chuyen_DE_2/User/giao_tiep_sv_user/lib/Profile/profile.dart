@@ -61,11 +61,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
           });
         } catch (e) {
           print('Lỗi khi lấy ngành/năm: $e');
-          if(mounted){
+          if (mounted) {
             setState(() {
-            _major = 'Lỗi tải dữ liệu';
-            _isLoading = false;
-          });
+              _major = 'Lỗi tải dữ liệu';
+              _isLoading = false;
+            });
           }
         }
       },
@@ -140,31 +140,49 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        _userName,
-                        style: const TextStyle(
-                          fontSize: 21,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
                       Row(
                         children: [
-                          const Text(
-                            "Ngành học: ",
-                            style: TextStyle(color: Colors.black54),
-                          ),
                           Text(
-                            _major,
-                            style: const TextStyle(fontWeight: FontWeight.w500),
+                            _userName,
+                            style: const TextStyle(
+                              fontSize: 21,
+                              color: Colors.blue,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                          const SizedBox(width: 10),
-                          const Text(
-                            "Niên khóa: ",
-                            style: TextStyle(color: Colors.black54),
+                        ],
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Text(
+                                "Ngành học: ",
+                                style: TextStyle(color: Colors.black54),
+                              ),
+                              Text(
+                                _major,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
                           ),
-                          Text(
-                            _schoolYear,
-                            style: const TextStyle(fontWeight: FontWeight.w500),
+                          SizedBox(height: 5),
+                          Row(
+                            children: [
+                              const Text(
+                                "Niên khóa: ",
+                                style: TextStyle(color: Colors.black54),
+                              ),
+                              Text(
+                                _schoolYear,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
