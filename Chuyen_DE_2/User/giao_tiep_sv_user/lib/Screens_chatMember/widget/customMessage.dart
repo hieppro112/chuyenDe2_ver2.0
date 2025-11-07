@@ -30,7 +30,7 @@ class Custommessage extends StatelessWidget {
       return Row(
         children: [
           ClipOval(
-            child: Image.asset(
+            child: Image.network(
               url_avt,
               fit: BoxFit.cover,
               height: 35,
@@ -53,16 +53,10 @@ class Custommessage extends StatelessWidget {
                       style: TextStyle(fontSize: 14),
                       softWrap: true,
                     ),
-                  if (Url_media!.isNotEmpty) ...[
-                  SizedBox(height: 8),
-                  Image.file(
-                    File(
-                     Url_media!
-                    ),
-                    width: 150,
-                    fit: BoxFit.cover,
-                  )
-                  ]
+                  if (Url_media != null && Url_media!.isNotEmpty) ...[
+                    SizedBox(height: 8),
+                    Image.file(File(Url_media!), width: 150, fit: BoxFit.cover),
+                  ],
                 ],
               ),
             ),
@@ -89,15 +83,14 @@ class Custommessage extends StatelessWidget {
                       style: TextStyle(fontSize: 14),
                       softWrap: true,
                     ),
-                  if (Url_media != null && Url_media!.isNotEmpty)...
-                    [
-                      SizedBox(height: 8),
-                      Image.file(
-                        File(Url_media!),
-                        // width: 150,
-                        fit: BoxFit.cover,
-                      ),
-                    ],
+                  if (Url_media != null && Url_media!.isNotEmpty) ...[
+                    SizedBox(height: 8),
+                    Image.file(
+                      File(Url_media!),
+                      // width: 150,
+                      fit: BoxFit.cover,
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -105,7 +98,7 @@ class Custommessage extends StatelessWidget {
 
           SizedBox(width: 10),
           ClipOval(
-            child: Image.asset(
+            child: Image.network(
               url_avt,
               fit: BoxFit.cover,
               height: 35,

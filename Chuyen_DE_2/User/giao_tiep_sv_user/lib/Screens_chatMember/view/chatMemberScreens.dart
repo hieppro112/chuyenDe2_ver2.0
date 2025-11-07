@@ -1,6 +1,10 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:giao_tiep_sv_user/Data/Users.dart';
 import 'package:giao_tiep_sv_user/Data/room_chat.dart';
+import 'package:giao_tiep_sv_user/FireBase_Service/UserServices.dart';
 import 'package:giao_tiep_sv_user/Screen_member_group/widget/customSearch.dart';
+import 'package:giao_tiep_sv_user/Screens_chatMember/FirebaseStore/MessageService.dart';
 import 'package:giao_tiep_sv_user/Screens_chatMember/view/chatMessage.dart';
 import 'package:giao_tiep_sv_user/Screens_chatMember/widget/custom_chat_member.dart';
 import 'package:giao_tiep_sv_user/ThongBao/ManHinhThongBao.dart';
@@ -15,97 +19,29 @@ class ChatMemberScreen extends StatefulWidget {
 }
 
 class _ChatMemberScreenState extends State<ChatMemberScreen> {
-  List<Room_chat> listMessage = [
-    Room_chat(
-      room_id: "0",
-      type_id: 0,
-      name: "Le Dinh Thuan",
-      avt_url: "assets/images/user.png",
-      created_id: 0,
-      create_at: DateTime.now(),
-    ),
-    Room_chat(
-      room_id: "0",
-      type_id: 0,
-      name: "Pham Thắng",
-      avt_url: "assets/images/user.png",
-      created_id: 0,
-      create_at: DateTime.now(),
-    ),
-    Room_chat(
-      room_id: "0",
-      type_id: 0,
-      name: "Lê Đại Hiệp",
-      avt_url: "assets/images/user.png",
-      created_id: 0,
-      create_at: DateTime.now(),
-    ),
-    Room_chat(
-      room_id: "0",
-      type_id: 0,
-      name: "Cao Quang Khánh",
-      avt_url: "assets/images/user.png",
-      created_id: 0,
-      create_at: DateTime.now(),
-    ),
-    Room_chat(
-      room_id: "0",
-      type_id: 0,
-      name: "Le Dinh Thuan",
-      avt_url: "assets/images/user.png",
-      created_id: 0,
-      create_at: DateTime.now(),
-    ),
-    Room_chat(
-      room_id: "0",
-      type_id: 0,
-      name: "Le Dinh Thuan",
-      avt_url: "assets/images/user.png",
-      created_id: 0,
-      create_at: DateTime.now(),
-    ),
-    Room_chat(
-      room_id: "0",
-      type_id: 1,
-      name: "Trò chuyện IT",
-      avt_url: "assets/images/user.png",
-      created_id: 0,
-      create_at: DateTime.now(),
-    ),
-    Room_chat(
-      room_id: "0",
-      type_id: 1,
-      name: "Trò chuyện IT",
-      avt_url: "assets/images/user.png",
-      created_id: 0,
-      create_at: DateTime.now(),
-    ),
-    Room_chat(
-      room_id: "0",
-      type_id: 1,
-      name: "Cùng học java",
-      avt_url: "assets/images/user.png",
-      created_id: 0,
-      create_at: DateTime.now(),
-    ),
-    Room_chat(
-      room_id: "0",
-      type_id: 1,
-      name: "chia sẻ tài liệu flutter",
-      avt_url: "assets/images/user.png",
-      created_id: 0,
-      create_at: DateTime.now(),
-    ),
-  ];
+  final MessageService messService = MessageService();
+  final Userservices userService = Userservices();
+  bool isload = false;
+  List<ChatRoom> listMessage = [];
   double width = 0;
   bool ischatGroup = false;
-  List<Room_chat> listMessageSearch = [];
+  List<ChatRoom> listMessageSearch = [];
+  late final Uid;
 
   @override
   void initState() {
     // TODO: implement initState
     super.initState();
-    listMessageSearch = listMessage;
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null && user.email != null) {
+      Uid = user.email!.split("@")[0];
+      print("My UID: $Uid");
+
+      // Sau khi có UID thì gọi hàm lấy dữ liệu
+      FeatchDataListChats(Uid);
+    } else {
+      print("⚠️ User chưa đăng nhập!");
+    }
   }
 
   @override
@@ -118,19 +54,7 @@ class _ChatMemberScreenState extends State<ChatMemberScreen> {
         child: Column(
           children: [
             //header
-            Headerwidget(
-              url_avt: "assets/images/avatar.png",
-              fullname: "Le Dai Hiep",
-              email: "23211TT3598@gmail.com",
-              width: width.toDouble(),
-              chucnang: IconButton(
-                onPressed: () {
-                  // print("notifycation");
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => ManHinhThongBao(),));
-                },
-                icon: Icon(Icons.notifications, color: Colors.amber, size: 45),
-              ),
-            ),
+            createHeader(Uid.toString()),
             //search Message
             SizedBox(height: 8),
             createSearchMessage(),
@@ -150,29 +74,94 @@ class _ChatMemberScreenState extends State<ChatMemberScreen> {
     // );
   }
 
+  //get user tu id
+  Future<Users?> fetchIdUs(String myId) {
+    return userService.getUserForID(myId);
+  }
+
+  //lay dl dua vao list
+  Future<void> FeatchDataListChats(String Uid) async {
+    isload = true;
+    final listChats = await messService.listChat(Uid);
+    print("leng listChat: ${listChats.length}");
+    setState(() {
+      listMessage = listChats;
+      listMessageSearch = listMessage;
+      isload = false;
+    });
+  }
+
+  //custom header
+  Widget createHeader(String myId) {
+  return FutureBuilder<Users?>(
+    future: fetchIdUs(myId.toUpperCase()),
+    builder: (context, snapshot) {
+      if (snapshot.connectionState == ConnectionState.waiting) {
+        return const Center(child: CircularProgressIndicator());
+      }
+
+      if (snapshot.hasError) {
+        return Text('Lỗi: ${snapshot.error}');
+      }
+
+      if (!snapshot.hasData || snapshot.data == null) {
+        return const Text('Không tìm thấy user');
+      }
+
+      final user = snapshot.data!;
+
+      return Headerwidget(
+        myUs: user, 
+        width: width.toDouble(),
+        chucnang: IconButton(
+          onPressed: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => ManHinhThongBao()),
+          ),
+          icon: const Icon(Icons.notifications, color: Colors.amber, size: 45),
+        ),
+      );
+    },
+  );
+}
+
   //create listview message
   Widget createListMessage() {
-    String content = "xin chào bạn";
+    // String content = "xin chào bạn";
     bool isnew = true;
-    return ListView.builder(
-      shrinkWrap: true,
-      itemCount: listMessageSearch.length,
-      itemBuilder: (context, index) {
-        var value = listMessageSearch[index];
-        return CustomChatMember(
-          id_chat: "hiep",
-          url_avt: value.avt_url,
-          fullname: value.name,
-          content: content,
-          isnew: isnew,
-          ontap: (value) {
-            Navigator.push(context, MaterialPageRoute(builder: (context) {
-              return ScreenMessage();
-            },));
-          },
-        );
-      },
-    );
+    return (isload == true)
+        ? Center(child: CircularProgressIndicator())
+        : ListView.builder(
+            shrinkWrap: true,
+            itemCount: listMessageSearch.length,
+            itemBuilder: (context, index) {
+              var value = listMessageSearch[index];
+              return CustomChatMember(
+
+                userInfo: value,
+                id_chat: value.roomId,
+                content: value.lastMessage,
+                isnew: isnew,
+                ontap: (valueTap) {
+                  //chuyen sang man hinh nhan tin 
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) {
+                        return ScreenMessage(
+                          myId: Uid.toString(),
+                          sender_to: ChatRoom(roomId: "1",lastMessage: "hello ban hien",lastSender: "23211tt3598",lastTime: DateTime.now(),users: ["23211tt3598","23211tt3599"],name: "Le van nam",createdAt: DateTime.now(),avatarUrl: "https://img-s-msn-com.akamaized.net/tenant/amp/entityid/AA1PSSTd.img?w=730&h=486&m=6&x=27&y=208&s=422&d=193",createdBy: "23211tt3598",typeId: 0),
+                          idRoom: "23211tt3598",
+                        );
+                      },
+                    ),
+                  );
+                
+                  print("room john: ${valueTap}");
+                },
+              );
+            },
+          );
   }
 
   Widget createButtonMessage() {
@@ -187,7 +176,7 @@ class _ChatMemberScreenState extends State<ChatMemberScreen> {
             setState(() {
               ischatGroup = false;
               listMessageSearch = listMessage.where((element) {
-                return element.type_id == 0;
+                return element.typeId == 0;
               }).toList();
             });
           },
@@ -200,7 +189,7 @@ class _ChatMemberScreenState extends State<ChatMemberScreen> {
             setState(() {
               ischatGroup = true;
               listMessageSearch = listMessage.where((element) {
-                return element.type_id == 1;
+                return element.typeId == 1;
               }).toList();
             });
           },
@@ -216,14 +205,14 @@ class _ChatMemberScreenState extends State<ChatMemberScreen> {
           setState(() {
             listMessageSearch = listMessage.where((element) {
               return element.name.toLowerCase().contains(value.toLowerCase()) &&
-                  element.type_id == 0;
+                  element.typeId == 0;
             }).toList();
           });
         } else {
           setState(() {
             listMessageSearch = listMessage.where((element) {
               return element.name.toLowerCase().contains(value.toLowerCase()) &&
-                  element.type_id == 1;
+                  element.typeId == 1;
             }).toList();
           });
         }
