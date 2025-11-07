@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:giao_tiep_sv_admin/widget/customSearch.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'chi_tiet_tai_khoan.dart';
+import 'package:giao_tiep_sv_admin/widget/customSearch.dart';
 
 class TruyXuatTaiKhoan extends StatefulWidget {
   const TruyXuatTaiKhoan({super.key});
@@ -10,188 +11,96 @@ class TruyXuatTaiKhoan extends StatefulWidget {
 }
 
 class _TruyXuatTaiKhoanState extends State<TruyXuatTaiKhoan> {
-  String selectedKhoa = "Khoa Công Nghệ Thông Tin";
+  String? selectedFacultyId; // id khoa (VD: "TT")
+  List<Map<String, dynamic>> faculties = [];
+  bool isLoadingFaculties = true;
+
   final TextEditingController _searchController = TextEditingController();
-
-  final List<String> khoaList = [
-    "Khoa Công Nghệ Thông Tin",
-    "Khoa Kinh tế",
-    "Khoa Cơ khí",
-    "Khoa Điện - Điện tử",
-    "Khoa Đông Phương",
-    "Khoa Động Lực",
-    "Khoa Quản trị kinh doanh",
-    "Khoa Du lịch",
-  ];
-
-  final List<Map<String, String>> _accountData = [
-    // Khoa Công Nghệ Thông Tin
-    {
-      "username": "Lê Đình Thuận",
-      "id": "23211TT1371",
-      "khoa": "Khoa Công Nghệ Thông Tin",
-      "email": "23211TT1371@mail.tdc.edu.vn",
-    },
-    {
-      "username": "Lê Đại Hiệp",
-      "id": "23211TM1324",
-      "khoa": "Khoa Công Nghệ Thông Tin",
-      "email": "23211TM1324@mail.tdc.edu.vn",
-    },
-    {
-      "username": "Nguyễn Văn Bình",
-      "id": "23211DH1001",
-      "khoa": "Khoa Công Nghệ Thông Tin",
-      "email": "23211DH1001@mail.tdc.edu.vn",
-    },
-
-    // Khoa Kinh tế
-    {
-      "username": "Cao Quang Khánh",
-      "id": "24211KT4567",
-      "khoa": "Khoa Kinh tế",
-      "email": "24211KT4567@mail.tdc.edu.vn",
-    },
-    {
-      "username": "Phạm Thị Hương",
-      "id": "24211KT4588",
-      "khoa": "Khoa Kinh tế",
-      "email": "24211KT4588@mail.tdc.edu.vn",
-    },
-    {
-      "username": "Trần Văn Long",
-      "id": "24211KT4599",
-      "khoa": "Khoa Kinh tế",
-      "email": "24211KT4599@mail.tdc.edu.vn",
-    },
-
-    // Khoa Cơ khí
-    {
-      "username": "Phạm Thắng",
-      "id": "25211CK7890",
-      "khoa": "Khoa Cơ khí",
-      "email": "25211CK7890@mail.tdc.edu.vn",
-    },
-    {
-      "username": "Ngô Minh Tuấn",
-      "id": "25211CK7001",
-      "khoa": "Khoa Cơ khí",
-      "email": "25211CK7001@mail.tdc.edu.vn",
-    },
-    {
-      "username": "Hoàng Thanh Tùng",
-      "id": "25211CK7012",
-      "khoa": "Khoa Cơ khí",
-      "email": "25211CK7012@mail.tdc.edu.vn",
-    },
-
-    // Khoa Điện - Điện tử
-    {
-      "username": "Nguyễn Văn An",
-      "id": "26211DD7890",
-      "khoa": "Khoa Điện - Điện tử",
-      "email": "26211DD7890@mail.tdc.edu.vn",
-    },
-    {
-      "username": "Đỗ Quỳnh Anh",
-      "id": "26211DD7013",
-      "khoa": "Khoa Điện - Điện tử",
-      "email": "26211DD7013@mail.tdc.edu.vn",
-    },
-    {
-      "username": "Bùi Đức Huy",
-      "id": "26211DD7024",
-      "khoa": "Khoa Điện - Điện tử",
-      "email": "26211DD7024@mail.tdc.edu.vn",
-    },
-
-    // Khoa Đông Phương
-    {
-      "username": "Võ Thị Hồng",
-      "id": "27211TA7890",
-      "khoa": "Khoa Đông Phương",
-      "email": "27211TA7890@mail.tdc.edu.vn",
-    },
-    {
-      "username": "Lê Thị Lan",
-      "id": "27211TQ7005",
-      "khoa": "Khoa Đông Phương",
-      "email": "27211TQ7005@mail.tdc.edu.vn",
-    },
-    {
-      "username": "Phan Minh Khoa",
-      "id": "27211TN7016",
-      "khoa": "Khoa Đông Phương",
-      "email": "27211TN7016@mail.tdc.edu.vn",
-    },
-
-    // Khoa Động Lực
-    {
-      "username": "Nguyễn Thị Mai",
-      "id": "28211OT6001",
-      "khoa": "Khoa Động Lực",
-      "email": "28211OT6001@mail.tdc.edu.vn",
-    },
-    {
-      "username": "Trần Minh Đức",
-      "id": "28211OT6022",
-      "khoa": "Khoa Động Lực",
-      "email": "28211OT6022@mail.tdc.edu.vn",
-    },
-    {
-      "username": "Vũ Anh Dũng",
-      "id": "28211OT6033",
-      "khoa": "Khoa Động Lực",
-      "email": "28211OT6033@mail.tdc.edu.vn",
-    },
-
-    // Khoa Quản trị kinh doanh
-    {
-      "username": "Trần Thu Hà",
-      "id": "29211KD9001",
-      "khoa": "Khoa Quản trị kinh doanh",
-      "email": "29211KD9001@mail.tdc.edu.vn",
-    },
-    {
-      "username": "Nguyễn Hữu Phước",
-      "id": "29211KD9002",
-      "khoa": "Khoa Quản trị kinh doanh",
-      "email": "29211KD9002@mail.tdc.edu.vn",
-    },
-    {
-      "username": "Phạm Quốc Huy",
-      "id": "29211KD9003",
-      "khoa": "Khoa Quản trị kinh doanh",
-      "email": "29211KD9003@mail.tdc.edu.vn",
-    },
-
-    // Khoa Du lịch
-    {
-      "username": "Lê Thị Mai",
-      "id": "30211DL1001",
-      "khoa": "Khoa Du lịch",
-      "email": "30211DL1001@mail.tdc.edu.vn",
-    },
-    {
-      "username": "Hoàng Thị Ngọc",
-      "id": "30211DL1002",
-      "khoa": "Khoa Du lịch",
-      "email": "30211DL1002@mail.tdc.edu.vn",
-    },
-    {
-      "username": "Đặng Văn Phúc",
-      "id": "30211DL1003",
-      "khoa": "Khoa Du lịch",
-      "email": "30211DL1003@mail.tdc.edu.vn",
-    },
-  ];
-
-  List<Map<String, String>> _filteredAccounts = [];
+  List<Map<String, dynamic>> _accounts = [];
+  List<Map<String, dynamic>> _filteredAccounts = [];
 
   @override
   void initState() {
     super.initState();
-    _locTheoKhoaVaTimKiem("");
+    _loadFaculties();
+  }
+
+  /// Lấy danh sách Khoa từ Firestore
+  Future<void> _loadFaculties() async {
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('Faculty')
+          .get();
+
+      final List<Map<String, dynamic>> loadedFaculties = snapshot.docs.map((
+        doc,
+      ) {
+        final data = doc.data();
+        return {
+          'id': data['id'] ?? doc.id, // lấy theo id
+          'name': data['name'] ?? 'Không tên',
+        };
+      }).toList();
+
+      setState(() {
+        faculties = loadedFaculties;
+        isLoadingFaculties = false;
+      });
+
+      if (faculties.isNotEmpty) {
+        selectedFacultyId = faculties.first['id']; // "TT"
+        await _loadUsers(selectedFacultyId!);
+      }
+    } catch (e) {
+      print('Lỗi tải khoa: $e');
+      setState(() => isLoadingFaculties = false);
+    }
+  }
+
+  // Lấy danh sách User theo khoa
+  Future<void> _loadUsers(String facultyId) async {
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('Users')
+          .where('faculty_id', isEqualTo: facultyId)
+          .get();
+
+      final List<Map<String, dynamic>> loadedAccounts = snapshot.docs.map((
+        doc,
+      ) {
+        final data = doc.data();
+        return {
+          'id': doc.id, // mã sinh viên
+          'fullname': data['fullname'] ?? 'Không tên',
+          'email': data['email'] ?? '',
+          'faculty_id': data['faculty_id'] ?? '',
+          'avt': data['avt'] ?? 'assets/images/user_avt.png',
+        };
+      }).toList();
+
+      setState(() {
+        _accounts = loadedAccounts;
+        _filteredAccounts = loadedAccounts;
+      });
+    } catch (e) {
+      print('Lỗi tải user: $e');
+      setState(() {
+        _accounts = [];
+        _filteredAccounts = [];
+      });
+    }
+  }
+
+  // Lọc theo từ khóa tìm kiếm
+  void _locTheoTimKiem(String query) {
+    final lower = query.toLowerCase();
+    setState(() {
+      _filteredAccounts = _accounts.where((user) {
+        final name = (user['fullname'] ?? '').toLowerCase();
+        final id = (user['id'] ?? '').toLowerCase();
+        return name.contains(lower) || id.contains(lower) || query.isEmpty;
+      }).toList();
+    });
   }
 
   @override
@@ -217,24 +126,7 @@ class _TruyXuatTaiKhoanState extends State<TruyXuatTaiKhoan> {
     );
   }
 
-  //Hàm lọc dữ liệu theo khoa & từ khóa
-  void _locTheoKhoaVaTimKiem(String query) {
-    setState(() {
-      _filteredAccounts = _accountData.where((account) {
-        final name = account["username"]!.toLowerCase();
-        final id = account["id"]!.toLowerCase();
-        final khoa = account["khoa"];
-        final search = query.toLowerCase();
-
-        final matchKhoa = khoa == selectedKhoa;
-        final matchSearch =
-            name.contains(search) || id.contains(search) || search.isEmpty;
-
-        return matchKhoa && matchSearch;
-      }).toList();
-    });
-  }
-
+  // AppBar
   AppBar _buildAppBar(BuildContext context) {
     return AppBar(
       title: const Text('Truy Xuất Tài Khoản'),
@@ -256,33 +148,49 @@ class _TruyXuatTaiKhoanState extends State<TruyXuatTaiKhoan> {
 
   // Ô tìm kiếm
   Widget _buildSearchBar() {
-    return Customsearch(onTap: (value) => _locTheoKhoaVaTimKiem(value));
+    return Customsearch(
+      onTap: (value) {
+        _locTheoTimKiem(value);
+      },
+    );
   }
 
   // Dropdown chọn khoa
   Widget _buildDropdown() {
+    if (isLoadingFaculties) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
       decoration: BoxDecoration(
         border: Border.all(color: const Color.fromARGB(66, 0, 0, 0)),
         borderRadius: BorderRadius.circular(12),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
-          value: selectedKhoa,
-          items: khoaList.map((khoa) {
-            return DropdownMenuItem<String>(value: khoa, child: Text(khoa));
+          value: selectedFacultyId,
+          items: faculties.map((khoa) {
+            return DropdownMenuItem<String>(
+              value: khoa['id'],
+              child: Text(khoa['name']?.toString() ?? ''),
+            );
           }).toList(),
-          onChanged: (newValue) {
-            setState(() => selectedKhoa = newValue!);
-            _locTheoKhoaVaTimKiem(_searchController.text);
+          onChanged: (newValue) async {
+            if (newValue == null) return;
+            setState(() {
+              selectedFacultyId = newValue;
+              _accounts = [];
+              _filteredAccounts = [];
+            });
+            await _loadUsers(newValue);
           },
         ),
       ),
     );
   }
 
-  // Tiêu đề danh sách + số lượng kết quả
+  //Header danh sách
   Widget _buildListHeader() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -299,18 +207,38 @@ class _TruyXuatTaiKhoanState extends State<TruyXuatTaiKhoan> {
     );
   }
 
-  //  tài khoản
-  Widget _buildAccountItem(Map<String, String> user) {
+  // Danh sách tài khoản
+  Widget _buildAccountList() {
+    if (_filteredAccounts.isEmpty) {
+      return const Expanded(
+        child: Center(
+          child: Text(
+            "Không có dữ liệu",
+            style: TextStyle(color: Colors.black54),
+          ),
+        ),
+      );
+    }
+
+    return Expanded(
+      child: ListView.builder(
+        itemCount: _filteredAccounts.length,
+        itemBuilder: (context, index) {
+          return _buildAccountItem(_filteredAccounts[index]);
+        },
+      ),
+    );
+  }
+
+  // Item tài khoản
+  Widget _buildAccountItem(Map<String, dynamic> user) {
     return GestureDetector(
       onTap: () {
         Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) => ChiTietTaiKhoan(
-              ten: user["username"]!,
-              mssv: user["id"]!,
-              khoa: user["khoa"]!,
-              email: user["email"]!,
+              mssv: user["id"], // CHỈ CẦN MSSV
             ),
           ),
         );
@@ -327,44 +255,39 @@ class _TruyXuatTaiKhoanState extends State<TruyXuatTaiKhoan> {
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(50),
-              child: Image.asset(
-                "assets/images/user.png",
-                width: 45,
-                height: 45,
-                fit: BoxFit.cover,
-              ),
+              child: user["avt"] != null && user["avt"].toString().isNotEmpty
+                  ? Image.network(
+                      user["avt"],
+                      width: 45,
+                      height: 45,
+                      fit: BoxFit.cover,
+                    )
+                  : Image.asset(
+                      "assets/images/user.png",
+                      width: 45,
+                      height: 45,
+                      fit: BoxFit.cover,
+                    ),
             ),
             const SizedBox(width: 12),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  user["username"]!,
+                  user["fullname"] ?? "",
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 15,
                   ),
                 ),
                 Text(
-                  user["id"]!,
+                  user["id"] ?? "",
                   style: const TextStyle(color: Colors.black54, fontSize: 13),
                 ),
               ],
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  // Danh sách tài khoản
-  Widget _buildAccountList() {
-    return Expanded(
-      child: ListView.builder(
-        itemCount: _filteredAccounts.length,
-        itemBuilder: (context, index) {
-          return _buildAccountItem(_filteredAccounts[index]);
-        },
       ),
     );
   }
