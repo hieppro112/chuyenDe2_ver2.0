@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:giao_tiep_sv_user/Data/Users.dart';
 import 'package:giao_tiep_sv_user/Widget/headerWidget.dart';
 import 'TieuDe.dart';
 import 'OThongBao.dart';
@@ -33,10 +34,10 @@ class ManHinhThongBao extends StatelessWidget {
           "Thông báo đóng học phí học kỳ 1 năm học 2025-2026. Hạn đóng học phí: 15/11/2025.",
     },
     {
-      "tieuDe":"Khảo sát ý kiến sinh viên",
+      "tieuDe": "Khảo sát ý kiến sinh viên",
       "noiDung":
           "Mời sinh viên tham gia khảo sát ý kiến về chất lượng giảng dạy và dịch vụ hỗ trợ sinh viên. Link khảo sát đã được gửi qua email.",
-    }
+    },
   ];
 
   @override
@@ -51,9 +52,14 @@ class ManHinhThongBao extends StatelessWidget {
           child: Column(
             children: [
               Headerwidget(
-                url_avt: "assets/images/avatar.png",
-                fullname: "Lê Đình Thuận",
-                email: "23211TT1371@gmail.com",
+                myUs: Users(
+                  id_user: "abc",
+                  email: "email",
+                  fullname: "Le Dai Hiep",
+                  url_avt: "https://media-cdn-v2.laodong.vn/Storage/NewsPortal/2021/10/30/969136/Cristiano-Ronaldo4.jpg",
+                  role: 1,
+                  faculty_id: "TT",
+                ),
                 width: widthScreen,
                 chucnang: GestureDetector(
                   onTap: () {

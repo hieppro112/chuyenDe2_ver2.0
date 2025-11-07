@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:giao_tiep_sv_user/Data/message.dart';
+import 'package:giao_tiep_sv_user/Data/room_chat.dart';
 import 'package:giao_tiep_sv_user/Screens_chatMember/widget/customMessage.dart';
 import 'package:giao_tiep_sv_user/Screens_chatMember/widget/custom_sender_message.dart';
 import 'package:giao_tiep_sv_user/Screens_chatMember/widget/header_Message.dart';
 
 class ScreenMessage extends StatefulWidget {
-  const ScreenMessage({super.key});
+  final String myId;
+  final ChatRoom sender_to;
+  final String idRoom;
+  const ScreenMessage({super.key, required this.sender_to, required this.idRoom, required this.myId});
 
   @override
   State<ScreenMessage> createState() => ScreenMessageState();
@@ -13,63 +17,11 @@ class ScreenMessage extends StatefulWidget {
 
 class ScreenMessageState extends State<ScreenMessage> {
   //avatar me
-  String url_avt_me = "assets/images/avatar.png";
+  String url_avt_me = "https://media-cdn-v2.laodong.vn/Storage/NewsPortal/2021/10/30/969136/Cristiano-Ronaldo4.jpg";
 
   List<message> listMessage = [
     message(
       id_message: "a",
-      chat_id: "a1",
-      sender_id: "23211TT3598@mail.tdc.edu.vn",
-      content:
-          "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam vel augue vitae lectus dictum ultricies. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Donec rutrum, nibh eget bibendum aliquet, elit sapien luctus lectus, id accumsan nulla massa a odio. ",
-      create_at: DateTime.now(),
-    ),
-    message(
-      id_message: "a",
-      chat_id: "a1",
-      sender_id: "23211TT3598@mail.tdc.edu.vn",
-      content: "hello cac ban ",
-      create_at: DateTime.now(),
-    ),
-    message(
-      id_message: "a",
-      chat_id: "a1",
-      sender_id: "23211TT3598@mail.tdc.edu.vn",
-      content: "hello cac ban ",
-      create_at: DateTime.now(),
-    ),
-    message(
-      id_message: "a",
-      chat_id: "a1",
-      sender_id: "23211TT3598@mail.tdc.edu.vn",
-      content:
-          "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam vel augue vitae lectus dictum ultricies. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Donec rutrum, nibh eget bibendum aliquet, elit sapien luctus lectus, id accumsan nulla massa a odio. ",
-      create_at: DateTime.now(),
-    ),
-    message(
-      id_message: "a",
-      chat_id: "a1",
-      sender_id: "23211TT3598@mail.tdc.edu.vn",
-      content: "hello cac ban ",
-      create_at: DateTime.now(),
-    ),
-    message(
-      id_message: "a",
-      chat_id: "a1",
-      sender_id: "23211TT3598@mail.tdc.edu.vn",
-      content: "hello cac ban ",
-      create_at: DateTime.now(),
-    ),
-    message(
-      id_message: "a",
-      chat_id: "a1",
-      sender_id: "23211TT3598@mail.tdc.edu.vn",
-      content: "hello cac ban ",
-      create_at: DateTime.now(),
-    ),
-    message(
-      id_message: "a",
-      chat_id: "a1",
       sender_id: "23211TT3598@mail.tdc.edu.vn",
       content: "hello cac ban ",
       create_at: DateTime.now(),
@@ -106,15 +58,23 @@ class ScreenMessageState extends State<ScreenMessage> {
           children: [
             Header(),
             Expanded(child: createListMessage()),
-
-            SafeArea(
+            create(widget.myId.toString()),
+            
+          
+          ],
+        ),
+      ),
+    );
+  }
+  //
+  Widget create(String myId){
+    return SafeArea(
               child: CustomSenderMessage(
                 onSelectedImage: (value) {
                   if (value != null) {
                     message messImg = message(
                       id_message: "",
-                      chat_id: "",
-                      sender_id: "",
+                      sender_id: myId,
                       content: "",
                       media_url: value.path,
                       create_at: DateTime.now(),
@@ -127,10 +87,10 @@ class ScreenMessageState extends State<ScreenMessage> {
                   }
                 },
                 onTapSend: (value) {
+                  
                   message newValue = message(
                     id_message: "a",
-                    chat_id: "a1",
-                    sender_id: "23211TT3598@mail.tdc.edu.vn",
+                    sender_id: myId,
                     content: value,
                     create_at: DateTime.now(),
                   );
@@ -141,43 +101,33 @@ class ScreenMessageState extends State<ScreenMessage> {
                   _scrollToBottom();
                 },
               ),
-            ),
-          ],
-        ),
-      ),
-    );
+            );
+          
   }
-
+//hien thi list tin nhan 
   Widget createListMessage() {
-    return ListView.builder(
+    return 
+    (widget.idRoom=="23211tt3598")?
+    ListView.builder(
       controller: _scrollController,
       shrinkWrap: true,
       itemCount: listMessage.length,
       itemBuilder: (context, index) {
         var value = listMessage[index];
         return Custommessage(
-          forme_sender: true,
+          forme_sender: (value.sender_id==widget.myId),
           url_avt: url_avt_me,
           content: value.content!,
           Url_media: value.media_url,
         );
       },
-    );
+    )
+    :Center(child: Text("hello"),);
   }
 
   Widget Header() {
     return HeaderMessage(
-      fullname: "Le Dai Hiep",
-      url_avt: "assets/images/avatar.png",
+      myInfo: widget.sender_to,
     );
   }
-
-  //message
-  // Widget Message() {
-  //   return Custommessage(
-  //     forme_sender: false,
-  //     url_avt: "assets/images/avatar.png",
-  //     content: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam vel augue vitae lectus dictum ultricies. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Donec rutrum, nibh eget bibendum aliquet, elit sapien luctus lectus, id accumsan nulla massa a odio.",
-  //   );
-  // }
 }

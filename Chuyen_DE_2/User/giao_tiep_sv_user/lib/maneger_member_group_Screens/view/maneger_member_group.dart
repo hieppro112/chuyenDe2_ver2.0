@@ -15,58 +15,7 @@ class ManegerMemberGroupScreen extends StatefulWidget {
 
 class _ManegerMemberGroupScreenState extends State<ManegerMemberGroupScreen> {
   List<Users> Listsearch = [];
-  List<Users> ListMember = [
-    Users(
-      id_user: "23211TT3598@mail.tdc.edu.vn",
-      email: "23211TT3598@mail.tdc.edu.vn",
-      pass: "123456",
-      fullname: "Lê Đại Hiệp",
-      phone: "0898415185",
-      url_avt: "assets/images/avatar.png",
-      role: 1,
-      faculty_id: 1,
-    ),
-    Users(
-      id_user: "23211TT3599@mail.tdc.edu.vn",
-      email: "23211TT3599@mail.tdc.edu.vn",
-      pass: "123456",
-      fullname: "Lê Đình Thuận",
-      phone: "0898415185",
-      url_avt: "assets/images/avatar.png",
-      role: 1,
-      faculty_id: 1,
-    ),
-    Users(
-      id_user: "23211TT3597@mail.tdc.edu.vn",
-      email: "23211TT3597@mail.tdc.edu.vn",
-      pass: "123456",
-      fullname: "Cao Quang Khánh",
-      phone: "0898415185",
-      url_avt: "assets/images/avatar.png",
-      role: 0,
-      faculty_id: 1,
-    ),
-    Users(
-      id_user: "23211TT3596@mail.tdc.edu.vn",
-      email: "23211TT3596@mail.tdc.edu.vn",
-      pass: "123456",
-      fullname: "Phạm Thắng",
-      phone: "0898415185",
-      url_avt: "assets/images/avatar.png",
-      role: 0,
-      faculty_id: 1,
-    ),
-    Users(
-      id_user: "23211TT3595@mail.tdc.edu.vn",
-      email: "23211TT3595@mail.tdc.edu.vn",
-      pass: "123456",
-      fullname: "Lê Van Tủn",
-      phone: "0898415185",
-      url_avt: "assets/images/avatar.png",
-      role: 1,
-      faculty_id: 1,
-    ),
-  ];
+  List<Users> ListMember = [];
 
   bool selecAll = true;
 

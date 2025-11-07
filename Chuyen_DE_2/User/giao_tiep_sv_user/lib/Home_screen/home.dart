@@ -19,7 +19,7 @@ class _HomeState extends State<Home> {
     const TrangChu(),
     const ChatMemberScreen(),
     const ProfileScreen(),
-      ];
+  ];
 
   @override
   void initState() {
