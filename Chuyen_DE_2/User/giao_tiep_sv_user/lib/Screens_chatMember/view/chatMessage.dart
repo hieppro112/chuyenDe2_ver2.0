@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:giao_tiep_sv_user/Data/message.dart';
 import 'package:giao_tiep_sv_user/Data/room_chat.dart';
+import 'package:giao_tiep_sv_user/Screens_chatMember/FirebaseStore/MessageService.dart';
 import 'package:giao_tiep_sv_user/Screens_chatMember/widget/customMessage.dart';
 import 'package:giao_tiep_sv_user/Screens_chatMember/widget/custom_sender_message.dart';
 import 'package:giao_tiep_sv_user/Screens_chatMember/widget/header_Message.dart';
@@ -16,15 +17,18 @@ class ScreenMessage extends StatefulWidget {
 }
 
 class ScreenMessageState extends State<ScreenMessage> {
+  //khai báo service
+  final messageService = MessageService();
   //avatar me
   String url_avt_me = "https://media-cdn-v2.laodong.vn/Storage/NewsPortal/2021/10/30/969136/Cristiano-Ronaldo4.jpg";
 
-  List<message> listMessage = [
-    message(
+  List<Message> listMessage = [
+    Message(
       id_message: "a",
       sender_id: "23211TT3598@mail.tdc.edu.vn",
       content: "hello cac ban ",
       create_at: DateTime.now(),
+      isread: false,
     ),
   ];
 
@@ -72,11 +76,12 @@ class ScreenMessageState extends State<ScreenMessage> {
               child: CustomSenderMessage(
                 onSelectedImage: (value) {
                   if (value != null) {
-                    message messImg = message(
+                    Message messImg = Message(
                       id_message: "",
                       sender_id: myId,
                       content: "",
                       media_url: value.path,
+                      isread: true,
                       create_at: DateTime.now(),
                     );
                     setState(() {
@@ -88,10 +93,11 @@ class ScreenMessageState extends State<ScreenMessage> {
                 },
                 onTapSend: (value) {
                   
-                  message newValue = message(
+                  Message newValue = Message(
                     id_message: "a",
                     sender_id: myId,
                     content: value,
+                    isread: true,
                     create_at: DateTime.now(),
                   );
                   setState(() {
@@ -104,25 +110,45 @@ class ScreenMessageState extends State<ScreenMessage> {
             );
           
   }
+
+  //lay dl cho dl chat
+  
 //hien thi list tin nhan 
   Widget createListMessage() {
-    return 
-    (widget.idRoom=="23211tt3598")?
-    ListView.builder(
+
+    //lay avt nguoi dung 
+    return StreamBuilder(stream: messageService.streamMessage(widget.idRoom), 
+    builder: (context, snapshot) {
+      //doi load dl
+      if(snapshot.connectionState == ConnectionState.waiting){
+        return Center(child: CircularProgressIndicator(
+          color: Colors.blue,
+        ),);
+      }
+
+      if(!snapshot.hasData||snapshot.data!.isEmpty){
+        return Center(child: Text("Chưa có tin nhắn nào"),);
+      }
+
+      final lisstMessage = snapshot.data!;
+      return ListView.builder(
       controller: _scrollController,
       shrinkWrap: true,
-      itemCount: listMessage.length,
+      itemCount: lisstMessage.length,
+      reverse: false,
       itemBuilder: (context, index) {
-        var value = listMessage[index];
+        var value = lisstMessage[index];
         return Custommessage(
           forme_sender: (value.sender_id==widget.myId),
-          url_avt: url_avt_me,
-          content: value.content!,
-          Url_media: value.media_url,
+          url_avt: "https://wallpapercave.com/wp/wp11591001.jpg",
+          content: value.content??"",
+          Url_media: value.media_url??"",
         );
       },
-    )
-    :Center(child: Text("hello"),);
+    );
+
+
+    },);
   }
 
   Widget Header() {

@@ -61,10 +61,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
           });
         } catch (e) {
           print('Lỗi khi lấy ngành/năm: $e');
-          setState(() {
+          if(mounted){
+            setState(() {
             _major = 'Lỗi tải dữ liệu';
             _isLoading = false;
           });
+          }
         }
       },
       onError: (e) {
