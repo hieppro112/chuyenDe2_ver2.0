@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:giao_tiep_sv_user/FireBase_Service/Profile_Service.dart';
 import 'dang_ki.dart';
 import 'quen_mk.dart';
 import 'package:giao_tiep_sv_user/Home_screen/home.dart';
@@ -16,6 +17,8 @@ class DangNhap extends StatefulWidget {
 class _DangNhapState extends State<DangNhap> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  // Tạo instance của ProfileService
+  final ProfileService _profileService = ProfileService();
   bool _isPasswordVisible = false;
 
   @override
@@ -58,6 +61,9 @@ class _DangNhapState extends State<DangNhap> {
           .collection("Users")
           .doc(id_user)
           .get();
+
+      // ✅ ĐÃ SỬA: Thiết lập userId cho ProfileService trước khi chuyển trang
+      _profileService.setUserId(id_user);
 
       if (!doc.exists) {
         _showOverlayMessage(context, "Tài khoản hoặc mật khẩu không đúng!");

@@ -88,9 +88,9 @@ class _PersonalPostItemWidgetState extends State<PersonalPostItemWidget> {
               ),
               child: CommentSectionWidget(
                 post: postMap,
-                // THÊM: truyền tên user hiện tại
+                // truyền tên user hiện tại
                 currentUserName: widget.currentUserName,
-                // TRUYỀN AVATAR USER HIỆN TẠI
+                // truyền avatar
                 currentUserAvatar: widget.avatarUrl,
                 onCommentSubmitted: (commentText) {
                   // Cập nhật dữ liệu tạm thời
@@ -115,12 +115,12 @@ class _PersonalPostItemWidgetState extends State<PersonalPostItemWidget> {
     );
   }
 
-  // THÊM: Chuyển đổi PersonalPostModel sang Map
+  // bình luận dummy
   Map<String, dynamic> _convertPostToMap(PersonalPostModel post) {
     return {
-      "user": post.name,
+      "user": post.userName,
       "title": post.title,
-      "group": post.faculty,
+      "group": post.groupId,
       "comments": [
         {
           "name": "Nguyễn Văn A",
@@ -170,11 +170,11 @@ class _PersonalPostItemWidgetState extends State<PersonalPostItemWidget> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          widget.post.name,
+                          widget.post.userName ?? "Ẩn danh",
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                         Text(
-                          "Khoa: ${widget.post.faculty}",
+                          "Khoa: ${widget.post.groupId}",
                           style: const TextStyle(
                             fontSize: 12,
                             color: Colors.grey,
