@@ -64,7 +64,8 @@ class _TrangChuState extends State<TrangChu> {
     // Lọc ra chỉ lấy TÊN nhóm
     final names = validGroupsData.map((g) => g['name'].toString()).toList();
 
-    setState(() {
+    if(mounted){
+      setState(() {
       _joinedGroupsData = validGroupsData; // Lưu data nhóm
       _joinedGroupNames = names; // Lưu tên nhóm
 
@@ -74,6 +75,7 @@ class _TrangChuState extends State<TrangChu> {
       }
       _filterPosts();
     });
+    }
   }
 
   //  HÀM LỌC BÀI VIẾT DỰA TRÊN currentGroup

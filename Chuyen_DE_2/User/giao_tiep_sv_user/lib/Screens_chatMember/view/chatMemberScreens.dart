@@ -84,11 +84,13 @@ class _ChatMemberScreenState extends State<ChatMemberScreen> {
     isload = true;
     final listChats = await messService.listChat(Uid);
     print("leng listChat: ${listChats.length}");
-    setState(() {
+    if(mounted){
+      setState(() {
       listMessage = listChats;
       listMessageSearch = listMessage;
       isload = false;
     });
+    }
   }
 
   //custom header
@@ -143,6 +145,7 @@ class _ChatMemberScreenState extends State<ChatMemberScreen> {
                 content: value.lastMessage,
                 isnew: isnew,
                 ontap: (valueTap) {
+                  //value tap tra ve id phong da nhan vao
                   //chuyen sang man hinh nhan tin 
                   Navigator.push(
                     context,
@@ -151,7 +154,7 @@ class _ChatMemberScreenState extends State<ChatMemberScreen> {
                         return ScreenMessage(
                           myId: Uid.toString(),
                           sender_to: ChatRoom(roomId: "1",lastMessage: "hello ban hien",lastSender: "23211tt3598",lastTime: DateTime.now(),users: ["23211tt3598","23211tt3599"],name: "Le van nam",createdAt: DateTime.now(),avatarUrl: "https://img-s-msn-com.akamaized.net/tenant/amp/entityid/AA1PSSTd.img?w=730&h=486&m=6&x=27&y=208&s=422&d=193",createdBy: "23211tt3598",typeId: 0),
-                          idRoom: "23211tt3598",
+                          idRoom: valueTap,
                         );
                       },
                     ),
