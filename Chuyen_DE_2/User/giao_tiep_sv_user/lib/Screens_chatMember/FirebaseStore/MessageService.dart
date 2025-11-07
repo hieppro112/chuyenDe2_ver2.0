@@ -49,18 +49,54 @@ class MessageService {
   }
 
   //stream real time load các tin nhắn
-
   Stream<List<Message>> streamMessage(String idRoomChat) {
     return messDB
         .collection("ChatRooms")
         .doc(idRoomChat)
         .collection("Message")
-        .orderBy("createAt", descending: true)
+        .orderBy("create_at", descending: false)
         .snapshots()
         .map((event) {
           return event.docs.map((doc) {
             return Message.fromFirestore(doc);
           }).toList();
         });
+  }
+
+  //gui tin nhan
+  Future<Message?> sendMessage({
+    required String roomId,
+    required String senderID,
+    String? content,
+    String? mediaUrl,
+  }) async {
+    try {
+      final messRef = messDB
+          .collection("ChatRooms")
+          .doc(roomId)
+          .collection("Message")
+          .doc();
+      final message = Message(
+        isread: false,
+        id_message: messRef.id,
+        content:content??"null roi" ,
+        sender_id: senderID,
+        create_at: DateTime.now(),
+      );
+
+      await messRef.set(message.toMap());
+      print("gui tin nhan thanh cong");
+
+      //cap nhat lai phong chat
+      await messDB.collection("ChatRooms").doc(roomId).update({
+        "lastMessage":content??"",
+        "lastTime":FieldValue.serverTimestamp(),
+      });
+      return message;
+
+    } catch (e) {
+      print("loi khi gui tin nhan $e");
+      return null;
+    }
   }
 }

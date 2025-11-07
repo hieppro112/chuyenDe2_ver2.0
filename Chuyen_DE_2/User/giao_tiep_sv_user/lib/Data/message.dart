@@ -36,12 +36,13 @@ class Message {
   //dua du lieu len firebase
   Map<String,dynamic> toMap(){
     return{
-      'sender_id':id_message,
+      'id_message':id_message,
       'content':content,
       'media_url':media_url,
       'isRead':isread,
-      'create_at':Timestamp.fromDate(create_at),
-      'sender_id':sender_id
+      'sender_id':sender_id,
+      'create_at':FieldValue.serverTimestamp(),
+
     };
   }
 }
