@@ -60,6 +60,12 @@ void _dangNhap(BuildContext context) async {
       return;
     }
 
+    final id_user = email
+        .trim()
+        .split('@')
+        .first
+        .toUpperCase()
+        .replaceAll(RegExp(r'[^A-Z0-9]'), '');
     DocumentSnapshot doc = await FirebaseFirestore.instance
         .collection("Users")
         .doc(id_user)

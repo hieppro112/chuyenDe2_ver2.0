@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:giao_tiep_sv_user/Home_screen/Home/Home_screen/TrangChu.dart';
 import 'package:giao_tiep_sv_user/Profile/profile.dart';
+import 'package:giao_tiep_sv_user/Profile/saveItemsProfile/saved_items_profile_screen.dart';
 import 'package:giao_tiep_sv_user/Screens_chatMember/view/chatMemberScreens.dart';
 
 class Home extends StatefulWidget {
@@ -15,6 +16,9 @@ class _HomeState extends State<Home> {
   late PageController _pageController;
   int _currentIndex = 0;
 
+  // SỬA: Dùng TrangChuState (public)
+  final GlobalKey<TrangChuState> _trangChuKey = GlobalKey<TrangChuState>();
+
   final List<Widget> _pages = [
     const TrangChu(),
     const ChatMemberScreen(),
@@ -26,6 +30,8 @@ class _HomeState extends State<Home> {
     super.initState();
     // 2. Khởi tạo PageController
     _pageController = PageController(initialPage: _currentIndex);
+    // SỬA: Gán key cho TrangChu (vì const không cho phép gán key)
+    _pages[0] = TrangChu(key: _trangChuKey);
   }
 
   @override
@@ -40,6 +46,40 @@ class _HomeState extends State<Home> {
       duration: const Duration(milliseconds: 300), // Thời gian trượt
       curve: Curves.easeInOut, // Đường cong chuyển động
     );
+  }
+
+  // SỬA: Hàm mở SavedItems và cuộn tới bài viết
+  Future<void> _openSavedItems() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const SavedItemsProfileScreen()),
+    );
+
+    // Kiểm tra result là Map
+    if (result is Map<String, String>) {
+      final postId = result['postId'];
+      final group = result['group'] ?? 'Tất cả';
+
+      if (postId == null) return;
+
+      // 1. Chuyển về Home
+      if (_currentIndex != 0) {
+        _onNavigate(0);
+        await Future.delayed(const Duration(milliseconds: 400));
+      }
+
+      // 2. Đổi nhóm (nếu cần)
+      final trangChuState = _trangChuKey.currentState;
+      if (trangChuState != null && trangChuState.currentGroup != group) {
+        trangChuState.changeGroup(group); // Gọi hàm public
+        await Future.delayed(
+          const Duration(milliseconds: 600),
+        ); // Đợi reload + filter
+      }
+
+      // 3. Cuộn tới bài
+      trangChuState?.scrollToPost(postId);
+    }
   }
 
   Widget _buildAnimatedNavItem(IconData icon, String label, int index) {

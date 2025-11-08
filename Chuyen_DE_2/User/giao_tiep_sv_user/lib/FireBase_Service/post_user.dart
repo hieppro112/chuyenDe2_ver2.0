@@ -1,4 +1,3 @@
-// data/repositories/post_repository.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:giao_tiep_sv_user/Data/posts.dart';
 import 'package:giao_tiep_sv_user/Profile/personalPost/models/personal_post_model.dart';
@@ -6,7 +5,6 @@ import 'package:giao_tiep_sv_user/Profile/personalPost/models/personal_post_mode
 class PostRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // Cache đơn giản (tránh gọi nhiều lần)
   final Map<String, String> _userCache = {};
   final Map<String, String> _groupCache = {};
 
@@ -40,53 +38,71 @@ class PostRepository {
     return snap.size;
   }
 
-  /// Stream bài viết cá nhân + join tên
+  // Thay .asyncMap bằng .map + Future.wait để xử lý song song
   Stream<List<PersonalPostModel>> personalPostsStream(String currentUserId) {
     return _firestore
         .collection('Post')
         .where('user_id', isEqualTo: currentUserId)
         .orderBy('date_created', descending: true)
         .snapshots()
-        .asyncMap((snapshot) async {
-          final List<PersonalPostModel> result = [];
-
-          for (final doc in snapshot.docs) {
-            // DÙNG FACTORY - RÕ RÀNG, CHUẨN
+        .map((snapshot) async {
+          final futures = snapshot.docs.map((doc) async {
+            final data = doc.data();
             final post = Posts.fromFirestore(doc);
 
             final userName = await _getUserName(post.user_id);
             final groupName = await _getGroupName(post.group_id);
 
-            // DÙNG doc.id CHO like/comment (vì đây là ID thật của Firestore)
             final likesCount = await _countSubcollection(doc.id, 'likes');
             final commentsCount = await _countSubcollection(doc.id, 'comments');
 
-            // Kiểm tra like
-            final likeDoc = await _firestore
+            final isLiked = await _firestore
                 .collection('Post')
                 .doc(doc.id)
                 .collection('likes')
                 .doc(currentUserId)
-                .get();
-            final isLiked = likeDoc.exists;
+                .get()
+                .then((doc) => doc.exists);
 
-            result.add(
-              PersonalPostModel(
-                id: doc.id, // ID thật để thao tác
-                userId: post.user_id,
-                groupId: post.group_id,
-                title: post.content,
-                image: post.file_url ?? '',
-                createdAt: post.date_created,
-                likesCount: likesCount, // Đã khai báo
-                commentsCount: commentsCount,
-                isLiked: isLiked,
-                userName: userName,
-                groupName: groupName,
-              ),
+            final imageUrls = _ImageUrls(data);
+
+            return PersonalPostModel(
+              id: doc.id,
+              userId: post.user_id,
+              groupId: post.group_id,
+              title: post.content,
+              imageUrls: imageUrls,
+              createdAt: post.date_created,
+              likesCount: likesCount,
+              commentsCount: commentsCount,
+              isLiked: isLiked,
+              userName: userName,
+              groupName: groupName,
             );
-          }
-          return result;
-        });
+          });
+
+          return await Future.wait(futures);
+        })
+        .asyncMap((future) => future);
+  }
+
+  // lấy ảnh từ stoage
+  List<String> _ImageUrls(Map<String, dynamic> data) {
+    final raw = data['image_urls'];
+    if (raw == null) {
+      // Hỗ trợ dữ liệu cũ: file_url
+      final fileUrl = data['file_url'];
+      if (fileUrl is String && fileUrl.isNotEmpty) {
+        return [fileUrl];
+      }
+      return [];
+    }
+    if (raw is List) {
+      return raw
+          .cast<String>()
+          .where((url) => url.toString().trim().isNotEmpty)
+          .toList();
+    }
+    return [];
   }
 }
