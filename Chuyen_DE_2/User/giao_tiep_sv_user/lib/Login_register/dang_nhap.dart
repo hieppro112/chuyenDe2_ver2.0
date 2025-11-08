@@ -43,7 +43,12 @@ class _DangNhapState extends State<DangNhap> {
       return;
     }
 
-    final id_user = email.split('@').first.toUpperCase(); // Lấy ID người dùng
+    final id_user = email
+        .trim()
+        .split('@')
+        .first
+        .toUpperCase()
+        .replaceAll(RegExp(r'[^A-Z0-9]'), '');
 
     try {
       // Đăng nhập bằng Firebase Auth

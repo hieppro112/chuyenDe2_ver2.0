@@ -1,78 +1,30 @@
 // profile_header_widget.dart
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:giao_tiep_sv_user/FireBase_Service/Profile_Service.dart';
-import 'package:giao_tiep_sv_user/Profile/editProflie/models/profile_model.dart';
 
-class ProfileHeaderWidget extends StatefulWidget {
+class ProfileHeaderWidget extends StatelessWidget {
   final String avatarUrl;
   final File? avatarFile;
   final String name;
-  final String email; // Cần email để tính niên khóa
-  final String facultyId; // Cần faculty_id để lấy tên ngành
+  final String major; // ← Truyền từ ngoài vào
+  final String schoolYear; // ← Truyền từ ngoài vào
   final int postCount;
 
   const ProfileHeaderWidget({
     super.key,
     required this.avatarUrl,
     required this.name,
-    required this.email,
-    required this.facultyId,
+    required this.major,
+    required this.schoolYear,
     required this.postCount,
     this.avatarFile,
   });
 
-  @override
-  State<ProfileHeaderWidget> createState() => _ProfileHeaderWidgetState();
-}
-
-class _ProfileHeaderWidgetState extends State<ProfileHeaderWidget> {
-  final ProfileService _profileService = ProfileService();
-  String _faculty = 'Đang tải...';
-  String _academicYear = 'Đang tải...';
-  bool _isLoading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadFacultyAndYear();
-  }
-
-  Future<void> _loadFacultyAndYear() async {
-    try {
-      final result = await _profileService.layNganhVaNienKhoa(
-        widget.email,
-        widget.facultyId,
-      );
-      if (mounted) {
-        setState(() {
-          _faculty = result['major'] ?? 'Không xác định';
-          _academicYear = result['schoolYear'] ?? 'Không xác định';
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _faculty = 'Lỗi tải';
-          _academicYear = 'Lỗi tải';
-          _isLoading = false;
-        });
-      }
-    }
-  }
-
   Widget _buildAvatar() {
-    if (widget.avatarFile != null) {
-      return CircleAvatar(
-        radius: 30,
-        backgroundImage: FileImage(widget.avatarFile!),
-      );
-    } else if (widget.avatarUrl.isNotEmpty) {
-      return CircleAvatar(
-        radius: 30,
-        backgroundImage: NetworkImage(widget.avatarUrl),
-      );
+    if (avatarFile != null) {
+      return CircleAvatar(radius: 35, backgroundImage: FileImage(avatarFile!));
+    } else if (avatarUrl.isNotEmpty) {
+      return CircleAvatar(radius: 30, backgroundImage: NetworkImage(avatarUrl));
     } else {
       return const CircleAvatar(
         radius: 30,
@@ -96,16 +48,16 @@ class _ProfileHeaderWidgetState extends State<ProfileHeaderWidget> {
                   Row(
                     children: [
                       Text(
-                        widget.name,
+                        name,
                         style: const TextStyle(
-                          fontSize: 21,
+                          fontSize: 18,
                           color: Colors.blue,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 5),
                       Text(
-                        "• ${widget.postCount} bài viết", // Dấu chấm giữa
+                        "• $postCount bài viết",
                         style: const TextStyle(
                           color: Colors.blueAccent,
                           fontSize: 18,
@@ -113,21 +65,9 @@ class _ProfileHeaderWidgetState extends State<ProfileHeaderWidget> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 6),
-                  if (_isLoading)
-                    const SizedBox(
-                      height: 16,
-                      child: LinearProgressIndicator(minHeight: 2),
-                    )
-                  else
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildInfoItem("Ngành học: ", _faculty),
-                        const SizedBox(height: 10),
-                        _buildInfoItem("Niên khóa: ", _academicYear),
-                      ],
-                    ),
+                  _buildInfoItem("Ngành học: ", major),
+                  const SizedBox(height: 4),
+                  _buildInfoItem("Niên khóa: ", schoolYear),
                 ],
               ),
             ),
