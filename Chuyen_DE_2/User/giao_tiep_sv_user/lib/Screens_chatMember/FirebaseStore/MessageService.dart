@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/widgets.dart';
 import 'package:giao_tiep_sv_user/Data/message.dart';
 import 'package:giao_tiep_sv_user/Data/room_chat.dart';
 
@@ -10,7 +11,7 @@ class MessageService {
     try {
       final querySnap = await messDB
           .collection("ChatRooms")
-          .where("users", arrayContains: myID)
+          .where("users", arrayContains: myID.toUpperCase())
           .orderBy("lastTime", descending: true)
           .get();
 
@@ -49,18 +50,67 @@ class MessageService {
   }
 
   //stream real time load các tin nhắn
-
   Stream<List<Message>> streamMessage(String idRoomChat) {
     return messDB
         .collection("ChatRooms")
         .doc(idRoomChat)
         .collection("Message")
-        .orderBy("createAt", descending: true)
+        .orderBy("create_at", descending: false)
         .snapshots()
         .map((event) {
           return event.docs.map((doc) {
             return Message.fromFirestore(doc);
           }).toList();
         });
+  }
+
+  //gui tin nhan
+  Future<Message?> sendMessage({
+    required String roomId,
+    required String senderID,
+    required String avt_sender,
+    required String name_sender,
+    String? content,
+    String? mediaUrl,
+  }) async {
+    try {
+      final messRef = messDB
+          .collection("ChatRooms")
+          .doc(roomId)
+          .collection("Message")
+          .doc();
+      final message = Message(
+        isread: false,
+        id_message: messRef.id,
+        content:content??"null roi" ,
+        sender_id: senderID,
+        sender_avatar: avt_sender,
+        sender_name: name_sender,
+        media_url: mediaUrl??"",
+        create_at: DateTime.now(),
+      );
+
+      await messRef.set(message.toMap());
+      print("gui tin nhan thanh cong");
+
+      //cap nhat lai phong chat
+      await messDB.collection("ChatRooms").doc(roomId).update({
+        "lastMessage":content??"",
+        "lastTime":FieldValue.serverTimestamp(),
+      });
+      return message;
+
+    } catch (e) {
+      print("loi khi gui tin nhan $e");
+      return null;
+    }
+  }
+
+  //tao nhom chats
+  Future<void> createChatRooms(ChatRoom chatroom)async{
+    try{
+      await messDB.collection("ChatRooms").doc(chatroom.roomId).set(chatroom.toMap());
+      print("tao nhom chat thanh cong");
+    }catch(e){print("loi khi tao nhom: $e");}
   }
 }

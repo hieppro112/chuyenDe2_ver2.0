@@ -74,10 +74,12 @@ class TrangChuState extends State<TrangChu> {
   Future<void> _fetchPosts() async {
     final fetchedPosts = await _postService.fetchPosts();
 
-    setState(() {
+    if(mounted){
+      setState(() {
       allPosts = fetchedPosts;
       _filterPosts();
     });
+    }
   }
 
   // LẤY DANH SÁCH TÊN NHÓM VÀ DATA NHÓM

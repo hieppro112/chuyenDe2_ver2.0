@@ -20,9 +20,8 @@ class ScreenNotify extends StatefulWidget {
 
 class _ScreenNotify extends State<ScreenNotify> {
   //firestore notify
-  final Notifycationfirebase notifyService  = Notifycationfirebase();
+  final Notifycationfirebase notifyService = Notifycationfirebase();
   File? avt_group = null;
-  List<String> khoa = ["CNTT", "Kế Toán", "Điện", "Ô Tô", "Cơ khí"];
   TextEditingController nameGroup = TextEditingController();
   TextEditingController descriptionGroup = TextEditingController();
   List<Users> listSelected_uyquyen = [];
@@ -69,7 +68,7 @@ class _ScreenNotify extends State<ScreenNotify> {
             createButton(),
             SizedBox(height: 15),
             CustomSlected(
-              Throws: 1,
+              Throws: 2,
               listmember: listSelected_uyquyen,
               listFaculty: listSelected_khoa,
             ),
@@ -83,46 +82,51 @@ class _ScreenNotify extends State<ScreenNotify> {
 
   Widget complate_create() {
     return InkWell(
-       onTap: () async{
-          if(nameGroup.text.trim().isEmpty||descriptionGroup.text.trim().isEmpty||listSelected_khoa.length<=0||listSelected_uyquyen.length<=0){
-            ScaffoldMessenger.of(context).showSnackBar(
-             const SnackBar(
-              content: Text('Vui lòng đưa đầy đủ thông tin!'),
+      onTap: () async {
+        if (nameGroup.text.trim().isEmpty ||
+            descriptionGroup.text.trim().isEmpty ||
+            listSelected_khoa.length <= 0 ||
+            listSelected_uyquyen.length <= 0) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Vui lòng nhập đầy đủ thông tin!'),
               duration: Duration(seconds: 3),
             ),
           );
-          }
-          else{
-            final String id = const Uuid().v4();
-            final String title = nameGroup.text;
-            final String content = descriptionGroup.text;
-            final int type_notify = 1;
-            Map<String,dynamic> selectedReps = {};
-           if(listSelected_uyquyen.length>0){
-              for(var item in listSelected_uyquyen){
+        } else {
+          final String id = const Uuid().v4();
+          final String title = nameGroup.text;
+          final String content = descriptionGroup.text;
+          final int type_notify = 1;
+          Map<String, dynamic> selectedReps = {};
+          if (listSelected_uyquyen.length > 0) {
+            for (var item in listSelected_uyquyen) {
               selectedReps[item.id_user] = item.fullname;
             }
-           } 
-           if(listSelected_khoa.length>0){
-            for(var item in listSelected_khoa){
+          }
+          if (listSelected_khoa.length > 0) {
+            for (var item in listSelected_khoa) {
               selectedReps[item.id] = item.name_faculty;
             }
-           }
+          }
 
-            
-            Notifycation notifyAdd = Notifycation(title, id: id, type_notify: type_notify, content: content, user_recipient_ID: selectedReps);
-            notifyService.createNotifycation(notifyAdd);
-            Navigator.pop(context);
-            ScaffoldMessenger.of(context).showSnackBar(
-             const SnackBar(
-              content: Text('Đã tạo nhóm thành công !'),
+          Notifycation notifyAdd = Notifycation(
+            title,
+            id: id,
+            type_notify: type_notify,
+            content: content,
+            user_recipient_ID: selectedReps,
+          );
+          notifyService.createNotifycation(notifyAdd);
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Gửi thông báo thành công!'),
               duration: Duration(seconds: 3),
             ),
-            
-            
           );
-          }
-        },
+        }
+      },
       child: Center(
         child: Container(
           padding: EdgeInsets.symmetric(horizontal: 25, vertical: 5),
@@ -167,7 +171,7 @@ class _ScreenNotify extends State<ScreenNotify> {
           nameButton: "Khoa",
           Mycolor: Colors.white,
           ontap: () {
-           showDialog(
+            showDialog(
               context: context,
               builder: (context) => CustomAllKhoa(
                 listKhoa_out: (value) {

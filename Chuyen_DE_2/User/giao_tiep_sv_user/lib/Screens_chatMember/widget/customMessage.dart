@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 class Custommessage extends StatelessWidget {
   final bool forme_sender;
   final String url_avt;
+  final String nameSender;
   final String content;
   final String? Url_media;
 
@@ -13,7 +14,7 @@ class Custommessage extends StatelessWidget {
     required this.forme_sender,
     required this.url_avt,
     required this.content,
-    this.Url_media,
+    this.Url_media, required this.nameSender,
   });
 
   @override

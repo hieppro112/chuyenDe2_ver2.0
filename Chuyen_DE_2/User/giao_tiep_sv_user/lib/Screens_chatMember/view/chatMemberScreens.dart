@@ -5,6 +5,7 @@ import 'package:giao_tiep_sv_user/Data/room_chat.dart';
 import 'package:giao_tiep_sv_user/FireBase_Service/UserServices.dart';
 import 'package:giao_tiep_sv_user/Screen_member_group/widget/customSearch.dart';
 import 'package:giao_tiep_sv_user/Screens_chatMember/FirebaseStore/MessageService.dart';
+import 'package:giao_tiep_sv_user/Screens_chatMember/view/CreateRoomChat.dart';
 import 'package:giao_tiep_sv_user/Screens_chatMember/view/chatMessage.dart';
 import 'package:giao_tiep_sv_user/Screens_chatMember/widget/custom_chat_member.dart';
 import 'package:giao_tiep_sv_user/ThongBao/ManHinhThongBao.dart';
@@ -70,6 +71,21 @@ class _ChatMemberScreenState extends State<ChatMemberScreen> {
           ],
         ),
       ),
+      floatingActionButton: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border.all(
+            color: Colors.black,
+            width: 1
+          ),
+          borderRadius: BorderRadius.circular(30)
+        ),
+        padding: EdgeInsets.all(0),
+        child: IconButton(onPressed: () {
+          Navigator.push(context, MaterialPageRoute(builder: (context) => CreateRoomChat(myId: Uid,),));
+        }, icon: Icon(Icons.message,size: 24,)),
+      )
+
     );
     // );
   }
@@ -139,7 +155,6 @@ class _ChatMemberScreenState extends State<ChatMemberScreen> {
             itemBuilder: (context, index) {
               var value = listMessageSearch[index];
               return CustomChatMember(
-
                 userInfo: value,
                 id_chat: value.roomId,
                 content: value.lastMessage,
@@ -153,14 +168,14 @@ class _ChatMemberScreenState extends State<ChatMemberScreen> {
                       builder: (context) {
                         return ScreenMessage(
                           myId: Uid.toString(),
-                          sender_to: ChatRoom(roomId: "1",lastMessage: "hello ban hien",lastSender: "23211tt3598",lastTime: DateTime.now(),users: ["23211tt3598","23211tt3599"],name: "Le van nam",createdAt: DateTime.now(),avatarUrl: "https://img-s-msn-com.akamaized.net/tenant/amp/entityid/AA1PSSTd.img?w=730&h=486&m=6&x=27&y=208&s=422&d=193",createdBy: "23211tt3598",typeId: 0),
+                          sender_to: ChatRoom(roomId: "",lastMessage: value.lastMessage,lastSender: value.lastSender,lastTime: DateTime.now(),users: [],name: value.name,createdAt: DateTime.now(),avatarUrl: value.avatarUrl,createdBy: value.createdBy,typeId: (value.users.length<2)?1:2),
                           idRoom: valueTap,
                         );
                       },
                     ),
                   );
                 
-                  print("room john: ${valueTap}");
+                  // print("room john: ${valueTap}");
                 },
               );
             },
