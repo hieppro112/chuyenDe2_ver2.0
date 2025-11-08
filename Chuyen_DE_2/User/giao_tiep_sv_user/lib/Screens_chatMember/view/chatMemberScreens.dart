@@ -24,6 +24,7 @@ class _ChatMemberScreenState extends State<ChatMemberScreen> {
   final Userservices userService = Userservices();
   bool isload = false;
   List<ChatRoom> listMessage = [];
+  List<ChatRoom> listChatGroup=[];
   double width = 0;
   bool ischatGroup = false;
   List<ChatRoom> listMessageSearch = [];
@@ -41,7 +42,7 @@ class _ChatMemberScreenState extends State<ChatMemberScreen> {
       // Sau khi có UID thì gọi hàm lấy dữ liệu
       FeatchDataListChats(Uid);
     } else {
-      print("⚠️ User chưa đăng nhập!");
+      print(" User chưa đăng nhập!");
     }
   }
 
@@ -95,18 +96,36 @@ class _ChatMemberScreenState extends State<ChatMemberScreen> {
     return userService.getUserForID(myId);
   }
 
-  //lay dl dua vao list
+  //lay dl dua vao danh sach chat
   Future<void> FeatchDataListChats(String Uid) async {
     isload = true;
-    final listChats = await messService.listChat(Uid);
-    print("leng listChat: ${listChats.length}");
-    if(mounted){
-      setState(() {
-      listMessage = listChats;
-      listMessageSearch = listMessage;
-      isload = false;
-    });
-    }
+    // final listChats = await messService.streamChatRooms(Uid);
+    // print("leng listChat: ${listChats.length}");
+    // if(mounted){
+    //   setState(() {
+    //   listMessage = listChats;
+    //   listMessageSearch = listMessage;
+    //   isload = false;
+    // });
+    // }
+     await messService.streamChatRooms(Uid).listen((event) {
+      
+      print("listChat length: ${event.length}");
+      if(mounted){
+        setState(() {
+          listMessage = event.where((element) {
+            return element.typeId==0;
+          },).toList();
+          listMessageSearch = listMessage;
+
+          listChatGroup = event.where((element) {
+            return element.typeId==1;
+          },).toList();
+          listMessageSearch = listChatGroup;
+          isload =false;
+        });
+      }
+    },);
   }
 
   //custom header
@@ -193,9 +212,11 @@ class _ChatMemberScreenState extends State<ChatMemberScreen> {
           ontap: () {
             setState(() {
               ischatGroup = false;
-              listMessageSearch = listMessage.where((element) {
-                return element.typeId == 0;
-              }).toList();
+               listMessageSearch = listMessage;
+              //.where((element) {
+              //   print("type group ${element.typeId}");
+              //   return element.typeId == 0;
+              // }).toList();
             });
           },
         ),
@@ -206,9 +227,10 @@ class _ChatMemberScreenState extends State<ChatMemberScreen> {
           ontap: () {
             setState(() {
               ischatGroup = true;
-              listMessageSearch = listMessage.where((element) {
-                return element.typeId == 1;
-              }).toList();
+              listMessageSearch = listChatGroup;
+              // listMessage.where((element) {
+              //   return element.typeId != 0;
+              // }).toList();
             });
           },
         ),

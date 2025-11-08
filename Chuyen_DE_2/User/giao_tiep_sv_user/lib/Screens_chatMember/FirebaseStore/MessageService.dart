@@ -20,6 +20,8 @@ class MessageService {
         return [];
       }
 
+
+
       List<ChatRoom> roomsChat = querySnap.docs.map((e) {
         final data = e.data();
         data["roomId"] = e.id;
@@ -37,7 +39,7 @@ class MessageService {
   Stream<List<ChatRoom>> streamChatRooms(String myID) {
     return messDB
         .collection("ChatRooms")
-        .where("users", arrayContains: myID)
+        .where("users", arrayContains: myID.toUpperCase())
         .orderBy("lastTime", descending: true)
         .snapshots()
         .map(

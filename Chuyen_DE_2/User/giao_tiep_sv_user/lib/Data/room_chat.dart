@@ -90,7 +90,7 @@ class ChatRoom {
       'users': users,
       'name': name,
       'avatarUrl': avatarUrl,
-      'typeId': typeId,
+      'typeId': (users.length>2)?1:0,
       'createdBy': createdBy,
       'createdAt': Timestamp.fromDate(createdAt),
     };
