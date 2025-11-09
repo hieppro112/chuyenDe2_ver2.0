@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import '../../../FireBase_Service/get_posts.dart';
 import 'port_card.dart';
@@ -12,10 +13,10 @@ class TrangChu extends StatefulWidget {
   const TrangChu({super.key});
 
   @override
-  State<TrangChu> createState() => _TrangChuState();
+  State<TrangChu> createState() => TrangChuState();
 }
 
-class _TrangChuState extends State<TrangChu> {
+class TrangChuState extends State<TrangChu> {
   final GetPosts _postService = GetPosts();
   final GetJoinedGroupsService _groupService = GetJoinedGroupsService();
 
@@ -30,7 +31,38 @@ class _TrangChuState extends State<TrangChu> {
   // Nơi lưu trữ danh sách TÊN nhóm (chỉ dùng cho DangBaiDialog)
   List<String> _joinedGroupNames = [];
 
-  void _changeGroup(String newGroup) {
+  // SỬA: Thêm key cho từng bài viết
+  final Map<String, GlobalKey> _postKeys = {};
+  String? _highlightPostId;
+
+  // SỬA: Public method để Home gọi
+  void scrollToPost(String postId) {
+    setState(() => _highlightPostId = postId);
+    _scrollToPost(postId);
+  }
+
+  // SỬA: Hàm cuộn tới bài viết
+  void _scrollToPost(String postId) async {
+    final key = _postKeys[postId];
+    if (key?.currentContext == null) {
+      await Future.delayed(const Duration(milliseconds: 300));
+      if (mounted) _scrollToPost(postId);
+      return;
+    }
+
+    Scrollable.ensureVisible(
+      key!.currentContext!,
+      duration: const Duration(milliseconds: 600),
+      curve: Curves.easeInOut,
+      alignment: 0.1,
+    );
+
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted) setState(() => _highlightPostId = null);
+    });
+  }
+
+  void changeGroup(String newGroup) {
     setState(() {
       currentGroup = newGroup;
       _isOpen = false;
@@ -66,17 +98,17 @@ class _TrangChuState extends State<TrangChu> {
     // Lọc ra chỉ lấy TÊN nhóm
     final names = validGroupsData.map((g) => g['name'].toString()).toList();
 
-    if(mounted){
+    if (mounted) {
       setState(() {
-      _joinedGroupsData = validGroupsData; // Lưu data nhóm
-      _joinedGroupNames = names; // Lưu tên nhóm
+        _joinedGroupsData = validGroupsData; // Lưu data nhóm
+        _joinedGroupNames = names; // Lưu tên nhóm
 
-      //  CẬP NHẬT NHÓM HIỂN THỊ MẶC ĐỊNH
-      if (names.isNotEmpty && currentGroup == "CNTT") {
-        currentGroup = names.first;
-      }
-      _filterPosts();
-    });
+        //  CẬP NHẬT NHÓM HIỂN THỊ MẶC ĐỊNH
+        if (names.isNotEmpty && currentGroup == "CNTT") {
+          currentGroup = names.first;
+        }
+        _filterPosts();
+      });
     }
   }
 
@@ -89,6 +121,40 @@ class _TrangChuState extends State<TrangChu> {
           .where((post) => post["group"] == currentGroup)
           .toList();
     }
+  }
+
+  Future<void> savePostOnce(String postId) async {
+    final userId = GlobalState.currentUserId.isNotEmpty
+        ? GlobalState.currentUserId
+        : "23211TT1718";
+
+    final ref = FirebaseFirestore.instance.collection('Post_save');
+
+    final exists = await ref
+        .where('user_id', isEqualTo: userId)
+        .where('post_id', isEqualTo: postId)
+        .limit(1)
+        .get();
+
+    if (exists.docs.isNotEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Bài viết đã được lưu!')));
+      return;
+    }
+
+    await ref.add({
+      'user_id': userId,
+      'post_id': postId,
+      'create_at': FieldValue.serverTimestamp(),
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Đã lưu bài viết!'),
+        backgroundColor: Colors.green,
+      ),
+    );
   }
 
   void _toggleLike(Map<String, dynamic> post) {
@@ -296,16 +362,27 @@ class _TrangChuState extends State<TrangChu> {
                   ListView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
-                    itemCount: filteredPosts.length, // Sử dụng danh sách đã lọc
+                    itemCount: filteredPosts.length,
                     itemBuilder: (context, i) {
                       final post = filteredPosts[i];
-                      return PostCard(
-                        post: post,
-                        onCommentPressed: () => _showCommentSheet(post),
-                        onLikePressed: () => _toggleLike(post),
-                        onMenuSelected: (value) {
-                          debugPrint("Đã chọn: $value");
-                        },
+                      final postId = post["id"] as String;
+
+                      // SỬA: Tạo key cho từng bài
+                      _postKeys.putIfAbsent(postId, () => GlobalKey());
+
+                      return Container(
+                        key: _postKeys[postId],
+                        color: _highlightPostId == postId
+                            ? Colors.yellow.withOpacity(0.2)
+                            : null,
+                        child: PostCard(
+                          post: post,
+                          onCommentPressed: () => _showCommentSheet(post),
+                          onLikePressed: () => _toggleLike(post),
+                          onMenuSelected: (value) {
+                            if (value == "save") savePostOnce(post["id"]);
+                          },
+                        ),
                       );
                     },
                   ),
@@ -330,7 +407,7 @@ class _TrangChuState extends State<TrangChu> {
             child: LeftPanel(
               onClose: () => setState(() => _isOpen = false),
               // TRUYỀN HÀM CẬP NHẬT NHÓM
-              onGroupSelected: _changeGroup,
+              onGroupSelected: changeGroup,
             ),
           ),
         ],
