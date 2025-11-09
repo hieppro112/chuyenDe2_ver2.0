@@ -1,40 +1,16 @@
-// lib/widgets/DangBaiDialog.dart
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:giao_tiep_sv_user/Data/global_state.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import '../../../FireBase_Service/create_post.dart';
-import '../../../Data/global_state.dart';
-
-// ======== UPLOAD SERVICE (giữ nguyên hoặc thêm vào file riêng) ========
-class UploadService {
-  final FirebaseStorage _storage = FirebaseStorage.instance;
-
-  Future<String?> uploadFile(File file, String userId) async {
-    final fileName = file.path.split('/').last;
-    final now = DateTime.now().millisecondsSinceEpoch;
-    final path = 'groups/$userId/$now-$fileName';
-
-    try {
-      final ref = _storage.ref().child(path);
-      final uploadTask = ref.putFile(file);
-      final snapshot = await uploadTask;
-      final downloadUrl = await snapshot.ref.getDownloadURL();
-      print("Upload thành công: $downloadUrl");
-      return downloadUrl;
-    } catch (e) {
-      print("Lỗi upload: $e");
-      return null;
-    }
-  }
-}
-// ====================================================================
+import '../../../FireBase_Service/upload_service.dart';
 
 class DangBaiDialog extends StatefulWidget {
-  final List<String> availableGroups;
-  const DangBaiDialog({super.key, required this.availableGroups});
+  final List<Map<String, dynamic>>? availableGroupsData;
+  const DangBaiDialog({super.key, this.availableGroupsData});
 
   @override
   State<DangBaiDialog> createState() => _DangBaiDialogState();
@@ -42,36 +18,61 @@ class DangBaiDialog extends StatefulWidget {
 
 class _DangBaiDialogState extends State<DangBaiDialog> {
   final CreatePostService _createPostService = CreatePostService();
-  final String? userId = GlobalState.currentUserId;
   final UploadService _uploadService = UploadService();
-
-  late String selectedGroup;
   final TextEditingController contentController = TextEditingController();
 
-  List<File> selectedImages = [];
-  List<String> selectedFileNames = [];
-  List<File> selectedFiles = []; // Lưu File thực để upload
-  String? firstImagePath;
+  final String? userId = GlobalState.currentUserId;
 
-  final ImagePicker _picker = ImagePicker();
+  List<File> selectedImages = [];
+  List<File> selectedFiles = [];
+  List<String> selectedFileNames = [];
+
+  String? firstImagePath;
   bool _isUploading = false;
+  final ImagePicker _picker = ImagePicker();
+
+  List<Map<String, dynamic>> availableGroups = [];
+  String? selectedGroupId;
 
   @override
   void initState() {
     super.initState();
-    selectedGroup =
-        widget.availableGroups.isNotEmpty &&
-            widget.availableGroups.first != "Tất cả"
-        ? widget.availableGroups.first
-        : (widget.availableGroups.length > 1
-              ? widget.availableGroups[1]
-              : 'CNTT');
+
+    if (widget.availableGroupsData != null &&
+        widget.availableGroupsData!.isNotEmpty) {
+      availableGroups = widget.availableGroupsData!;
+      selectedGroupId = availableGroups.first['id'] as String;
+    } else {
+      _loadGroupsFallback();
+    }
   }
 
   @override
   void dispose() {
     contentController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadGroupsFallback() async {
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('Groups')
+          .get();
+
+      final groups = snapshot.docs.map((doc) {
+        final data = doc.data();
+        return {'id': doc.id, 'name': data['name'] ?? 'Nhóm không tên'};
+      }).toList();
+
+      setState(() {
+        availableGroups = groups;
+        if (availableGroups.isNotEmpty) {
+          selectedGroupId = availableGroups.first['id'] as String;
+        }
+      });
+    } catch (e) {
+      print("🔥 Lỗi load nhóm: $e");
+    }
   }
 
   Future<void> _pickImages() async {
@@ -128,7 +129,14 @@ class _DangBaiDialogState extends State<DangBaiDialog> {
     if (userId == null) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text("Lỗi: Chưa đăng nhập!")));
+      ).showSnackBar(const SnackBar(content: Text("Lỗi: chưa đăng nhập!")));
+      return;
+    }
+
+    if (selectedGroupId == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Vui lòng chọn nhóm!")));
       return;
     }
 
@@ -138,20 +146,14 @@ class _DangBaiDialogState extends State<DangBaiDialog> {
     String? fileUrl;
 
     try {
-      // Upload ảnh
       if (selectedImages.isNotEmpty) {
         final futures = selectedImages.map(
           (img) => _uploadService.uploadFile(img, userId!),
         );
         final results = await Future.wait(futures);
         imageUrls = results.whereType<String>().toList();
-
-        if (imageUrls.length != selectedImages.length) {
-          throw Exception("Một số ảnh không tải lên được");
-        }
       }
 
-      // Upload file đính kèm (chỉ 1 file đầu tiên)
       if (selectedFiles.isNotEmpty) {
         final url = await _uploadService.uploadFile(
           selectedFiles.first,
@@ -160,11 +162,10 @@ class _DangBaiDialogState extends State<DangBaiDialog> {
         if (url != null) fileUrl = url;
       }
 
-      // Đăng bài
       final success = await _createPostService.uploadPost(
         currentUserId: userId!,
         content: content,
-        groupId: selectedGroup,
+        groupId: selectedGroupId!,
         imageUrls: imageUrls,
         fileUrl: fileUrl,
       );
@@ -175,12 +176,13 @@ class _DangBaiDialogState extends State<DangBaiDialog> {
         Navigator.pop(context, true);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text("Đăng bài thành công!"),
+            content: Text("🎉 Đăng bài thành công (chờ duyệt)!"),
             backgroundColor: Colors.green,
           ),
         );
       }
     } catch (e) {
+      print("❌ Lỗi đăng bài: $e");
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Lỗi: $e"), backgroundColor: Colors.red),
@@ -236,7 +238,7 @@ class _DangBaiDialogState extends State<DangBaiDialog> {
               ),
               const Divider(),
 
-              // Nội dung
+              // Ô nhập nội dung
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
@@ -261,50 +263,31 @@ class _DangBaiDialogState extends State<DangBaiDialog> {
                 style: TextStyle(fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey.shade300),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  children: [
-                    Tooltip(
-                      message: 'Chọn ảnh',
-                      child: IconButton(
-                        icon: const Icon(Icons.image, color: primaryColor),
-                        onPressed: _pickImages,
+              Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.image, color: primaryColor),
+                    onPressed: _pickImages,
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.attach_file, color: primaryColor),
+                    onPressed: _pickFiles,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      hasAttachments
+                          ? 'Đã chọn ${selectedImages.length + selectedFileNames.length} tệp'
+                          : 'Chưa có tệp nào',
+                      style: TextStyle(
+                        color: hasAttachments ? Colors.black87 : Colors.grey,
                       ),
                     ),
-                    Tooltip(
-                      message: 'Chọn file',
-                      child: IconButton(
-                        icon: const Icon(
-                          Icons.attach_file,
-                          color: primaryColor,
-                        ),
-                        onPressed: _pickFiles,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        hasAttachments
-                            ? 'Đã chọn ${selectedImages.length + selectedFileNames.length} tệp'
-                            : 'Chưa có tệp nào',
-                        style: TextStyle(
-                          color: hasAttachments ? Colors.black87 : Colors.grey,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
 
-              // Hiển thị ảnh
+              // Danh sách ảnh hoặc file
               if (selectedImages.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(top: 12),
@@ -348,7 +331,6 @@ class _DangBaiDialogState extends State<DangBaiDialog> {
                   ),
                 ),
 
-              // Hiển thị file
               if (selectedFileNames.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(top: 12),
@@ -373,25 +355,23 @@ class _DangBaiDialogState extends State<DangBaiDialog> {
               ),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
-                value: selectedGroup,
-                items: widget.availableGroups.map((g) {
-                  return DropdownMenuItem(value: g, child: Text(g));
+                value: selectedGroupId,
+                items: availableGroups.map((g) {
+                  return DropdownMenuItem<String>(
+                    value: g['id'] as String,
+                    child: Text(g['name'] as String),
+                  );
                 }).toList(),
-                onChanged: (v) => setState(() => selectedGroup = v!),
-                decoration: InputDecoration(
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 10,
-                  ),
+                onChanged: (v) => setState(() => selectedGroupId = v),
+                decoration: const InputDecoration(
+                  labelText: "Chọn nhóm đăng bài",
+                  border: OutlineInputBorder(),
                 ),
               ),
 
               const SizedBox(height: 30),
 
-              // Nút hành động
+              // Nút đăng bài
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [

@@ -12,12 +12,28 @@ class NhomCuaToi extends StatefulWidget {
 class _NhomCuaToiState extends State<NhomCuaToi> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
-  //  Dữ liệu mẫu
+  // ✅ Dữ liệu mẫu
   final List<Map<String, dynamic>> groups = [
-    {"name": "Dev vui vẻ", "image": "assets/images/dev.png"},
-    {"name": "Cơ sở dữ liệu", "image": "assets/images/database.png"},
-    {"name": "Công nghệ vui vẻ", "image": "assets/images/database.png"},
-    {"name": "Lập trình di động", "image": "assets/images/dev.png"},
+    {
+      "name": "Dev vui vẻ",
+      "image": "assets/images/dev.png",
+      "id": "DEV_VUI_VE_ID",
+    },
+    {
+      "name": "Cơ sở dữ liệu",
+      "image": "assets/images/database.png",
+      "id": "CSDL_ID",
+    },
+    {
+      "name": "Công nghệ vui vẻ",
+      "image": "assets/images/database.png",
+      "id": "CNVV_ID",
+    },
+    {
+      "name": "Lập trình di động",
+      "image": "assets/images/dev.png",
+      "id": "LTDĐ_ID",
+    },
   ];
 
   @override
@@ -31,33 +47,30 @@ class _NhomCuaToiState extends State<NhomCuaToi> {
     );
   }
 
-  //  Drawer bên trái
+  // Drawer bên trái
   Drawer _buildDrawer() {
     return Drawer(
       child: LeftPanel(
         onClose: () => Navigator.of(context).pop(),
-        onGroupSelected: (_) {},
+        onGroupSelected: (id, name) {
+          // Có thể thêm logic cập nhật GlobalState ở đây
+        },
         isGroupPage: true,
       ),
     );
   }
 
-  //  AppBar
+  // AppBar
   AppBar _buildAppBar() {
     return AppBar(
       backgroundColor: Colors.white,
-      elevation: 0.5,
-      leading: Builder(
-        builder: (context) => IconButton(
-          icon: const Icon(Icons.menu, color: Colors.black),
-          onPressed: () => _scaffoldKey.currentState?.openDrawer(),
-        ),
-      ),
+      elevation: 1,
       title: const Text(
-        "Nhóm của tôi ",
+        "Nhóm của tôi",
         style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
       ),
       centerTitle: true,
+      iconTheme: const IconThemeData(color: Colors.black),
       actions: [
         IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black, size: 21),
@@ -68,7 +81,7 @@ class _NhomCuaToiState extends State<NhomCuaToi> {
     );
   }
 
-  //  Body chính
+  // Body chính
   Widget _buildBody() {
     return Column(
       children: [
@@ -82,7 +95,7 @@ class _NhomCuaToiState extends State<NhomCuaToi> {
     );
   }
 
-  //  Danh sách nhóm
+  // Danh sách nhóm
   Widget _buildGroupList() {
     return ListView.builder(
       itemCount: groups.length,
@@ -93,15 +106,15 @@ class _NhomCuaToiState extends State<NhomCuaToi> {
     );
   }
 
-  //  Từng nhóm (card)
+  // Card nhóm
   Widget _buildGroupCard(Map<String, dynamic> group) {
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 10),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Colors.grey.shade100,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.black87, width: 1),
+        border: Border.all(color: Colors.grey.shade300),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -114,15 +127,15 @@ class _NhomCuaToiState extends State<NhomCuaToi> {
     );
   }
 
-  //  Ảnh nhóm
+  // Ảnh nhóm
   Widget _buildGroupImage(String imagePath) {
     return ClipRRect(
-      borderRadius: BorderRadius.circular(8),
-      child: Image.asset(imagePath, width: 70, height: 70, fit: BoxFit.contain),
+      borderRadius: BorderRadius.circular(12),
+      child: Image.asset(imagePath, width: 60, height: 60, fit: BoxFit.cover),
     );
   }
 
-  // Tên nhóm + nút truy cập
+  // Thông tin nhóm + nút truy cập
   Widget _buildGroupInfo(Map<String, dynamic> group) {
     return Expanded(
       child: Column(
@@ -131,55 +144,50 @@ class _NhomCuaToiState extends State<NhomCuaToi> {
           Text(
             group["name"],
             style: const TextStyle(
-              fontSize: 17,
+              fontSize: 16,
               fontWeight: FontWeight.bold,
               color: Colors.black,
             ),
           ),
           const SizedBox(height: 10),
-          _buildAccessButton(group["name"]),
+          _buildAccessButton(group["id"], group["name"]),
         ],
       ),
     );
   }
 
-  //
-  Widget _buildAccessButton(String groupName) {
+  // Nút truy cập
+  Widget _buildAccessButton(String groupId, String groupName) {
     return OutlinedButton(
-      onPressed: () => _handleAccessGroup(groupName),
+      onPressed: () => _handleAccessGroup(groupId, groupName),
       style: OutlinedButton.styleFrom(
-        backgroundColor: const Color(0xFFDDE9FF),
-        side: const BorderSide(color: Color(0xFF1F65DE), width: 1),
+        side: const BorderSide(color: Colors.blueAccent),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       ),
-      child: Row(
+      child: const Row(
         mainAxisSize: MainAxisSize.min,
-        children: const [
-          Text(
-            "Truy cập",
-            style: TextStyle(
-              color: Color(0xFF1F65DE),
-              fontWeight: FontWeight.w500,
-            ),
-          ),
+        children: [
+          Text("Truy cập", style: TextStyle(color: Colors.blueAccent)),
           SizedBox(width: 6),
-          Icon(Icons.arrow_forward, size: 18, color: Color(0xFF1F65DE)),
+          Icon(Icons.arrow_forward, color: Colors.blueAccent, size: 18),
         ],
       ),
     );
   }
 
-  //  Xử lý truy cập nhóm
-  void _handleAccessGroup(String groupName) {
+  // Xử lý truy cập nhóm
+  void _handleAccessGroup(String groupId, String groupName) {
+    print(">>> Đang chuyển hướng và chọn nhóm: ID=$groupId | Tên=$groupName");
+
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (context) => Home()),
+      MaterialPageRoute(builder: (context) => const Home()),
     );
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Đang truy cập nhóm "$groupName"'),
+        content: Text('Đang truy cập nhóm "$groupName" (ID: $groupId)'),
         duration: const Duration(seconds: 2),
       ),
     );

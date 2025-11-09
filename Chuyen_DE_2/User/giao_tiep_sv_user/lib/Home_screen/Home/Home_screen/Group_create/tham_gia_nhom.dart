@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:giao_tiep_sv_user/Home_screen/Home/Home_screen/Group_create/nhom_cua_toi.dart';
-import '../left_panel.dart'; // Đảm bảo đúng đường dẫn
+import '../left_panel.dart';
 import 'tao_nhom_page.dart';
-// import 'nhom_cua_toi.dart';
 
 class ThamGiaNhomPage extends StatefulWidget {
   const ThamGiaNhomPage({super.key});
@@ -59,14 +58,13 @@ class _ThamGiaNhomPageState extends State<ThamGiaNhomPage> {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      // 🔹 Nút "Group"
                       IconButton(
                         icon: const Icon(Icons.group, color: Colors.black),
                         onPressed: () {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => NhomCuaToi(),
+                              builder: (context) => const NhomCuaToi(),
                             ),
                           );
                         },
@@ -88,6 +86,8 @@ class _ThamGiaNhomPageState extends State<ThamGiaNhomPage> {
                     ),
                   ],
                 ),
+
+                // 🔹 Danh sách nhóm
                 Expanded(
                   child: Padding(
                     padding: const EdgeInsets.all(12.0),
@@ -108,12 +108,12 @@ class _ThamGiaNhomPageState extends State<ThamGiaNhomPage> {
                               children: [
                                 // Ảnh nhóm
                                 ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
+                                  borderRadius: BorderRadius.circular(12),
                                   child: Image.network(
                                     group["image"],
                                     width: 60,
                                     height: 60,
-                                    fit: BoxFit.contain,
+                                    fit: BoxFit.cover,
                                   ),
                                 ),
                                 const SizedBox(width: 16),
@@ -128,7 +128,8 @@ class _ThamGiaNhomPageState extends State<ThamGiaNhomPage> {
                                         group["name"],
                                         style: const TextStyle(
                                           fontSize: 16,
-                                          fontWeight: FontWeight.w600,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.black,
                                         ),
                                       ),
                                       const SizedBox(height: 8),
@@ -150,11 +151,16 @@ class _ThamGiaNhomPageState extends State<ThamGiaNhomPage> {
                                         icon: const Icon(Icons.handshake),
                                         label: const Text("Tham Gia"),
                                         style: ElevatedButton.styleFrom(
-                                          backgroundColor: Colors.blueAccent,
+                                          backgroundColor:
+                                              Colors.lightBlueAccent,
                                           foregroundColor: Colors.white,
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 12,
+                                            vertical: 8,
+                                          ),
                                           shape: RoundedRectangleBorder(
                                             borderRadius: BorderRadius.circular(
-                                              30,
+                                              10,
                                             ),
                                           ),
                                         ),
@@ -174,7 +180,7 @@ class _ThamGiaNhomPageState extends State<ThamGiaNhomPage> {
             ),
           ),
 
-          // 🔹 LeftPanel (menu trái) - Đã thêm tham số onGroupSelected
+          // 🔹 LeftPanel (menu trái)
           if (_isOpen)
             GestureDetector(
               onTap: toggleMenu,
@@ -185,7 +191,10 @@ class _ThamGiaNhomPageState extends State<ThamGiaNhomPage> {
                     LeftPanel(
                       onClose: toggleMenu,
                       isGroupPage: true,
-                      onGroupSelected: (_) {}, // 🔹 Thêm callback rỗng
+                      // ✅ Callback nhận đủ (id, name)
+                      onGroupSelected: (id, name) {
+                        // Do đây là màn hình ThamGiaNhom, không cần xử lý gì thêm.
+                      },
                     ),
                     Expanded(child: Container()),
                   ],

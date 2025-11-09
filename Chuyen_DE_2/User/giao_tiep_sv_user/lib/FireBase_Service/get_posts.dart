@@ -50,7 +50,8 @@ class GetPosts {
             "user_id": userId ?? "Ẩn danh",
             "fullname": userDetails["fullname"] ?? "Ẩn danh",
             "avatar": userDetails["avatar"],
-            "group": data["group_id"] ?? "Không rõ",
+            // ✅ SỬA: Đổi key lưu ID nhóm từ "group" thành "group_id"
+            "group_id": data["group_id"] ?? "Không rõ",
             "title": data["content"] ?? "Không có nội dung",
             "date": (data["date_created"] is Timestamp)
                 ? (data["date_created"] as Timestamp).toDate().toString()
@@ -66,9 +67,6 @@ class GetPosts {
       return postsWithDetails;
     } catch (e) {
       print("🔥 Lỗi tải bài viết từ PostService: $e");
-      print(
-        ">>> Gợi ý: Kiểm tra Firebase Console nếu có thông báo thiếu Index cho Query OrderBy + Where.",
-      );
       return [];
     }
   }
