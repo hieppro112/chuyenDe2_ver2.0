@@ -6,7 +6,7 @@ class Userservices {
 
   Future<Users?> getUserForID(String myID)async{
     try{
-      final snap = await userDB.collection("Users").doc(myID.trim()).get();
+      final snap = await userDB.collection("Users").doc(myID.trim().toUpperCase()).get();
       print("my ${snap}");
 
       if(!snap.exists){
@@ -19,5 +19,24 @@ class Userservices {
         print("loi dl: $e");
         return null;
     }
+  }
+
+  //load danh sach nguoi dung 
+    //real time ds User
+  Stream<List<Users>> streamBuilder(){
+    return userDB.collection("Users").snapshots().map((event) {
+      return event.docs.map((e) {
+        final mapData = e.data();
+        return Users(
+        id_user: e.id,
+        email: mapData["email"] ?? "",
+        // pass: mapData["pass"] ?? "",
+        fullname: mapData["fullname"] ?? "",
+        url_avt: mapData["avt"] ?? "",
+        role: mapData["role"] ?? 0,
+        faculty_id: mapData["faculty_id"] ?? "",
+      );
+      },).toList();
+    },);
   }
 }

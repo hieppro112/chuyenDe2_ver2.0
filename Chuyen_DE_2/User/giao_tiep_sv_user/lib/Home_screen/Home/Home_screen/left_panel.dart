@@ -56,6 +56,7 @@ class _LeftPanelState extends State<LeftPanel> {
       _isLoading = false;
       if (_searchController.text.isNotEmpty) _filterGroups();
     });
+    }
   }
 
   void _filterGroups() {

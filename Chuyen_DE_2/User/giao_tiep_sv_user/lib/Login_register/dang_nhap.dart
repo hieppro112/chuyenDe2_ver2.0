@@ -20,6 +20,8 @@ class _DangNhapState extends State<DangNhap> {
   // Tạo instance của ProfileService
   final ProfileService _profileService = ProfileService();
   bool _isPasswordVisible = false;
+  bool _isLoading = false;
+
 
   @override
   void dispose() {
@@ -29,66 +31,77 @@ class _DangNhapState extends State<DangNhap> {
   }
 
   // Hàm đăng nhập
-  void _dangNhap(BuildContext context) async {
-    String email = _emailController.text.trim();
-    String password = _passwordController.text;
+void _dangNhap(BuildContext context) async {
+  String email = _emailController.text.trim();
+  String password = _passwordController.text;
 
-    if (email.isEmpty || password.isEmpty) {
-      _showOverlayMessage(context, "Vui lòng nhập đầy đủ thông tin!");
-      return;
-    }
-
-    if (!email.endsWith("@mail.tdc.edu.vn")) {
-      _showOverlayMessage(context, "Email phải thuộc TDC!");
-      return;
-    }
-
-    final id_user = email.split('@').first.toUpperCase(); // Lấy ID người dùng
-
-    try {
-      // Đăng nhập bằng Firebase Auth
-      UserCredential credential = await FirebaseAuth.instance
-          .signInWithEmailAndPassword(email: email, password: password);
-
-      User? user = credential.user;
-      if (user == null) {
-        _showOverlayMessage(context, "Tài khoản hoặc mật khẩu không đúng!");
-        return;
-      }
-
-      // Lấy thông tin người dùng từ Firestore
-      DocumentSnapshot doc = await FirebaseFirestore.instance
-          .collection("Users")
-          .doc(id_user)
-          .get();
-
-      // ✅ ĐÃ SỬA: Thiết lập userId cho ProfileService trước khi chuyển trang
-      _profileService.setUserId(id_user);
-
-      if (!doc.exists) {
-        _showOverlayMessage(context, "Tài khoản hoặc mật khẩu không đúng!");
-        return;
-      }
-
-      String name = doc['fullname'] ?? "Người dùng";
-
-      // Lưu vào trạng thái toàn cục
-      GlobalState.currentUserId = id_user;
-      GlobalState.currentFullname = name;
-
-      _showOverlayMessage(context, "Xin chào $name!", isError: false);
-
-      // Chuyển sang trang chủ
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const Home()),
-      );
-    } on FirebaseAuthException {
-      _showOverlayMessage(context, "Tài khoản hoặc mật khẩu không đúng!");
-    } catch (e) {
-      _showOverlayMessage(context, "Tài khoản hoặc mật khẩu không đúng!");
-    }
+  if (email.isEmpty || password.isEmpty) {
+    _showOverlayMessage(context, "Vui lòng nhập đầy đủ thông tin!");
+    return;
   }
+
+  if (!email.endsWith("@mail.tdc.edu.vn")) {
+    _showOverlayMessage(context, "Email phải thuộc TDC!");
+    return;
+  }
+
+  final id_user = email.split('@').first.toUpperCase();
+
+  setState(() => _isLoading = true); // 🌀 bật loading
+
+  try {
+    UserCredential credential = await FirebaseAuth.instance
+        .signInWithEmailAndPassword(email: email, password: password);
+
+    User? user = credential.user;
+    if (user == null) {
+      _showOverlayMessage(context, "Tài khoản hoặc mật khẩu không đúng!");
+      setState(() => _isLoading = false);
+      return;
+    }
+
+    final id_user = email
+        .trim()
+        .split('@')
+        .first
+        .toUpperCase()
+        .replaceAll(RegExp(r'[^A-Z0-9]'), '');
+    DocumentSnapshot doc = await FirebaseFirestore.instance
+        .collection("Users")
+        .doc(id_user)
+        .get();
+
+    _profileService.setUserId(id_user);
+
+    if (!doc.exists) {
+      _showOverlayMessage(context, "Tài khoản hoặc mật khẩu không đúng!");
+      setState(() => _isLoading = false);
+      return;
+    }
+
+    String name = doc['fullname'] ?? "Người dùng";
+
+    GlobalState.currentUserId = id_user;
+    GlobalState.currentFullname = name;
+
+    _showOverlayMessage(context, "Xin chào $name!", isError: false);
+
+    setState(() => _isLoading = false); // ✅ tắt loading
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const Home()),
+    );
+  } on FirebaseAuthException {
+    _showOverlayMessage(context, "Tài khoản hoặc mật khẩu không đúng!");
+    setState(() => _isLoading = false);
+  } catch (e) {
+    _showOverlayMessage(context, "Tài khoản hoặc mật khẩu không đúng!");
+    setState(() => _isLoading = false);
+  }
+}
+
+
 
   // Hiển thị thông báo giữa màn hình, tự ẩn sau vài giây
   void _showOverlayMessage(
@@ -139,13 +152,16 @@ class _DangNhapState extends State<DangNhap> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return Stack(
+  children: [
+    Scaffold(
       body: Container(
         color: Colors.white,
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -177,7 +193,21 @@ class _DangNhapState extends State<DangNhap> {
           ),
         ),
       ),
-    );
+    ),
+
+    if (_isLoading)
+      Container(
+        color: Colors.black45, // nền mờ
+        child: const Center(
+          child: CircularProgressIndicator(
+            color: Colors.white,
+            strokeWidth: 4,
+          ),
+        ),
+      ),
+  ],
+);
+
   }
 
   Widget _buildEmailField() {

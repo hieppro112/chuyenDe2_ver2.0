@@ -84,7 +84,10 @@ class PostCard extends StatelessWidget {
                 ],
               ),
               PopupMenuButton<String>(
-                onSelected: onMenuSelected,
+                onSelected: (value) {
+                  // value = "save" hoặc "report"
+                  onMenuSelected?.call(value); // <-- GỌI CALLBACK ĐÚNG
+                },
                 itemBuilder: (context) => const [
                   PopupMenuItem(value: "report", child: Text("Báo cáo")),
                   PopupMenuItem(value: "save", child: Text("Lưu bài viết")),

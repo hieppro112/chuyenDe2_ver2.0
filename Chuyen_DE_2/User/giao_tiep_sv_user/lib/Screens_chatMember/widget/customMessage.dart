@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 class Custommessage extends StatelessWidget {
   final bool forme_sender;
   final String url_avt;
+  final String nameSender;
   final String content;
   final String? Url_media;
 
@@ -13,7 +14,7 @@ class Custommessage extends StatelessWidget {
     required this.forme_sender,
     required this.url_avt,
     required this.content,
-    this.Url_media,
+    this.Url_media, required this.nameSender,
   });
 
   @override
@@ -24,89 +25,106 @@ class Custommessage extends StatelessWidget {
     );
   }
 
-  Widget createMessage() {
-    //khi người khác gửi tin nhắn
-    if (forme_sender == false) {
-      return Row(
-        children: [
-          ClipOval(
-            child: Image.network(
-              url_avt,
-              fit: BoxFit.cover,
-              height: 35,
-              width: 35,
-            ),
-          ),
-          SizedBox(width: 10),
-          Flexible(
-            child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 25, vertical: 10),
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.black, width: 1),
-                borderRadius: BorderRadius.circular(15),
-              ),
-              child: Column(
-                children: [
-                  if (content.isNotEmpty)
-                    Text(
-                      content,
-                      style: TextStyle(fontSize: 14),
-                      softWrap: true,
-                    ),
-                  if (Url_media != null && Url_media!.isNotEmpty) ...[
-                    SizedBox(height: 8),
-                    Image.file(File(Url_media!), width: 150, fit: BoxFit.cover),
-                  ],
-                ],
-              ),
-            ),
-          ),
-        ],
-      );
-    } // khi bản thân gui tin nhan
-    else {
-      return Row(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          Flexible(
-            child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 25, vertical: 10),
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.black, width: 1),
-                borderRadius: BorderRadius.circular(15),
-              ),
-              child: Column(
-                children: [
-                  if (content.isNotEmpty)
-                    Text(
-                      content,
-                      style: TextStyle(fontSize: 14),
-                      softWrap: true,
-                    ),
-                  if (Url_media != null && Url_media!.isNotEmpty) ...[
-                    SizedBox(height: 8),
-                    Image.file(
-                      File(Url_media!),
-                      // width: 150,
-                      fit: BoxFit.cover,
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ),
 
-          SizedBox(width: 10),
-          ClipOval(
-            child: Image.network(
-              url_avt,
-              fit: BoxFit.cover,
-              height: 35,
-              width: 35,
+  Widget createMessage() {
+  bool hasText = content.isNotEmpty;
+  bool hasImage = Url_media != null && Url_media!.isNotEmpty;
+
+  // Nếu là người khác gửi
+  if (!forme_sender) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ClipOval(
+          child: Image.network(
+            url_avt,
+            fit: BoxFit.cover,
+            height: 35,
+            width: 35,
+          ),
+        ),
+        const SizedBox(width: 10),
+        Flexible(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border.all(color: Colors.black26),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (hasText)
+                  Text(
+                    content,
+                    style: const TextStyle(fontSize: 14),
+                    softWrap: true,
+                  ),
+                if (hasImage) ...[
+                  const SizedBox(height: 8),
+                  _buildImage(Url_media!),
+                ],
+              ],
             ),
           ),
-        ],
-      );
-    }
+        ),
+      ],
+    );
   }
+
+  // Nếu là bản thân gửi
+  return Row(
+    mainAxisAlignment: MainAxisAlignment.end,
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Flexible(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          decoration: BoxDecoration(
+            color: Colors.blue[50],
+            border: Border.all(color: Colors.black26),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (hasText)
+                Text(
+                  content,
+                  style: const TextStyle(fontSize: 14),
+                  softWrap: true,
+                ),
+              if (hasImage) ...[
+                const SizedBox(height: 8),
+                _buildImage(Url_media!),
+              ],
+            ],
+          ),
+        ),
+      ),
+      const SizedBox(width: 10),
+      ClipOval(
+        child: Image.network(
+          url_avt,
+          fit: BoxFit.cover,
+          height: 35,
+          width: 35,
+        ),
+      ),
+    ],
+  );
+}
+
+Widget _buildImage(String url) {
+  // Nếu là link mạng (Firebase Storage, HTTP, HTTPS)
+  if (url.startsWith("http")) {
+    return Image.network(url, width: 150, fit: BoxFit.cover);
+  }
+  //  Nếu là file local (chụp hoặc chọn từ máy)
+  return Image.file(File(url), width: 150, fit: BoxFit.cover);
+}
+
+
+
 }

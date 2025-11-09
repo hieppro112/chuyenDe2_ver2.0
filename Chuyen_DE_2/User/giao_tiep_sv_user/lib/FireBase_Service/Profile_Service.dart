@@ -98,20 +98,15 @@ class ProfileService {
 
   Future<String> uploadAvatar(File imageFile) async {
     final userId = getUserId();
-
     // Lưu ảnh vào thư mục users/
     final ref = _storage.ref().child('users').child('$userId.jpg');
 
     try {
-      print('Đang upload avatar vào folder users/ cho user: $userId');
-
-      // Xóa ảnh cũ
       try {
         await ref.delete();
       } catch (e) {
         print('Không có ảnh cũ để xóa hoặc lỗi: $e');
       }
-
       // UPLOAD ẢNH MỚI
       await ref.putFile(imageFile);
       final url = await ref.getDownloadURL();
@@ -138,7 +133,6 @@ class ProfileService {
 
       if (newAvatarUrl != null && newAvatarUrl.isNotEmpty) {
         updateData['avt'] = newAvatarUrl;
-        print('Cập nhật avt = $newAvatarUrl');
       }
 
       await _firestore

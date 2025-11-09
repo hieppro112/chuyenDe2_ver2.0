@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import '../../../FireBase_Service/get_posts.dart';
 import 'port_card.dart';
@@ -12,10 +13,10 @@ class TrangChu extends StatefulWidget {
   const TrangChu({super.key});
 
   @override
-  State<TrangChu> createState() => _TrangChuState();
+  State<TrangChu> createState() => TrangChuState();
 }
 
-class _TrangChuState extends State<TrangChu> {
+class TrangChuState extends State<TrangChu> {
   final GetPosts _postService = GetPosts();
   final GetJoinedGroupsService _groupService = GetJoinedGroupsService();
 
@@ -41,10 +42,12 @@ class _TrangChuState extends State<TrangChu> {
   Future<void> _fetchPosts() async {
     final fetchedPosts = await _postService.fetchPosts();
 
-    setState(() {
+    if(mounted){
+      setState(() {
       allPosts = fetchedPosts;
       _filterPosts();
     });
+    }
   }
 
   // LẤY DANH SÁCH DATA NHÓM (ID, Name, Avatar)
@@ -98,6 +101,40 @@ class _TrangChuState extends State<TrangChu> {
           })
           .toList();
     }
+  }
+
+  Future<void> savePostOnce(String postId) async {
+    final userId = GlobalState.currentUserId.isNotEmpty
+        ? GlobalState.currentUserId
+        : "23211TT1718";
+
+    final ref = FirebaseFirestore.instance.collection('Post_save');
+
+    final exists = await ref
+        .where('user_id', isEqualTo: userId)
+        .where('post_id', isEqualTo: postId)
+        .limit(1)
+        .get();
+
+    if (exists.docs.isNotEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Bài viết đã được lưu!')));
+      return;
+    }
+
+    await ref.add({
+      'user_id': userId,
+      'post_id': postId,
+      'create_at': FieldValue.serverTimestamp(),
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Đã lưu bài viết!'),
+        backgroundColor: Colors.green,
+      ),
+    );
   }
 
   void _toggleLike(Map<String, dynamic> post) {
@@ -305,13 +342,24 @@ class _TrangChuState extends State<TrangChu> {
                     itemCount: filteredPosts.length,
                     itemBuilder: (context, i) {
                       final post = filteredPosts[i];
-                      return PostCard(
-                        post: post,
-                        onCommentPressed: () => _showCommentSheet(post),
-                        onLikePressed: () => _toggleLike(post),
-                        onMenuSelected: (value) {
-                          debugPrint("Đã chọn: $value");
-                        },
+                      final postId = post["id"] as String;
+
+                      // SỬA: Tạo key cho từng bài
+                      _postKeys.putIfAbsent(postId, () => GlobalKey());
+
+                      return Container(
+                        key: _postKeys[postId],
+                        color: _highlightPostId == postId
+                            ? Colors.yellow.withOpacity(0.2)
+                            : null,
+                        child: PostCard(
+                          post: post,
+                          onCommentPressed: () => _showCommentSheet(post),
+                          onLikePressed: () => _toggleLike(post),
+                          onMenuSelected: (value) {
+                            if (value == "save") savePostOnce(post["id"]);
+                          },
+                        ),
                       );
                     },
                   ),
