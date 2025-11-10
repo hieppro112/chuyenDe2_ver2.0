@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import '../../../FireBase_Service/get_posts.dart';
 import 'port_card.dart';
@@ -42,11 +41,11 @@ class TrangChuState extends State<TrangChu> {
   Future<void> _fetchPosts() async {
     final fetchedPosts = await _postService.fetchPosts();
 
-    if(mounted){
+    if (mounted) {
       setState(() {
-      allPosts = fetchedPosts;
-      _filterPosts();
-    });
+        allPosts = fetchedPosts;
+        _filterPosts();
+      });
     }
   }
 
@@ -59,7 +58,7 @@ class TrangChuState extends State<TrangChu> {
     final groups = await _groupService.fetchJoinedGroups(userId);
 
     setState(() {
-      //  Lưu DATA NHÓM ĐẦY ĐỦ (bao gồm "Tất cả" với id:"ALL")
+      // 	Lưu DATA NHÓM ĐẦY ĐỦ (bao gồm "Tất cả" với id:"ALL")
       _joinedGroupsData = groups;
       // CẬP NHẬT NHÓM HIỂN THỊ MẶC ĐỊNH
       // Nếu chưa chọn nhóm nào (mặc định là "ALL") và danh sách có nhóm khác "Tất cả"
@@ -103,39 +102,7 @@ class TrangChuState extends State<TrangChu> {
     }
   }
 
-  Future<void> savePostOnce(String postId) async {
-    final userId = GlobalState.currentUserId.isNotEmpty
-        ? GlobalState.currentUserId
-        : "23211TT1718";
-
-    final ref = FirebaseFirestore.instance.collection('Post_save');
-
-    final exists = await ref
-        .where('user_id', isEqualTo: userId)
-        .where('post_id', isEqualTo: postId)
-        .limit(1)
-        .get();
-
-    if (exists.docs.isNotEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Bài viết đã được lưu!')));
-      return;
-    }
-
-    await ref.add({
-      'user_id': userId,
-      'post_id': postId,
-      'create_at': FieldValue.serverTimestamp(),
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Đã lưu bài viết!'),
-        backgroundColor: Colors.green,
-      ),
-    );
-  }
+  // ĐÃ XÓA: Hàm savePostOnce(String postId)
 
   void _toggleLike(Map<String, dynamic> post) {
     setState(() {
@@ -156,7 +123,7 @@ class TrangChuState extends State<TrangChu> {
     _fetchPosts();
   }
 
-  //Hàm tra cứu URL Avatar của nhóm đang hiển thị (Sử dụng currentGroupId)
+  // Hàm tra cứu URL Avatar của nhóm đang hiển thị (Sử dụng currentGroupId)
   String _getCurrentGroupAvatar() {
     final currentGroupData = _joinedGroupsData.firstWhere(
       (group) => group['id'] == currentGroupId, // ✅ Tra cứu bằng ID
@@ -167,7 +134,7 @@ class TrangChuState extends State<TrangChu> {
         "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSTaXZWZglx63-gMfBzslxSUQdqqvCp0QJiOA&s";
   }
 
-  //Hàm tra cứu tên nhóm từ ID (dùng cho Comment Sheet)
+  // Hàm tra cứu tên nhóm từ ID (dùng cho Comment Sheet)
   String _getGroupNameFromId(String groupId) {
     if (groupId == "ALL") return "Tất cả";
     final groupData = _joinedGroupsData.firstWhere(
@@ -175,6 +142,23 @@ class TrangChuState extends State<TrangChu> {
       orElse: () => {"name": "Không rõ"},
     );
     return groupData['name'] ?? "Không rõ";
+  }
+
+  // ĐÃ XÓA: Map _postKeys và String _highlightPostId
+
+  // THÊM: Các hàm public để Home.dart có thể gọi nếu cần
+  String get currentGroup => currentGroupName;
+
+  void changeGroup(String groupName) {
+    final group = _joinedGroupsData.firstWhere(
+      (g) => g['name'] == groupName,
+      orElse: () => {"id": "ALL", "name": "Tất cả"},
+    );
+    _changeGroup(group["id"] as String, group["name"] as String);
+  }
+
+  void scrollToPost(String postId) {
+    // ĐÃ XÓA: Logic cuộn tới bài viết
   }
 
   @override
@@ -342,24 +326,16 @@ class TrangChuState extends State<TrangChu> {
                     itemCount: filteredPosts.length,
                     itemBuilder: (context, i) {
                       final post = filteredPosts[i];
-                      final postId = post["id"] as String;
 
-                      // SỬA: Tạo key cho từng bài
-                      _postKeys.putIfAbsent(postId, () => GlobalKey());
+                      // ĐÃ XÓA: Logic liên quan đến _postKeys và _highlightPostId
 
-                      return Container(
-                        key: _postKeys[postId],
-                        color: _highlightPostId == postId
-                            ? Colors.yellow.withOpacity(0.2)
-                            : null,
-                        child: PostCard(
-                          post: post,
-                          onCommentPressed: () => _showCommentSheet(post),
-                          onLikePressed: () => _toggleLike(post),
-                          onMenuSelected: (value) {
-                            if (value == "save") savePostOnce(post["id"]);
-                          },
-                        ),
+                      return PostCard(
+                        post: post,
+                        onCommentPressed: () => _showCommentSheet(post),
+                        onLikePressed: () => _toggleLike(post),
+                        onMenuSelected: (value) {
+                          // ĐÃ XÓA: if (value == "save") savePostOnce(post["id"]);
+                        },
                       );
                     },
                   ),
@@ -407,7 +383,7 @@ class TrangChuState extends State<TrangChu> {
 
   // Hàm hiển thị BOTTOM SHEET BÌNH LUẬN MỚI
   void _showCommentSheet(Map<String, dynamic> post) {
-    TextEditingController commentCtrl = TextEditingController();
+    // TextEditingController commentCtrl = TextEditingController(); // KHÔNG dùng nên có thể xóa
 
     showModalBottomSheet(
       context: context,
@@ -416,8 +392,8 @@ class TrangChuState extends State<TrangChu> {
       builder: (context) {
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter setModalState) {
-            final double screenHeight = MediaQuery.of(context).size.height;
-            final double sheetHeight = screenHeight * 0.85;
+            // final double screenHeight = MediaQuery.of(context).size.height; // KHÔNG dùng nên có thể xóa
+            // final double sheetHeight = screenHeight * 0.85; // KHÔNG dùng nên có thể xóa
             return Container(
               child: Column(
                 children: [
@@ -435,6 +411,7 @@ class TrangChuState extends State<TrangChu> {
                       style: const TextStyle(color: Colors.grey, fontSize: 12),
                     ),
                   ),
+                  // THIẾU: Logic hiện Comments và trường nhập Comment (giả sử nằm ở dưới)
                 ],
               ),
             );
