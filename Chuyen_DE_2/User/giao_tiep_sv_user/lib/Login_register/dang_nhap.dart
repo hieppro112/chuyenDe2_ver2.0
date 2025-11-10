@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:giao_tiep_sv_user/FireBase_Service/Profile_Service.dart';
 import 'dang_ki.dart';
@@ -17,11 +18,20 @@ class DangNhap extends StatefulWidget {
 class _DangNhapState extends State<DangNhap> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  // Tạo instance của ProfileService
   final ProfileService _profileService = ProfileService();
   bool _isPasswordVisible = false;
   bool _isLoading = false;
 
+  @override
+  void initState() {
+    super.initState();
+
+    // TỰ ĐỘNG ĐIỀN KHI DEBUG (dành cho test)
+    // if (kDebugMode) {
+    //   _emailController.text = "23211TT9999@mail.tdc.edu.vn"; // User mẫu
+    //   _passwordController.text = "123456";
+    // }
+  }
 
   @override
   void dispose() {
@@ -30,103 +40,116 @@ class _DangNhapState extends State<DangNhap> {
     super.dispose();
   }
 
-  // Hàm đăng nhập
-void _dangNhap(BuildContext context) async {
-  String email = _emailController.text.trim();
-  String password = _passwordController.text;
+  // ĐĂNG NHẬP CHỈ DÀNH CHO USER (role = 0)
+  void _dangNhap(BuildContext context) async {
+    String email = _emailController.text.trim();
+    String password = _passwordController.text;
 
-  if (email.isEmpty || password.isEmpty) {
-    _showOverlayMessage(context, "Vui lòng nhập đầy đủ thông tin!");
-    return;
-  }
-
-  if (!email.endsWith("@mail.tdc.edu.vn")) {
-    _showOverlayMessage(context, "Email phải thuộc TDC!");
-    return;
-  }
-
-  final id_user = email.split('@').first.toUpperCase();
-
-  setState(() => _isLoading = true);
-
-  try {
-    print("BẮT ĐẦU ĐĂNG NHẬP: $email");
-
-    // 1. ĐĂNG NHẬP AUTH
-    UserCredential credential = await FirebaseAuth.instance
-        .signInWithEmailAndPassword(email: email, password: password);
-
-    User? user = credential.user;
-    if (user == null) {
-      _showOverlayMessage(context, "Không lấy được user!");
-      setState(() => _isLoading = false);
+    if (email.isEmpty || password.isEmpty) {
+      _showOverlayMessage(context, "Vui lòng nhập đầy đủ thông tin!");
       return;
     }
 
-    final id_user = email
-        .trim()
-        .split('@')
-        .first
-        .toUpperCase()
-        .replaceAll(RegExp(r'[^A-Z0-9]'), '');
-    DocumentSnapshot doc = await FirebaseFirestore.instance
-        .collection("Users")
-        .doc(id_user)
-        .get();
-
-    if (!doc.exists) {
-      print("KHÔNG TÌM THẤY USER TRONG FIRESTORE: $id_user");
-      _showOverlayMessage(context, "Tài khoản chưa đăng ký trên hệ thống!");
-      setState(() => _isLoading = false);
+    if (!email.endsWith("@mail.tdc.edu.vn")) {
+      _showOverlayMessage(context, "Email phải thuộc TDC!");
       return;
     }
 
-    final data = doc.data() as Map<String, dynamic>;
-    String name = data['fullname'] ?? "Người dùng";
-    int role = data['role'] ?? 0;
+    setState(() => _isLoading = true);
 
-    print("LẤY DỮ LIỆU THÀNH CÔNG: $name, Role: $role");
+    try {
+      print("BẮT ĐẦU ĐĂNG NHẬP USER: $email");
 
-    // 3. LƯU GLOBAL + SERVICE
-    _profileService.setUserId(id_user);
-    GlobalState.currentUserId = id_user;
-    GlobalState.currentFullname = name;
+      // 1. ĐĂNG NHẬP FIREBASE AUTH
+      UserCredential credential = await FirebaseAuth.instance
+          .signInWithEmailAndPassword(email: email, password: password);
 
-    _showOverlayMessage(context, "Xin chào $name!", isError: false);
+      User? user = credential.user;
+      if (user == null) {
+        _showOverlayMessage(context, "Không lấy được thông tin người dùng!");
+        setState(() => _isLoading = false);
+        return;
+      }
 
-    // 4. CHUYỂN TRANG
-    if (mounted) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const Home()),
-      );
+      // 2. LẤY ID TỪ EMAIL
+      final id_user = email
+          .split('@')
+          .first
+          .toUpperCase()
+          .replaceAll(RegExp(r'[^A-Z0-9]'), '');
+
+      // 3. LẤY DỮ LIỆU TỪ FIRESTORE
+      DocumentSnapshot doc = await FirebaseFirestore.instance
+          .collection("Users")
+          .doc(id_user)
+          .get();
+
+      if (!doc.exists) {
+        _showOverlayMessage(context, "Tài khoản chưa đăng ký trên hệ thống!");
+        setState(() => _isLoading = false);
+        return;
+      }
+
+      final data = doc.data() as Map<String, dynamic>;
+      String name = data['fullname'] ?? "Người dùng";
+      int role = data['role'] ?? 0;
+
+      print("THÔNG TIN USER: $name, Role: $role");
+
+      // KIỂM TRA ROLE: CHỈ CHO PHÉP role = 0
+      if (role == 1) {
+        _showOverlayMessage(
+          context,
+          "Tài khoản Admin không được dùng app này!\nVui lòng dùng app Admin riêng.",
+          isError: true,
+        );
+        await FirebaseAuth.instance.signOut(); // Đăng xuất ngay
+        setState(() => _isLoading = false);
+        return;
+      }
+
+      if (role != 0) {
+        _showOverlayMessage(context, "Loại tài khoản không hợp lệ!");
+        await FirebaseAuth.instance.signOut();
+        setState(() => _isLoading = false);
+        return;
+      }
+
+      // 4. LƯU THÔNG TIN TOÀN CỤC
+      _profileService.setUserId(id_user);
+      GlobalState.currentUserId = id_user;
+      GlobalState.currentFullname = name;
+
+      _showOverlayMessage(context, "Xin chào $name!", isError: false);
+
+      // 5. CHUYỂN SANG TRANG CHỦ
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const Home()),
+        );
+      }
+    } on FirebaseAuthException catch (e) {
+      print("LỖI AUTH: ${e.code}");
+      String msg = "Sai email hoặc mật khẩu!";
+      if (e.code == 'user-not-found') msg = "Email chưa đăng ký!";
+      if (e.code == 'wrong-password') msg = "Mật khẩu sai!";
+      if (e.code == 'too-many-requests') msg = "Thử lại sau vài phút!";
+      if (e.code == 'network-request-failed') msg = "Lỗi mạng! Kiểm tra kết nối";
+
+      _showOverlayMessage(context, msg);
+    } on FirebaseException catch (e) {
+      print("LỖI FIRESTORE: ${e.code}");
+      _showOverlayMessage(context, "Lỗi kết nối dữ liệu!");
+    } catch (e) {
+      print("LỖI KHÁC: $e");
+      _showOverlayMessage(context, "Đã có lỗi xảy ra!");
+    } finally {
+      setState(() => _isLoading = false);
     }
-  } on FirebaseAuthException catch (e) {
-    // LỖI AUTH
-    print("LỖI AUTH: ${e.code} - ${e.message}");
-    String msg = "Sai email hoặc mật khẩu!";
-    if (e.code == 'user-not-found') msg = "Email chưa đăng ký!";
-    if (e.code == 'wrong-password') msg = "Mật khẩu sai!";
-    if (e.code == 'too-many-requests') msg = "Thử lại sau vài phút!";
-    if (e.code == 'network-request-failed') msg = "Lỗi mạng! Kiểm tra WiFi/4G";
-
-    _showOverlayMessage(context, msg);
-  } on FirebaseException catch (e) {
-    // LỖI FIRESTORE
-    print("LỖI FIRESTORE: ${e.code} - ${e.message}");
-    _showOverlayMessage(context, "Lỗi kết nối dữ liệu!");
-  } catch (e) {
-    // LỖI KHÁC
-    print("LỖI KHÁC: $e");
-    _showOverlayMessage(context, "Đã có lỗi xảy ra!");
-  } finally {
-    setState(() => _isLoading = false);
   }
-}
 
-
-
-  // Hiển thị thông báo giữa màn hình, tự ẩn sau vài giây
+  // HIỂN THỊ THÔNG BÁO TRÊN MÀN HÌNH
   void _showOverlayMessage(
     BuildContext context,
     String message, {
@@ -146,14 +169,10 @@ void _dangNhap(BuildContext context) async {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
-                color: isError ? Colors.red.shade600 : Colors.blue.shade600,
+                color: isError ? Colors.red.shade600 : Colors.green.shade600,
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: const [
-                  BoxShadow(
-                    color: Colors.black26,
-                    blurRadius: 10,
-                    offset: Offset(0, 4),
-                  ),
+                  BoxShadow(color: Colors.black26, blurRadius: 10, offset: Offset(0, 4)),
                 ],
               ),
               child: Center(
@@ -170,67 +189,66 @@ void _dangNhap(BuildContext context) async {
     );
 
     overlay.insert(entry);
-    Future.delayed(const Duration(seconds: 2)).then((_) => entry.remove());
+    Future.delayed(const Duration(seconds: 3)).then((_) => entry.remove());
   }
 
   @override
   Widget build(BuildContext context) {
     return Stack(
-  children: [
-    Scaffold(
-      body: Container(
-        color: Colors.white,
-        child: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Image.asset('assets/images/logo.png', width: 150),
-                  const SizedBox(height: 20),
-                  const Text(
-                    "ĐĂNG NHẬP",
-                    style: TextStyle(
-                      fontStyle: FontStyle.italic,
-                      fontSize: 26,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blue,
-                      fontFamily: 'Georgia',
-                    ),
+      children: [
+        Scaffold(
+          body: Container(
+            color: Colors.white,
+            child: SafeArea(
+              child: Center(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Image.asset('assets/images/logo.png', width: 150),
+                      const SizedBox(height: 20),
+                      const Text(
+                        "ĐĂNG NHẬP",
+                        style: TextStyle(
+                          fontStyle: FontStyle.italic,
+                          fontSize: 26,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blue,
+                          fontFamily: 'Georgia',
+                        ),
+                      ),
+                      const SizedBox(height: 31),
+                      _buildEmailField(),
+                      const SizedBox(height: 20),
+                      _buildPasswordField(),
+                      const SizedBox(height: 10),
+                      _buildForgotPassword(context),
+                      const SizedBox(height: 10),
+                      _buildLoginButton(context),
+                      const SizedBox(height: 20),
+                      _buildRegisterLink(context),
+                    ],
                   ),
-                  const SizedBox(height: 31),
-                  _buildEmailField(),
-                  const SizedBox(height: 20),
-                  _buildPasswordField(),
-                  const SizedBox(height: 10),
-                  _buildForgotPassword(context),
-                  const SizedBox(height: 10),
-                  _buildLoginButton(context),
-                  const SizedBox(height: 20),
-                  _buildRegisterLink(context),
-                ],
+                ),
               ),
             ),
           ),
         ),
-      ),
-    ),
 
-    if (_isLoading)
-      Container(
-        color: Colors.black45, // nền mờ
-        child: const Center(
-          child: CircularProgressIndicator(
-            color: Colors.white,
-            strokeWidth: 4,
+        // Loading overlay
+        if (_isLoading)
+          Container(
+            color: Colors.black45,
+            child: const Center(
+              child: CircularProgressIndicator(
+                color: Colors.white,
+                strokeWidth: 4,
+              ),
+            ),
           ),
-        ),
-      ),
-  ],
-);
-
+      ],
+    );
   }
 
   Widget _buildEmailField() {
@@ -241,6 +259,7 @@ void _dangNhap(BuildContext context) async {
       ),
       child: TextField(
         controller: _emailController,
+        keyboardType: TextInputType.emailAddress,
         style: const TextStyle(color: Colors.black),
         decoration: const InputDecoration(
           prefixIcon: Icon(Icons.email, color: Colors.black),
@@ -270,16 +289,12 @@ void _dangNhap(BuildContext context) async {
               _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
               color: Colors.black54,
             ),
-            onPressed: () =>
-                setState(() => _isPasswordVisible = !_isPasswordVisible),
+            onPressed: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
           ),
           hintText: 'Mật khẩu',
           hintStyle: const TextStyle(color: Colors.black54),
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(
-            vertical: 16,
-            horizontal: 20,
-          ),
+          contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
         ),
       ),
     );
@@ -294,10 +309,7 @@ void _dangNhap(BuildContext context) async {
             context,
             MaterialPageRoute(builder: (_) => const QuenMatKhau()),
           ),
-          child: const Text(
-            "Quên mật khẩu?",
-            style: TextStyle(color: Colors.red),
-          ),
+          child: const Text("Quên mật khẩu?", style: TextStyle(color: Colors.red)),
         ),
       ],
     );
@@ -311,9 +323,7 @@ void _dangNhap(BuildContext context) async {
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFF1F65DE),
           foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(25),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
         ),
         onPressed: () => _dangNhap(context),
         child: const Text(
@@ -328,10 +338,7 @@ void _dangNhap(BuildContext context) async {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const Text(
-          "Bạn chưa có tài khoản? ",
-          style: TextStyle(color: Colors.black),
-        ),
+        const Text("Bạn chưa có tài khoản? ", style: TextStyle(color: Colors.black)),
         GestureDetector(
           onTap: () => Navigator.pushReplacement(
             context,
@@ -339,10 +346,7 @@ void _dangNhap(BuildContext context) async {
           ),
           child: const Text(
             "Đăng ký ngay",
-            style: TextStyle(
-              color: Color(0xFF1F65DE),
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(color: Color(0xFF1F65DE), fontWeight: FontWeight.bold),
           ),
         ),
       ],

@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:giao_tiep_sv_admin/Admin/Home.dart';
 import 'quen_mk.dart';
 
@@ -13,6 +15,12 @@ class _DangNhapState extends State<DangNhap> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _isPasswordVisible = false;
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+  }
 
   @override
   void dispose() {
@@ -20,55 +28,76 @@ class _DangNhapState extends State<DangNhap> {
     _passwordController.dispose();
     super.dispose();
   }
-  // Dữ liệu giả tài khoản
-  final List<Map<String, String>> _fakeAccounts = [
-    {
-      "email": "23211TT1371@mail.tdc.edu.vn",
-      "password": "123456",
-      "name": "Lê Đình Thuận",
-    },
-  ];
-  void _dangNhap(BuildContext context) {
+
+
+  Future<void> _dangNhap(BuildContext context) async {
     String email = _emailController.text.trim();
     String password = _passwordController.text;
 
+    // Kiểm tra rỗng
     if (email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Vui lòng nhập đầy đủ thông tin")),
-      );
+      _showSnackBar("Vui lòng nhập đầy đủ thông tin!");
       return;
     }
 
+    // Kiểm tra domain TDC
     if (!email.endsWith("@mail.tdc.edu.vn")) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Email phải thuộc TDC !")),
-      );
+      _showSnackBar("Email phải thuộc TDC!");
       return;
     }
 
-    // Kiểm tra tài khoản trong dữ liệu giả
-    final user = _fakeAccounts.firstWhere(
-      (acc) => acc['email'] == email && acc['password'] == password,
-      orElse: () => {},
-    );
+    // MẬT KHẨU MẶC ĐỊNH: 123456
+    if (password != "123456") {
+      _showSnackBar("Mật khẩu không đúng!");
+      return;
+    }
 
-    if (user.isNotEmpty) {
-      // Thành công
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Xin chào ${user['name']}")),
-      );
+    setState(() => _isLoading = true);
 
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const AdminScreen()),
-      );
-    } else {
-      // Sai thông tin
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Email hoặc mật khẩu không đúng!")),
-      );
+    try {
+      // Tìm user theo email
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection('Users')
+          .where('email', isEqualTo: email)
+          .limit(1)
+          .get();
+
+      if (querySnapshot.docs.isEmpty) {
+        _showSnackBar("Tài khoản không tồn tại!");
+        return;
+      }
+
+      final userData = querySnapshot.docs.first.data();
+
+      // KIỂM TRA ROLE = 1 → ADMIN
+      if (userData['role'] == 1) {
+        _showSnackBar("Xin chào Admin");
+
+        // Đi đến trang Admin
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const AdminScreen()),
+        );
+      } else {
+        _showSnackBar("Tài khoản không có quyền Admin!");
+      }
+    } catch (e) {
+      _showSnackBar("Lỗi kết nối: $e");
+    } finally {
+      setState(() => _isLoading = false);
     }
   }
+
+  // Hiển thị thông báo
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: message.contains("Xin chào") ? Colors.green : null,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -81,9 +110,11 @@ class _DangNhapState extends State<DangNhap> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
+                  // Logo
                   Image.asset('assets/images/logo.png', width: 150),
                   const SizedBox(height: 20),
 
+                  // Tiêu đề
                   const Text(
                     "ĐĂNG NHẬP ADMIN",
                     style: TextStyle(
@@ -96,15 +127,22 @@ class _DangNhapState extends State<DangNhap> {
                   ),
                   const SizedBox(height: 30),
 
+                  // Ô Email
                   _buildEmailField(),
                   const SizedBox(height: 20),
+
+                  // Ô Mật khẩu (có gợi ý)
                   _buildPasswordField(),
                   const SizedBox(height: 10),
 
+                  // Quên mật khẩu
                   _buildForgotPassword(context),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 20),
 
-                  _buildLoginButton(context),
+                  // Nút đăng nhập
+                  _isLoading
+                      ? const CircularProgressIndicator()
+                      : _buildLoginButton(context),
                   const SizedBox(height: 20),
                 ],
               ),
@@ -115,15 +153,16 @@ class _DangNhapState extends State<DangNhap> {
     );
   }
 
+  // Ô nhập Email
   Widget _buildEmailField() {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.transparent,
         border: Border.all(color: Colors.black),
         borderRadius: BorderRadius.circular(25),
       ),
       child: TextField(
         controller: _emailController,
+        keyboardType: TextInputType.emailAddress,
         style: const TextStyle(color: Colors.black),
         decoration: const InputDecoration(
           prefixIcon: Icon(Icons.email, color: Colors.black),
@@ -136,10 +175,10 @@ class _DangNhapState extends State<DangNhap> {
     );
   }
 
+  // Ô nhập Mật khẩu
   Widget _buildPasswordField() {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.transparent,
         border: Border.all(color: Colors.black),
         borderRadius: BorderRadius.circular(25),
       ),
@@ -155,23 +194,19 @@ class _DangNhapState extends State<DangNhap> {
               color: Colors.black54,
             ),
             onPressed: () {
-              setState(() {
-                _isPasswordVisible = !_isPasswordVisible;
-              });
+              setState(() => _isPasswordVisible = !_isPasswordVisible);
             },
           ),
           hintText: 'Mật khẩu',
-          hintStyle: const TextStyle(color: Colors.black54),
+          hintStyle: const TextStyle(color: Colors.black54, fontSize: 13),
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(
-            vertical: 16,
-            horizontal: 20,
-          ),
+          contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
         ),
       ),
     );
   }
 
+  // Nút quên mật khẩu
   Widget _buildForgotPassword(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.end,
@@ -185,13 +220,14 @@ class _DangNhapState extends State<DangNhap> {
           },
           child: const Text(
             "Quên mật khẩu?",
-            style: TextStyle(color: Colors.red),
+            style: TextStyle(color: Colors.red, fontSize: 13),
           ),
         ),
       ],
     );
   }
 
+  // Nút Đăng nhập
   Widget _buildLoginButton(BuildContext context) {
     return SizedBox(
       width: double.infinity,
@@ -207,11 +243,7 @@ class _DangNhapState extends State<DangNhap> {
         onPressed: () => _dangNhap(context),
         child: const Text(
           "Đăng nhập",
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 1,
-          ),
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
       ),
     );
