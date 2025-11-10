@@ -226,30 +226,46 @@ class TrangChuState extends State<TrangChu> {
                         const SizedBox(width: 10),
 
                         // Nút đăng bài
-                        ElevatedButton.icon(
-                          onPressed: _openDangBaiDialog,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue.shade600, // màu nền
+                        GestureDetector(
+                          onTap: _openDangBaiDialog,
+                          child: Container(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 10,
+                              horizontal: 18,
+                              vertical: 12,
                             ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12), // bo góc
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFF42A5F5), Color(0xFF1976D2)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              borderRadius: BorderRadius.circular(30),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.blue.withOpacity(0.5),
+                                  offset: const Offset(0, 4),
+                                  blurRadius: 8,
+                                ),
+                              ],
                             ),
-                            elevation: 3, // tạo bóng nhẹ
-                          ),
-                          icon: const Icon(
-                            Icons.add_circle_outline,
-                            size: 24,
-                            color: Colors.white,
-                          ),
-                          label: const Text(
-                            "Đăng Bài",
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                              fontSize: 16,
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.edit,
+                                  color: Colors.white,
+                                  size: 20,
+                                ), // Icon to hơn
+                                SizedBox(width: 8),
+                                Text(
+                                  "Đăng Bài",
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ),
@@ -296,7 +312,7 @@ class TrangChuState extends State<TrangChu> {
                                 context: context,
                                 builder: (_) => GroupInfoDialog(
                                   groupName: currentGroupName,
-                                ), // ✅ Dùng Tên nhóm
+                                ),
                               );
                             },
                           ),
@@ -327,15 +343,11 @@ class TrangChuState extends State<TrangChu> {
                     itemBuilder: (context, i) {
                       final post = filteredPosts[i];
 
-                      // ĐÃ XÓA: Logic liên quan đến _postKeys và _highlightPostId
-
                       return PostCard(
                         post: post,
                         onCommentPressed: () => _showCommentSheet(post),
                         onLikePressed: () => _toggleLike(post),
-                        onMenuSelected: (value) {
-                          // ĐÃ XÓA: if (value == "save") savePostOnce(post["id"]);
-                        },
+                        onMenuSelected: (value) {},
                       );
                     },
                   ),
@@ -344,7 +356,7 @@ class TrangChuState extends State<TrangChu> {
             ),
           ),
 
-          // Overlay mờ khi mở menu (giữ nguyên)
+          // Overlay mờ khi mở menu
           if (_isOpen)
             GestureDetector(
               onTap: () => setState(() => _isOpen = false),
@@ -359,7 +371,7 @@ class TrangChuState extends State<TrangChu> {
             left: _isOpen ? 0 : -260,
             child: LeftPanel(
               onClose: () => setState(() => _isOpen = false),
-              // TRUYỀN HÀM CẬP NHẬT NHÓM (Yêu cầu LeftPanel phải gọi hàm này với (ID, Name))
+              // TRUYỀN HÀM CẬP NHẬT NHÓM
               onGroupSelected: _changeGroup,
             ),
           ),
@@ -368,9 +380,8 @@ class TrangChuState extends State<TrangChu> {
     );
   }
 
-  // Mở dialog đăng bài (giữ nguyên)
+  // Mở dialog đăng bài
   void _openDangBaiDialog() async {
-    // ✅ Truyền DATA nhóm ĐẦY ĐỦ (ID và Name) sang dialog
     final isSuccess = await showDialog<bool>(
       context: context,
       builder: (_) => DangBaiDialog(availableGroupsData: _joinedGroupsData),
@@ -383,8 +394,6 @@ class TrangChuState extends State<TrangChu> {
 
   // Hàm hiển thị BOTTOM SHEET BÌNH LUẬN MỚI
   void _showCommentSheet(Map<String, dynamic> post) {
-    // TextEditingController commentCtrl = TextEditingController(); // KHÔNG dùng nên có thể xóa
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -392,8 +401,6 @@ class TrangChuState extends State<TrangChu> {
       builder: (context) {
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter setModalState) {
-            // final double screenHeight = MediaQuery.of(context).size.height; // KHÔNG dùng nên có thể xóa
-            // final double sheetHeight = screenHeight * 0.85; // KHÔNG dùng nên có thể xóa
             return Container(
               child: Column(
                 children: [
