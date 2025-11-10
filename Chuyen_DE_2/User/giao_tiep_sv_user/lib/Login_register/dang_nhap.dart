@@ -47,15 +47,18 @@ void _dangNhap(BuildContext context) async {
 
   final id_user = email.split('@').first.toUpperCase();
 
-  setState(() => _isLoading = true); // 🌀 bật loading
+  setState(() => _isLoading = true);
 
   try {
+    print("BẮT ĐẦU ĐĂNG NHẬP: $email");
+
+    // 1. ĐĂNG NHẬP AUTH
     UserCredential credential = await FirebaseAuth.instance
         .signInWithEmailAndPassword(email: email, password: password);
 
     User? user = credential.user;
     if (user == null) {
-      _showOverlayMessage(context, "Tài khoản hoặc mật khẩu không đúng!");
+      _showOverlayMessage(context, "Không lấy được user!");
       setState(() => _isLoading = false);
       return;
     }
@@ -71,32 +74,52 @@ void _dangNhap(BuildContext context) async {
         .doc(id_user)
         .get();
 
-    _profileService.setUserId(id_user);
-
     if (!doc.exists) {
-      _showOverlayMessage(context, "Tài khoản hoặc mật khẩu không đúng!");
+      print("KHÔNG TÌM THẤY USER TRONG FIRESTORE: $id_user");
+      _showOverlayMessage(context, "Tài khoản chưa đăng ký trên hệ thống!");
       setState(() => _isLoading = false);
       return;
     }
 
-    String name = doc['fullname'] ?? "Người dùng";
+    final data = doc.data() as Map<String, dynamic>;
+    String name = data['fullname'] ?? "Người dùng";
+    int role = data['role'] ?? 0;
 
+    print("LẤY DỮ LIỆU THÀNH CÔNG: $name, Role: $role");
+
+    // 3. LƯU GLOBAL + SERVICE
+    _profileService.setUserId(id_user);
     GlobalState.currentUserId = id_user;
     GlobalState.currentFullname = name;
 
     _showOverlayMessage(context, "Xin chào $name!", isError: false);
 
-    setState(() => _isLoading = false); // ✅ tắt loading
+    // 4. CHUYỂN TRANG
+    if (mounted) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const Home()),
+      );
+    }
+  } on FirebaseAuthException catch (e) {
+    // LỖI AUTH
+    print("LỖI AUTH: ${e.code} - ${e.message}");
+    String msg = "Sai email hoặc mật khẩu!";
+    if (e.code == 'user-not-found') msg = "Email chưa đăng ký!";
+    if (e.code == 'wrong-password') msg = "Mật khẩu sai!";
+    if (e.code == 'too-many-requests') msg = "Thử lại sau vài phút!";
+    if (e.code == 'network-request-failed') msg = "Lỗi mạng! Kiểm tra WiFi/4G";
 
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => const Home()),
-    );
-  } on FirebaseAuthException {
-    _showOverlayMessage(context, "Tài khoản hoặc mật khẩu không đúng!");
-    setState(() => _isLoading = false);
+    _showOverlayMessage(context, msg);
+  } on FirebaseException catch (e) {
+    // LỖI FIRESTORE
+    print("LỖI FIRESTORE: ${e.code} - ${e.message}");
+    _showOverlayMessage(context, "Lỗi kết nối dữ liệu!");
   } catch (e) {
-    _showOverlayMessage(context, "Tài khoản hoặc mật khẩu không đúng!");
+    // LỖI KHÁC
+    print("LỖI KHÁC: $e");
+    _showOverlayMessage(context, "Đã có lỗi xảy ra!");
+  } finally {
     setState(() => _isLoading = false);
   }
 }

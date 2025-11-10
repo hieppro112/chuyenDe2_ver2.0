@@ -122,7 +122,7 @@ class _DangKiState extends State<DangKi> {
         "address": "",
         "avt":
             "https://cellphones.com.vn/sforum/wp-content/uploads/2023/10/avatar-trang-4.jpg", // anh mac dinh
-        "role": 1,
+        "role": 0,
         "faculty_id": ma,
       });
 
@@ -201,8 +201,7 @@ class _DangKiState extends State<DangKi> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor:
-          Colors.white, 
+      backgroundColor: Colors.white,
       body: Stack(
         children: [
           SafeArea(
@@ -377,7 +376,6 @@ class _DangKiState extends State<DangKi> {
     );
   }
 
-  
   Widget _buildRegisterButton(BuildContext context) {
     return SizedBox(
       width: double.infinity,

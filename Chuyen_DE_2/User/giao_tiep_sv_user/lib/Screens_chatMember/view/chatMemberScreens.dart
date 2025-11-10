@@ -130,37 +130,44 @@ class _ChatMemberScreenState extends State<ChatMemberScreen> {
 
   //custom header
   Widget createHeader(String myId) {
-  return FutureBuilder<Users?>(
-    future: fetchIdUs(myId.toUpperCase()),
-    builder: (context, snapshot) {
-      if (snapshot.connectionState == ConnectionState.waiting) {
-        return const Center(child: CircularProgressIndicator());
-      }
+    return FutureBuilder<Users?>(
+      future: fetchIdUs(myId.toUpperCase()),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
-      if (snapshot.hasError) {
-        return Text('Lỗi: ${snapshot.error}');
-      }
+        if (snapshot.hasError) {
+          return Text('Lỗi: ${snapshot.error}');
+        }
 
-      if (!snapshot.hasData || snapshot.data == null) {
-        return const Text('Không tìm thấy user');
-      }
+        if (!snapshot.hasData || snapshot.data == null) {
+          return const Text('Không tìm thấy user');
+        }
 
-      final user = snapshot.data!;
+        final user = snapshot.data!;
 
-      return Headerwidget(
-        myUs: user, 
-        width: width.toDouble(),
-        chucnang: IconButton(
-          onPressed: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => ManHinhThongBao()),
+        return Headerwidget(
+          myUs: user,
+          width: width.toDouble(),
+          chucnang: IconButton(
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) =>
+                    ManHinhThongBao(currentUser: user), 
+              ),
+            ),
+            icon: const Icon(
+              Icons.notifications,
+              color: Colors.amber,
+              size: 45,
+            ),
           ),
-          icon: const Icon(Icons.notifications, color: Colors.amber, size: 45),
-        ),
-      );
-    },
-  );
-}
+        );
+      },
+    );
+  }
 
   //create listview message
   Widget createListMessage() {
@@ -180,7 +187,7 @@ class _ChatMemberScreenState extends State<ChatMemberScreen> {
                 isnew: isnew,
                 ontap: (valueTap) {
                   //value tap tra ve id phong da nhan vao
-                  //chuyen sang man hinh nhan tin 
+                  //chuyen sang man hinh nhan tin
                   Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -193,8 +200,8 @@ class _ChatMemberScreenState extends State<ChatMemberScreen> {
                       },
                     ),
                   );
-                
-                  // print("room john: ${valueTap}");
+
+                  print("room john: ${valueTap}");
                 },
               );
             },
