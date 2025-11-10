@@ -49,7 +49,7 @@ class CreateGroupService {
         "group_id": newGroupRef.id,
         "user_id": creatorUserId,
         "role": 1, // Vai trò: 1 = Quản trị viên
-        "status_id": 0, // id: 0 chờ duyệt
+        "status_id": 1,
         "joined_at": FieldValue.serverTimestamp(),
       });
 

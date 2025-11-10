@@ -60,8 +60,7 @@ class GroupInfoDialog extends StatelessWidget {
             MaterialPageRoute(builder: (context) => MemberPostScreen()),
           );
           return;
-        }
-        else if (text == "Thành viên") {
+        } else if (text == "Thành viên") {
           Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => ManegerMemberGroupScreen()),

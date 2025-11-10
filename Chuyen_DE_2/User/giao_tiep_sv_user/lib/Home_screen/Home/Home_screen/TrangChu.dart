@@ -21,56 +21,24 @@ class TrangChuState extends State<TrangChu> {
   final GetJoinedGroupsService _groupService = GetJoinedGroupsService();
 
   bool _isOpen = false;
-  String currentGroup = "CNTT";
+  String currentGroupId = "ALL";
+  String currentGroupName = "Tất cả";
 
   List<Map<String, dynamic>> allPosts = [];
   List<Map<String, dynamic>> filteredPosts = [];
 
-  // Nơi lưu trữ DANH SÁCH OBJECT nhóm đã tham gia (bao gồm tên và avatar_url)
   List<Map<String, dynamic>> _joinedGroupsData = [];
-  // Nơi lưu trữ danh sách TÊN nhóm (chỉ dùng cho DangBaiDialog)
-  List<String> _joinedGroupNames = [];
 
-  // SỬA: Thêm key cho từng bài viết
-  final Map<String, GlobalKey> _postKeys = {};
-  String? _highlightPostId;
-
-  // SỬA: Public method để Home gọi
-  void scrollToPost(String postId) {
-    setState(() => _highlightPostId = postId);
-    _scrollToPost(postId);
-  }
-
-  // SỬA: Hàm cuộn tới bài viết
-  void _scrollToPost(String postId) async {
-    final key = _postKeys[postId];
-    if (key?.currentContext == null) {
-      await Future.delayed(const Duration(milliseconds: 300));
-      if (mounted) _scrollToPost(postId);
-      return;
-    }
-
-    Scrollable.ensureVisible(
-      key!.currentContext!,
-      duration: const Duration(milliseconds: 600),
-      curve: Curves.easeInOut,
-      alignment: 0.1,
-    );
-
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) setState(() => _highlightPostId = null);
-    });
-  }
-
-  void changeGroup(String newGroup) {
+  //Hàm chuyển nhóm nhận vào cả ID và Name
+  void _changeGroup(String newGroupId, String newGroupName) {
     setState(() {
-      currentGroup = newGroup;
+      currentGroupId = newGroupId; // Cập nhật ID nhóm
+      currentGroupName = newGroupName; // Cập nhật Tên nhóm
       _isOpen = false;
       _filterPosts();
     });
   }
 
-  // Hàm lấy bài viết (giữ nguyên)
   Future<void> _fetchPosts() async {
     final fetchedPosts = await _postService.fetchPosts();
 
@@ -82,43 +50,55 @@ class TrangChuState extends State<TrangChu> {
     }
   }
 
-  // LẤY DANH SÁCH TÊN NHÓM VÀ DATA NHÓM
+  // LẤY DANH SÁCH DATA NHÓM (ID, Name, Avatar)
   Future<void> _fetchJoinedGroupNames() async {
     final userId = GlobalState.currentUserId.isNotEmpty
         ? GlobalState.currentUserId
-        : "23211TT4679"; // ID mặc định nếu chưa đăng nhập
+        : "23211TT4679";
 
     final groups = await _groupService.fetchJoinedGroups(userId);
 
-    // Lọc ra data nhóm hợp lệ (không phải "Tất cả")
-    final validGroupsData = groups
-        .where((group) => group["name"] != "Tất cả")
-        .toList();
-
-    // Lọc ra chỉ lấy TÊN nhóm
-    final names = validGroupsData.map((g) => g['name'].toString()).toList();
-
-    if (mounted) {
-      setState(() {
-        _joinedGroupsData = validGroupsData; // Lưu data nhóm
-        _joinedGroupNames = names; // Lưu tên nhóm
-
-        //  CẬP NHẬT NHÓM HIỂN THỊ MẶC ĐỊNH
-        if (names.isNotEmpty && currentGroup == "CNTT") {
-          currentGroup = names.first;
-        }
-        _filterPosts();
-      });
-    }
+    setState(() {
+      //  Lưu DATA NHÓM ĐẦY ĐỦ (bao gồm "Tất cả" với id:"ALL")
+      _joinedGroupsData = groups;
+      // CẬP NHẬT NHÓM HIỂN THỊ MẶC ĐỊNH
+      // Nếu chưa chọn nhóm nào (mặc định là "ALL") và danh sách có nhóm khác "Tất cả"
+      if (currentGroupId == "ALL" && groups.length > 1) {
+        final defaultGroup = groups[1]; // Nhóm đầu tiên sau "Tất cả"
+        currentGroupId = defaultGroup["id"] as String;
+        currentGroupName = defaultGroup["name"] as String;
+      }
+      _filterPosts();
+    });
   }
 
-  //  HÀM LỌC BÀI VIẾT DỰA TRÊN currentGroup
   void _filterPosts() {
-    if (currentGroup == "Tất cả") {
-      filteredPosts = allPosts;
+    if (currentGroupId == "ALL") {
+      filteredPosts = allPosts.map((post) {
+        return {
+          ...post,
+          "group_name":
+              _joinedGroupsData.firstWhere(
+                (g) => g['id'] == post['group_id'],
+                orElse: () => {"name": "Không rõ"},
+              )['name'] ??
+              "Không rõ",
+        };
+      }).toList();
     } else {
       filteredPosts = allPosts
-          .where((post) => post["group"] == currentGroup)
+          .where((post) => post["group_id"] == currentGroupId)
+          .map((post) {
+            return {
+              ...post,
+              "group_name":
+                  _joinedGroupsData.firstWhere(
+                    (g) => g['id'] == post['group_id'],
+                    orElse: () => {"name": "Không rõ"},
+                  )['name'] ??
+                  "Không rõ",
+            };
+          })
           .toList();
     }
   }
@@ -172,15 +152,14 @@ class TrangChuState extends State<TrangChu> {
   @override
   void initState() {
     super.initState();
-    // Khởi tạo nhóm trước khi tải bài viết
     _fetchJoinedGroupNames();
     _fetchPosts();
   }
 
-  // Hàm tra cứu URL Avatar của nhóm đang hiển thị
+  //Hàm tra cứu URL Avatar của nhóm đang hiển thị (Sử dụng currentGroupId)
   String _getCurrentGroupAvatar() {
     final currentGroupData = _joinedGroupsData.firstWhere(
-      (group) => group['name'] == currentGroup,
+      (group) => group['id'] == currentGroupId, // ✅ Tra cứu bằng ID
       orElse: () => {"avatar_url": null},
     );
     // URL mặc định
@@ -188,9 +167,18 @@ class TrangChuState extends State<TrangChu> {
         "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSTaXZWZglx63-gMfBzslxSUQdqqvCp0QJiOA&s";
   }
 
+  //Hàm tra cứu tên nhóm từ ID (dùng cho Comment Sheet)
+  String _getGroupNameFromId(String groupId) {
+    if (groupId == "ALL") return "Tất cả";
+    final groupData = _joinedGroupsData.firstWhere(
+      (group) => group['id'] == groupId,
+      orElse: () => {"name": "Không rõ"},
+    );
+    return groupData['name'] ?? "Không rõ";
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Lấy URL avatar của nhóm đang hiển thị
     final groupAvatarUrl = _getCurrentGroupAvatar();
 
     return Scaffold(
@@ -254,42 +242,30 @@ class TrangChuState extends State<TrangChu> {
                         const SizedBox(width: 10),
 
                         // Nút đăng bài
-                        GestureDetector(
-                          onTap: _openDangBaiDialog,
-                          child: Container(
+                        ElevatedButton.icon(
+                          onPressed: _openDangBaiDialog,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blue.shade600, // màu nền
                             padding: const EdgeInsets.symmetric(
                               horizontal: 16,
                               vertical: 10,
                             ),
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [Color(0xFF42A5F5), Color(0xFF1976D2)],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                              borderRadius: BorderRadius.circular(30),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.blue.withOpacity(0.3),
-                                  offset: const Offset(0, 3),
-                                  blurRadius: 6,
-                                ),
-                              ],
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12), // bo góc
                             ),
-                            child: const Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.edit, color: Colors.white, size: 18),
-                                SizedBox(width: 6),
-                                Text(
-                                  "Đăng bài",
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 15,
-                                  ),
-                                ),
-                              ],
+                            elevation: 3, // tạo bóng nhẹ
+                          ),
+                          icon: const Icon(
+                            Icons.add_circle_outline,
+                            size: 24,
+                            color: Colors.white,
+                          ),
+                          label: const Text(
+                            "Đăng Bài",
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                              fontSize: 16,
                             ),
                           ),
                         ),
@@ -308,14 +284,14 @@ class TrangChuState extends State<TrangChu> {
                       children: [
                         Row(
                           children: [
-                            //  SỬ DỤNG AVATAR CỦA NHÓM ĐANG HIỂN THỊ
+                            // SỬ DỤNG AVATAR CỦA NHÓM ĐANG HIỂN THỊ (tra cứu bằng ID)
                             CircleAvatar(
                               radius: 16,
                               backgroundImage: NetworkImage(groupAvatarUrl),
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              currentGroup,
+                              currentGroupName,
                               style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 16,
@@ -324,8 +300,8 @@ class TrangChuState extends State<TrangChu> {
                           ],
                         ),
 
-                        //  Chỉ hiện nút info nếu KHÔNG phải "Tất cả"
-                        if (currentGroup != "Tất cả")
+                        // Chỉ hiện nút info nếu KHÔNG phải "Tất cả"
+                        if (currentGroupId != "ALL")
                           IconButton(
                             icon: const Icon(
                               Icons.info_outline,
@@ -334,8 +310,9 @@ class TrangChuState extends State<TrangChu> {
                             onPressed: () {
                               showDialog(
                                 context: context,
-                                builder: (_) =>
-                                    GroupInfoDialog(groupName: currentGroup),
+                                builder: (_) => GroupInfoDialog(
+                                  groupName: currentGroupName,
+                                ), // ✅ Dùng Tên nhóm
                               );
                             },
                           ),
@@ -391,7 +368,7 @@ class TrangChuState extends State<TrangChu> {
             ),
           ),
 
-          //  Overlay mờ khi mở menu
+          // Overlay mờ khi mở menu (giữ nguyên)
           if (_isOpen)
             GestureDetector(
               onTap: () => setState(() => _isOpen = false),
@@ -406,8 +383,8 @@ class TrangChuState extends State<TrangChu> {
             left: _isOpen ? 0 : -260,
             child: LeftPanel(
               onClose: () => setState(() => _isOpen = false),
-              // TRUYỀN HÀM CẬP NHẬT NHÓM
-              onGroupSelected: changeGroup,
+              // TRUYỀN HÀM CẬP NHẬT NHÓM (Yêu cầu LeftPanel phải gọi hàm này với (ID, Name))
+              onGroupSelected: _changeGroup,
             ),
           ),
         ],
@@ -415,12 +392,12 @@ class TrangChuState extends State<TrangChu> {
     );
   }
 
-  // Mở dialog đăng bài
+  // Mở dialog đăng bài (giữ nguyên)
   void _openDangBaiDialog() async {
-    // TRUYỀN DANH SÁCH TÊN NHÓM ĐÃ THAM GIA
+    // ✅ Truyền DATA nhóm ĐẦY ĐỦ (ID và Name) sang dialog
     final isSuccess = await showDialog<bool>(
       context: context,
-      builder: (_) => DangBaiDialog(availableGroups: _joinedGroupNames),
+      builder: (_) => DangBaiDialog(availableGroupsData: _joinedGroupsData),
     );
 
     if (isSuccess == true) {
@@ -428,7 +405,7 @@ class TrangChuState extends State<TrangChu> {
     }
   }
 
-  // Hàm hiển thị BOTTOM SHEET BÌNH LUẬN MỚI (giữ nguyên)
+  // Hàm hiển thị BOTTOM SHEET BÌNH LUẬN MỚI
   void _showCommentSheet(Map<String, dynamic> post) {
     TextEditingController commentCtrl = TextEditingController();
 
@@ -442,54 +419,10 @@ class TrangChuState extends State<TrangChu> {
             final double screenHeight = MediaQuery.of(context).size.height;
             final double sheetHeight = screenHeight * 0.85;
             return Container(
-              height: sheetHeight,
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-              ),
               child: Column(
                 children: [
-                  // Thanh kéo và Tiêu đề
-                  Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Column(
-                      children: [
-                        Container(
-                          width: 40,
-                          height: 5,
-                          decoration: BoxDecoration(
-                            color: Colors.grey[300],
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        const Text(
-                          "Bình luận",
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Divider(height: 1),
-
                   // Bài đăng tóm tắt
                   ListTile(
-                    leading: CircleAvatar(
-                      radius: 20,
-                      backgroundImage: NetworkImage(
-                        post["avatar"] ?? // Dùng key 'avatar'
-                            "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSTaXZWZglx63-gMfBzslxSUQdqqvCp0QJiOA&s",
-                      ),
-                    ),
-                    title: Text(
-                      post["fullname"] ??
-                          post["user"] ??
-                          "Ẩn danh", // Dùng key 'fullname'
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
                     subtitle: Text(
                       post["title"],
                       maxLines: 2,
@@ -497,110 +430,9 @@ class TrangChuState extends State<TrangChu> {
                       style: const TextStyle(fontSize: 14),
                     ),
                     trailing: Text(
-                      "trong ${post["group"]}",
+                      // ✅ SỬA: Tra cứu tên nhóm dựa trên group_id
+                      "trong ${_getGroupNameFromId(post["group_id"])}",
                       style: const TextStyle(color: Colors.grey, fontSize: 12),
-                    ),
-                  ),
-                  const Divider(height: 1),
-
-                  // Danh sách Bình luận
-                  Expanded(
-                    child: ListView.builder(
-                      itemCount: post["comments"].length,
-                      itemBuilder: (context, index) {
-                        final comment = post["comments"][index];
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16.0,
-                            vertical: 8.0,
-                          ),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const CircleAvatar(
-                                radius: 15,
-                                backgroundImage: NetworkImage(
-                                  "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSTaXZWZglx63-gMfBzslxSUQdqqvCp0QJiOA&s",
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Container(
-                                  padding: const EdgeInsets.all(10),
-                                  decoration: BoxDecoration(
-                                    color: Colors.grey[100],
-                                    borderRadius: BorderRadius.circular(15),
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        comment["name"],
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 14,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        comment["text"],
-                                        style: const TextStyle(fontSize: 14),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-
-                  // Ô nhập liệu Bình luận (luôn ở dưới cùng)
-                  Padding(
-                    padding: EdgeInsets.only(
-                      left: 10,
-                      right: 10,
-                      top: 8,
-                      bottom: MediaQuery.of(context).viewInsets.bottom + 8,
-                    ),
-                    child: TextField(
-                      controller: commentCtrl,
-                      decoration: InputDecoration(
-                        hintText: "Viết bình luận...",
-                        contentPadding: const EdgeInsets.symmetric(
-                          vertical: 10,
-                          horizontal: 15,
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(30),
-                          borderSide: BorderSide.none,
-                        ),
-                        filled: true,
-                        fillColor: Colors.grey[200],
-                        suffixIcon: IconButton(
-                          icon: const Icon(Icons.send, color: Colors.blue),
-                          onPressed: () {
-                            String val = commentCtrl.text.trim();
-                            if (val.isNotEmpty) {
-                              // Cập nhật dữ liệu tạm thời
-                              setModalState(() {
-                                post["comments"].add({
-                                  "name": "Cao Quang Khánh",
-                                  "text": val,
-                                });
-                              });
-                              //  Cập nhật giao diện trang chủ
-                              this.setState(() {});
-                              commentCtrl.clear();
-                              FocusScope.of(context).unfocus(); // Đóng bàn phím
-                            }
-                          },
-                        ),
-                      ),
-                      onSubmitted: (val) {},
                     ),
                   ),
                 ],

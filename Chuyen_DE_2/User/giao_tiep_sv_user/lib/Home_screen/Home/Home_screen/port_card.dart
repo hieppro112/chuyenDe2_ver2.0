@@ -65,12 +65,13 @@ class PostCard extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        "Khoa: ${post["group"] ?? "Không rõ"}",
+                        "Khoa: ${post["group_name"] ?? "Không rõ"}",
                         style: const TextStyle(
                           fontSize: 12,
                           color: Colors.grey,
                         ),
                       ),
+
                       Text(
                         _formatDate(post["date"]),
                         style: const TextStyle(
@@ -120,7 +121,7 @@ class PostCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                "${post["likes"] ?? 0} lượt thích  ${post["comments"]?.length ?? 0} bình luận",
+                "${post["likes"] ?? 0} lượt thích ${post["comments"] ?? 0} bình luận",
                 style: const TextStyle(fontSize: 12, color: Colors.grey),
               ),
               Row(
