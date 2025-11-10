@@ -1,44 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:giao_tiep_sv_user/Data/Users.dart';
+import 'package:giao_tiep_sv_user/Data/Notifycation.dart';
+import 'package:giao_tiep_sv_user/FireBase_Service/notifycationFirebase.dart';
+import 'package:giao_tiep_sv_user/ThongBao/chi_tiet_thong_bao.dart';
 import 'package:giao_tiep_sv_user/Widget/headerWidget.dart';
 import 'TieuDe.dart';
 import 'OThongBao.dart';
 
 class ManHinhThongBao extends StatelessWidget {
-  ManHinhThongBao({super.key});
-  // dữ liệu giả
-  final List<Map<String, String>> danhSachThongBao = [
-    {
-      "tieuDe": "Thông báo lịch thi học kỳ",
-      "noiDung":
-          "Lịch thi học kỳ 1 năm học 2025-2026 đã được cập nhật. Sinh viên vui lòng kiểm tra và thực hiện đúng lịch thi.",
-    },
-    {
-      "tieuDe": "Đăng ký học bổng",
-      "noiDung":
-          "Thông báo về việc đăng ký xét học bổng khuyến khích học tập học kỳ 1 năm học 2025-2026. Hạn chót: 30/11/2025.",
-    },
-    {
-      "tieuDe": "Chuyên đề",
-      "noiDung":
-          "Mời sinh viên tham dự buổi seminar 'Trí tuệ nhân tạo trong phát triển phần mềm' vào ngày 25/10/2025.",
-    },
-    {
-      "tieuDe": "Thông báo mượn sách",
-      "noiDung":
-          "Nhắc nhở sinh viên trả sách đúng hạn. Các sách mượn quá hạn sẽ bị phạt theo quy định.",
-    },
-    {
-      "tieuDe": "Thông báo học phí",
-      "noiDung":
-          "Thông báo đóng học phí học kỳ 1 năm học 2025-2026. Hạn đóng học phí: 15/11/2025.",
-    },
-    {
-      "tieuDe": "Khảo sát ý kiến sinh viên",
-      "noiDung":
-          "Mời sinh viên tham gia khảo sát ý kiến về chất lượng giảng dạy và dịch vụ hỗ trợ sinh viên. Link khảo sát đã được gửi qua email.",
-    },
-  ];
+  final Users currentUser;
+  final Notifycationfirebase notifyService = Notifycationfirebase();
+
+  ManHinhThongBao({required this.currentUser, super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -51,20 +24,12 @@ class ManHinhThongBao extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           child: Column(
             children: [
+              // Header với nút back
               Headerwidget(
-                myUs: Users(
-                  id_user: "abc",
-                  email: "email",
-                  fullname: "Le Dai Hiep",
-                  url_avt: "https://media-cdn-v2.laodong.vn/Storage/NewsPortal/2021/10/30/969136/Cristiano-Ronaldo4.jpg",
-                  role: 1,
-                  faculty_id: "TT",
-                ),
+                myUs: currentUser,
                 width: widthScreen,
                 chucnang: GestureDetector(
-                  onTap: () {
-                    Navigator.pop(context);
-                  },
+                  onTap: () => Navigator.pop(context),
                   child: Image.asset(
                     "assets/icons/ic_back.png",
                     width: 24,
@@ -75,14 +40,86 @@ class ManHinhThongBao extends StatelessWidget {
               const SizedBox(height: 30),
               const TieuDeThongBao(),
               const SizedBox(height: 20),
+
+              // Danh sách thông báo
               Expanded(
-                child: ListView.builder(
-                  itemCount: danhSachThongBao.length,
-                  itemBuilder: (context, index) {
-                    final thongBao = danhSachThongBao[index];
-                    return OThongBao(
-                      tieuDe: thongBao["tieuDe"]!,
-                      noiDung: thongBao["noiDung"]!,
+                child: StreamBuilder<List<Notifycation>>(
+                  stream: notifyService.getAllNotifycation(),
+                  builder: (context, snapshot) {
+                    // 1. Đang tải
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+
+                    // 2. Lỗi kết nối
+                    if (snapshot.hasError) {
+                      return Center(
+                        child: Text(
+                          "Lỗi: ${snapshot.error}",
+                          style: const TextStyle(color: Colors.red),
+                        ),
+                      );
+                    }
+
+                    // 3. Không có dữ liệu
+                    if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                      return const Center(child: Text("Không có thông báo nào"));
+                    }
+
+                    final allNotify = snapshot.data!;
+                    print("Tổng số thông báo từ Firestore: ${allNotify.length}");
+                    print("User ID: ${currentUser.id_user}, Faculty ID: ${currentUser.faculty_id}");
+
+                    // 4. Lọc thông báo dành cho user hiện tại
+                    final notifyForUser = allNotify.where((tb) {
+                      final recipientKeys = tb.user_recipient_ID.keys.toSet();
+
+                      final matchUser = recipientKeys.contains(currentUser.id_user);
+                      final matchFaculty = currentUser.faculty_id != null &&
+                          recipientKeys.contains(currentUser.faculty_id);
+
+                      // Debug từng thông báo
+                      print(
+                        "TB: '${tb.title}' → Có trong user: $matchUser | Có trong khoa: $matchFaculty "
+                        "| Recipients: ${recipientKeys.join(', ')}",
+                      );
+
+                      return matchUser || matchFaculty;
+                    }).toList();
+
+                    // 5. Không có thông báo phù hợp
+                    if (notifyForUser.isEmpty) {
+                      return const Center(
+                        child: Text("Không có thông báo dành cho bạn"),
+                      );
+                    }
+
+                    // 6. Hiển thị danh sách
+                    return ListView.builder(
+                      padding: const EdgeInsets.only(top: 8),
+                      itemCount: notifyForUser.length,
+                      itemBuilder: (context, index) {
+                        final tb = notifyForUser[index];
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: OThongBao(
+                            tieuDe: tb.title,
+                            noiDung: tb.content,
+                            onTap : () {
+                              // Có thể mở chi tiết thông báo
+                             Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => ChiTietThongBao(
+                                    tieuDe: tb.title,
+                                    noiDung: tb.content,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        );
+                      },
                     );
                   },
                 ),

@@ -1,68 +1,48 @@
+// OThongBao.dart
 import 'package:flutter/material.dart';
-import 'package:giao_tiep_sv_user/Widget/headerWidget.dart';
-import 'chi_tiet_thong_bao.dart';
 
 class OThongBao extends StatelessWidget {
   final String tieuDe;
   final String noiDung;
+  final VoidCallback? onTap;
 
   const OThongBao({
     super.key,
     required this.tieuDe,
     required this.noiDung,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => ChiTietThongBao(
-              tieuDe: tieuDe,
-              noiDung: noiDung,
-            ),
-          ),
-        );
-      },
+      onTap: onTap,
       child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 8),
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          border: Border.all(color: Colors.black26),
-          borderRadius: BorderRadius.circular(20),
+          color: Colors.grey[50],
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade300),
         ),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const CircleAvatar(
-              radius: 18,
-              backgroundColor: Color(0xFFDDE8FF),
-              child: Icon(Icons.person, color: Colors.blue),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    tieuDe,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
-                    ),
-                  ),
-               
-                  Text(
-                    noiDung,
-                    style: const TextStyle(color: Colors.black54),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
+            Text(
+              tieuDe,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
               ),
             ),
-            const Icon(Icons.circle, color: Colors.red, size: 10),
+            const SizedBox(height: 6),
+            Text(
+              noiDung,
+              style: TextStyle(
+                color: Colors.grey[700],
+                fontSize: 14,
+              ),
+            ),
           ],
         ),
       ),

@@ -84,48 +84,55 @@ class _ChatMemberScreenState extends State<ChatMemberScreen> {
     isload = true;
     final listChats = await messService.listChat(Uid);
     print("leng listChat: ${listChats.length}");
-    if(mounted){
+    if (mounted) {
       setState(() {
-      listMessage = listChats;
-      listMessageSearch = listMessage;
-      isload = false;
-    });
+        listMessage = listChats;
+        listMessageSearch = listMessage;
+        isload = false;
+      });
     }
   }
 
   //custom header
   Widget createHeader(String myId) {
-  return FutureBuilder<Users?>(
-    future: fetchIdUs(myId.toUpperCase()),
-    builder: (context, snapshot) {
-      if (snapshot.connectionState == ConnectionState.waiting) {
-        return const Center(child: CircularProgressIndicator());
-      }
+    return FutureBuilder<Users?>(
+      future: fetchIdUs(myId.toUpperCase()),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
-      if (snapshot.hasError) {
-        return Text('Lỗi: ${snapshot.error}');
-      }
+        if (snapshot.hasError) {
+          return Text('Lỗi: ${snapshot.error}');
+        }
 
-      if (!snapshot.hasData || snapshot.data == null) {
-        return const Text('Không tìm thấy user');
-      }
+        if (!snapshot.hasData || snapshot.data == null) {
+          return const Text('Không tìm thấy user');
+        }
 
-      final user = snapshot.data!;
+        final user = snapshot.data!;
 
-      return Headerwidget(
-        myUs: user, 
-        width: width.toDouble(),
-        chucnang: IconButton(
-          onPressed: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => ManHinhThongBao()),
+        return Headerwidget(
+          myUs: user,
+          width: width.toDouble(),
+          chucnang: IconButton(
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) =>
+                    ManHinhThongBao(currentUser: user), 
+              ),
+            ),
+            icon: const Icon(
+              Icons.notifications,
+              color: Colors.amber,
+              size: 45,
+            ),
           ),
-          icon: const Icon(Icons.notifications, color: Colors.amber, size: 45),
-        ),
-      );
-    },
-  );
-}
+        );
+      },
+    );
+  }
 
   //create listview message
   Widget createListMessage() {
@@ -139,27 +146,38 @@ class _ChatMemberScreenState extends State<ChatMemberScreen> {
             itemBuilder: (context, index) {
               var value = listMessageSearch[index];
               return CustomChatMember(
-
                 userInfo: value,
                 id_chat: value.roomId,
                 content: value.lastMessage,
                 isnew: isnew,
                 ontap: (valueTap) {
                   //value tap tra ve id phong da nhan vao
-                  //chuyen sang man hinh nhan tin 
+                  //chuyen sang man hinh nhan tin
                   Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (context) {
                         return ScreenMessage(
                           myId: Uid.toString(),
-                          sender_to: ChatRoom(roomId: "1",lastMessage: "hello ban hien",lastSender: "23211tt3598",lastTime: DateTime.now(),users: ["23211tt3598","23211tt3599"],name: "Le van nam",createdAt: DateTime.now(),avatarUrl: "https://img-s-msn-com.akamaized.net/tenant/amp/entityid/AA1PSSTd.img?w=730&h=486&m=6&x=27&y=208&s=422&d=193",createdBy: "23211tt3598",typeId: 0),
+                          sender_to: ChatRoom(
+                            roomId: "1",
+                            lastMessage: "hello ban hien",
+                            lastSender: "23211tt3598",
+                            lastTime: DateTime.now(),
+                            users: ["23211tt3598", "23211tt3599"],
+                            name: "Le van nam",
+                            createdAt: DateTime.now(),
+                            avatarUrl:
+                                "https://img-s-msn-com.akamaized.net/tenant/amp/entityid/AA1PSSTd.img?w=730&h=486&m=6&x=27&y=208&s=422&d=193",
+                            createdBy: "23211tt3598",
+                            typeId: 0,
+                          ),
                           idRoom: valueTap,
                         );
                       },
                     ),
                   );
-                
+
                   print("room john: ${valueTap}");
                 },
               );
