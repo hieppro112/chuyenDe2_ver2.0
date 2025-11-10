@@ -7,6 +7,8 @@ import 'package:giao_tiep_sv_user/FireBase_Service/get_joined_groups.dart';
 class LeftPanel extends StatefulWidget {
   final VoidCallback onClose;
   final bool isGroupPage;
+
+  // Hàm onGroupSelected phải nhận (ID nhóm, Tên nhóm)
   final void Function(String id, String name) onGroupSelected;
 
   const LeftPanel({
@@ -24,9 +26,10 @@ class _LeftPanelState extends State<LeftPanel> {
   final GetJoinedGroupsService _groupService = GetJoinedGroupsService();
   final TextEditingController _searchController = TextEditingController();
 
+  // ID người dùng hiện tại (Lấy từ global state hoặc mặc định)
   final String _currentUserId = GlobalState.currentUserId.isNotEmpty
       ? GlobalState.currentUserId
-      : "23211TT4679";
+      : "23211TT4679"; // ID mặc định nếu chưa đăng nhập
 
   List<Map<String, dynamic>> _groups = [];
   List<Map<String, dynamic>> _filteredGroups = [];
@@ -46,21 +49,27 @@ class _LeftPanelState extends State<LeftPanel> {
     super.dispose();
   }
 
+  // Hàm tải danh sách nhóm từ Firebase
   Future<void> _fetchGroups() async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
+
     final fetched = await _groupService.fetchJoinedGroups(_currentUserId);
 
+    if (!mounted) return;
     setState(() {
+      // Bỏ nhóm "Tất cả" khỏi danh sách hiển thị bằng cách lọc theo ID
       _groups = fetched.where((group) => group["id"] != "ALL").toList();
       _filteredGroups = _groups;
       _isLoading = false;
       if (_searchController.text.isNotEmpty) _filterGroups();
     });
-    }
   }
 
+  // Hàm lọc nhóm theo tên
   void _filterGroups() {
     final query = _searchController.text.toLowerCase();
+    if (!mounted) return;
     setState(() {
       if (query.isEmpty) {
         _filteredGroups = _groups;
@@ -151,15 +160,21 @@ class _LeftPanelState extends State<LeftPanel> {
               leading: const Icon(Icons.home),
               title: const Text("Trang chủ"),
               onTap: () {
+                // 1. Luôn gửi tín hiệu chọn "Tất cả" về Trang Chủ (Home)
                 widget.onGroupSelected("ALL", "Tất cả");
                 widget.onClose();
 
-                // Luôn chuyển về Home, xóa stack trước
-                Navigator.pushAndRemoveUntil(
-                  context,
-                  MaterialPageRoute(builder: (context) => const Home()),
-                  (route) => false,
-                );
+                // 2. Chỉ chuyển hướng nếu đang ở màn hình khác
+                if (widget.isGroupPage) {
+                  if (Navigator.canPop(context)) {
+                    Navigator.pop(context);
+                  } else {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (context) => const Home()),
+                    );
+                  }
+                }
               },
             ),
             const Divider(),
