@@ -38,6 +38,7 @@ class HeaderMessage extends StatelessWidget {
         Row(
           children: [
             Text(myInfo.name,
+            overflow: TextOverflow.ellipsis,
         style: TextStyle(
           fontWeight: FontWeight.bold,
           fontSize: 20,
