@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/widgets.dart';
 import 'package:giao_tiep_sv_user/Data/message.dart';
 import 'package:giao_tiep_sv_user/Data/room_chat.dart';
 
@@ -10,7 +11,7 @@ class MessageService {
     try {
       final querySnap = await messDB
           .collection("ChatRooms")
-          .where("users", arrayContains: myID)
+          .where("users", arrayContains: myID.toUpperCase())
           .orderBy("lastTime", descending: true)
           .get();
 
@@ -18,6 +19,8 @@ class MessageService {
         print("Không có phòng chat nào cả");
         return [];
       }
+
+
 
       List<ChatRoom> roomsChat = querySnap.docs.map((e) {
         final data = e.data();
@@ -36,7 +39,7 @@ class MessageService {
   Stream<List<ChatRoom>> streamChatRooms(String myID) {
     return messDB
         .collection("ChatRooms")
-        .where("users", arrayContains: myID)
+        .where("users", arrayContains: myID.toUpperCase())
         .orderBy("lastTime", descending: true)
         .snapshots()
         .map(
@@ -67,6 +70,8 @@ class MessageService {
   Future<Message?> sendMessage({
     required String roomId,
     required String senderID,
+    required String avt_sender,
+    required String name_sender,
     String? content,
     String? mediaUrl,
   }) async {
@@ -81,6 +86,9 @@ class MessageService {
         id_message: messRef.id,
         content:content??"null roi" ,
         sender_id: senderID,
+        sender_avatar: avt_sender,
+        sender_name: name_sender,
+        media_url: mediaUrl??"",
         create_at: DateTime.now(),
       );
 
@@ -98,5 +106,13 @@ class MessageService {
       print("loi khi gui tin nhan $e");
       return null;
     }
+  }
+
+  //tao nhom chats
+  Future<void> createChatRooms(ChatRoom chatroom)async{
+    try{
+      await messDB.collection("ChatRooms").doc(chatroom.roomId).set(chatroom.toMap());
+      print("tao nhom chat thanh cong");
+    }catch(e){print("loi khi tao nhom: $e");}
   }
 }

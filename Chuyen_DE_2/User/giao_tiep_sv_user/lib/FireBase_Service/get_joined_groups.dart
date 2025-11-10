@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 class GetJoinedGroupsService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // Hàm ánh xạ tên nhóm sang Icon (Giữ lại để làm fallback nếu không có ảnh)
+  // Hàm ánh xạ tên nhóm sang Icon (giữ lại để làm fallback nếu không có ảnh)
   IconData _mapGroupToIcon(String groupName) {
     final lowerName = groupName.toLowerCase();
     if (lowerName.contains("mobile") || lowerName.contains("flutter")) {

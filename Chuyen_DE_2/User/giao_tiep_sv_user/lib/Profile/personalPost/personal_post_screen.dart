@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:giao_tiep_sv_user/FireBase_Service/post_user.dart';
 import 'package:giao_tiep_sv_user/FireBase_Service/Profile_Service.dart';
@@ -33,98 +34,117 @@ class _PersonalPostScreenState extends State<PersonalPostScreen> {
   List<PersonalPostModel> _posts = [];
   ProfileModel? _profile;
   bool _isLoadingProfile = true;
-
+  String _major = 'Đang tải...';
+  String _schoolYear = 'Đang tải...';
+  bool _isLoadingExtra = true;
   @override
   void initState() {
     super.initState();
     _postRepository = PostRepository();
     _profileService = ProfileService();
+
+    // Thiết lập userId
+    _profileService.setUserId(widget.currentUserId);
     _loadProfile();
   }
 
   Future<void> _loadProfile() async {
     try {
       final profile = await _profileService.getProfile();
-      if (mounted) {
-        setState(() {
-          _profile = profile;
-          _isLoadingProfile = false;
-        });
-      }
+      if (!mounted) return;
+
+      final result = await _profileService.layNganhVaNienKhoa(
+        profile?.email ?? '',
+        profile?.faculty.faculty_id ?? '',
+      );
+
+      setState(() {
+        _profile = profile;
+        _major = result['major'] ?? 'Không xác định';
+        _schoolYear = result['schoolYear'] ?? '20XX';
+        _isLoadingProfile = false;
+        _isLoadingExtra = false;
+      });
     } catch (e) {
       if (mounted) {
         setState(() {
+          _major = 'Lỗi';
+          _schoolYear = 'Lỗi';
           _isLoadingProfile = false;
+          _isLoadingExtra = false;
         });
       }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Lỗi tải thông tin: $e")));
     }
   }
 
-  void _handleLike(int index) {
-    setState(() {
-      final post = _posts[index];
-      _posts[index] = post.copyWith(
-        isLiked: !post.isLiked,
-        likesCount: post.isLiked ? post.likesCount - 1 : post.likesCount + 1,
-      );
-    });
+  // xóa bài viết
+  void _handleDelete(String postId, List<String> imageUrls) async {
+    if (!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(
-          _posts[index].isLiked ? "Đã thả tim [heart]" : "Đã bỏ thả tim",
+        backgroundColor: Colors.blueGrey[800],
+        content: Row(
+          children: const [
+            CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+            SizedBox(width: 16),
+            Text('Đang xóa dữ liệu...', style: TextStyle(color: Colors.white)),
+          ],
         ),
-        duration: const Duration(seconds: 1),
-      ),
-    );
-  }
-
-  void _handleComment(int index) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Chuyển đến màn hình bình luận")),
-    );
-  }
-
-  void _handleDelete(String postId) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Xóa bài viết"),
-        content: const Text("Bạn có chắc muốn xóa bài viết này?"),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text("Hủy"),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text("Xóa", style: TextStyle(color: Colors.red)),
-          ),
-        ],
+        duration: const Duration(seconds: 5),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(12)),
+        ),
       ),
     );
 
-    if (confirm == true) {
+    try {
+      await _deletePostImages(imageUrls);
+      await FirebaseFirestore.instance.collection('Post').doc(postId).delete();
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Đã xóa bài viết thành công'),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 2),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Lỗi: $e'), backgroundColor: Colors.red),
+      );
+    }
+  }
+  //xóa ảnh đã lưu trong stoage
+
+  Future<void> _deletePostImages(List<String> imageUrls) async {
+    for (String url in imageUrls) {
+      if (url.isEmpty) continue;
       try {
-        await FirebaseFirestore.instance
-            .collection('Post')
-            .doc(postId)
-            .delete();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Đã xóa bài viết"),
-            backgroundColor: Colors.green,
-          ),
-        );
+        final ref = FirebaseStorage.instance.refFromURL(url);
+        await ref.delete();
+      } on FirebaseException catch (e) {
+        if (e.code == 'object-not-found') {
+          print('Ảnh đã bị xóa trước: $url');
+        } else {
+          print('Lỗi xóa ảnh: $e');
+        }
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Lỗi: $e"), backgroundColor: Colors.red),
-        );
+        print('Lỗi không xác định: $e');
       }
     }
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
   }
 
   @override
@@ -150,7 +170,7 @@ class _PersonalPostScreenState extends State<PersonalPostScreen> {
             return Center(child: Text("Lỗi: ${snapshot.error}"));
           }
 
-          _posts = snapshot.data ?? [];
+          final posts = snapshot.data ?? [];
 
           final displayName = _profile?.name?.isNotEmpty == true
               ? _profile!.name
@@ -159,61 +179,62 @@ class _PersonalPostScreenState extends State<PersonalPostScreen> {
               ? _profile!.avatarUrl
               : widget.avatarUrl;
 
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Header với thông tin đầy đủ
-                if (_profile != null)
-                  ProfileHeaderWidget(
-                    avatarUrl: displayAvatarUrl,
-                    avatarFile: widget.avatarFile,
-                    name: displayName,
-                    email: _profile!.email,
-                    facultyId: _profile!.faculty.faculty_id,
-                    postCount: _posts.length,
-                  )
-                else
-                  const Center(
-                    child: Text("Không tải được thông tin người dùng"),
-                  ),
-
-                const SizedBox(height: 16),
-                const Text(
-                  "Bài viết",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          return CustomScrollView(
+            slivers: [
+              // Header
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: _profile != null
+                      ? ProfileHeaderWidget(
+                          avatarUrl: displayAvatarUrl,
+                          avatarFile: widget.avatarFile,
+                          name: displayName,
+                          major: _isLoadingExtra ? 'Đang tải...' : _major,
+                          schoolYear: _isLoadingExtra
+                              ? 'Đang tải...'
+                              : _schoolYear,
+                          postCount: posts.length,
+                        )
+                      : const Text("Không tải được thông tin"),
                 ),
-                const SizedBox(height: 16),
+              ),
 
-                // Danh sách bài viết
-                _posts.isEmpty
-                    ? const Center(
+              // Tiêu đề "Bài viết"
+              const SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16.0),
+                  child: Text(
+                    "Bài viết",
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+              const SliverToBoxAdapter(child: SizedBox(height: 16)),
+
+              // Danh sách bài viết
+              posts.isEmpty
+                  ? SliverToBoxAdapter(
+                      child: Center(
                         child: Text(
                           "Chưa có bài viết nào",
                           style: TextStyle(fontSize: 16, color: Colors.grey),
                         ),
-                      )
-                    : ListView.builder(
-                        physics: const NeverScrollableScrollPhysics(),
-                        shrinkWrap: true,
-                        itemCount: _posts.length,
-                        itemBuilder: (context, index) {
-                          final post = _posts[index];
-                          return PersonalPostItemWidget(
-                            post: post,
-                            onComment: () => _handleComment(index),
-                            onLike: () => _handleLike(index),
-                            onDelete: () => _handleDelete(post.id),
-                            onEdit: null,
-                            avatarUrl: displayAvatarUrl,
-                            avatarFile: widget.avatarFile,
-                            currentUserName: displayName,
-                          );
-                        },
                       ),
-              ],
-            ),
+                    )
+                  : SliverList(
+                      delegate: SliverChildBuilderDelegate((context, index) {
+                        final post = posts[index];
+                        return PersonalPostItemWidget(
+                          post: post,
+                          onDelete: (id, urls) => _handleDelete(id, urls),
+                          avatarUrl: displayAvatarUrl,
+                          avatarFile: widget.avatarFile,
+                          currentUserName: displayName,
+                        );
+                      }, childCount: posts.length),
+                    ),
+            ],
           );
         },
       ),

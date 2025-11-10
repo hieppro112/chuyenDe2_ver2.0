@@ -1,11 +1,18 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:giao_tiep_sv_user/Screens_chatMember/view/chatMessage.dart';
 import 'package:image_picker/image_picker.dart';
 
-class CustomSenderMessage extends StatelessWidget {
+class CustomSenderMessage extends StatefulWidget {
   final ValueChanged? onTapSend;
   final ValueChanged<File?>? onSelectedImage;
   const CustomSenderMessage({super.key, this.onTapSend, this.onSelectedImage});
+
+  @override
+  State<CustomSenderMessage> createState()=>_CustomSenderMessage();
+}
+
+class _CustomSenderMessage extends State<CustomSenderMessage>{
 
   @override
   Widget build(BuildContext context) {
@@ -31,7 +38,7 @@ class CustomSenderMessage extends StatelessWidget {
                   final ImagePicker picker = ImagePicker();
                   final XFile? image = await picker.pickImage(source: ImageSource.gallery);
                   if(image!=null){
-                    onSelectedImage?.call(File(image.path));
+                    widget.onSelectedImage?.call(File(image.path));
                   }
                 },
                 child: Image.asset(
@@ -92,7 +99,11 @@ class CustomSenderMessage extends StatelessWidget {
             onTap: () {
               // print("send");
               if(contenttxt.text.isNotEmpty){
-                onTapSend?.call(contenttxt.text);
+               
+                widget.onTapSend?.call(contenttxt.text.trim());
+               setState(() {
+                  contenttxt.clear();
+                });
               }
             },
 
@@ -102,5 +113,4 @@ class CustomSenderMessage extends StatelessWidget {
         ),
       ],
     );
-  }
-}
+  }}

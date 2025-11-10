@@ -63,9 +63,12 @@ void _dangNhap(BuildContext context) async {
       return;
     }
 
-    print("AUTH THÀNH CÔNG: ${user.uid}");
-
-    // 2. LẤY DỮ LIỆU TỪ FIRESTORE
+    final id_user = email
+        .trim()
+        .split('@')
+        .first
+        .toUpperCase()
+        .replaceAll(RegExp(r'[^A-Z0-9]'), '');
     DocumentSnapshot doc = await FirebaseFirestore.instance
         .collection("Users")
         .doc(id_user)

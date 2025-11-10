@@ -15,17 +15,24 @@ class _HomeState extends State<Home> {
   late PageController _pageController;
   int _currentIndex = 0;
 
-  final List<Widget> _pages = [
-    const TrangChu(),
-    const ChatMemberScreen(),
-    const ProfileScreen(),
-  ];
+  // Giữ lại key cho TrangChu để có thể gọi hàm public nếu cần sau này,
+  // nhưng đã loại bỏ logic _openSavedItems
+  final GlobalKey<TrangChuState> _trangChuKey = GlobalKey<TrangChuState>();
+
+  late final List<Widget> _pages;
 
   @override
   void initState() {
     super.initState();
     // 2. Khởi tạo PageController
     _pageController = PageController(initialPage: _currentIndex);
+
+    // Gán key cho TrangChu
+    _pages = [
+      TrangChu(key: _trangChuKey),
+      const ChatMemberScreen(),
+      const ProfileScreen(),
+    ];
   }
 
   @override
@@ -41,6 +48,8 @@ class _HomeState extends State<Home> {
       curve: Curves.easeInOut, // Đường cong chuyển động
     );
   }
+
+  // ĐÃ XÓA: Hàm _openSavedItems()
 
   Widget _buildAnimatedNavItem(IconData icon, String label, int index) {
     final bool isSelected = _currentIndex == index;

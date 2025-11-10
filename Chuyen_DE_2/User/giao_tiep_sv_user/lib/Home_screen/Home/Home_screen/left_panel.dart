@@ -7,7 +7,9 @@ import 'package:giao_tiep_sv_user/FireBase_Service/get_joined_groups.dart';
 class LeftPanel extends StatefulWidget {
   final VoidCallback onClose;
   final bool isGroupPage;
-  final void Function(String) onGroupSelected;
+
+  // Hàm onGroupSelected phải nhận (ID nhóm, Tên nhóm)
+  final void Function(String id, String name) onGroupSelected;
 
   const LeftPanel({
     super.key,
@@ -49,12 +51,15 @@ class _LeftPanelState extends State<LeftPanel> {
 
   // Hàm tải danh sách nhóm từ Firebase
   Future<void> _fetchGroups() async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
+
     final fetched = await _groupService.fetchJoinedGroups(_currentUserId);
 
+    if (!mounted) return;
     setState(() {
-      // ✅ Bỏ nhóm "Tất cả" khỏi danh sách hiển thị
-      _groups = fetched.where((group) => group["name"] != "Tất cả").toList();
+      // Bỏ nhóm "Tất cả" khỏi danh sách hiển thị bằng cách lọc theo ID
+      _groups = fetched.where((group) => group["id"] != "ALL").toList();
       _filteredGroups = _groups;
       _isLoading = false;
       if (_searchController.text.isNotEmpty) _filterGroups();
@@ -64,6 +69,7 @@ class _LeftPanelState extends State<LeftPanel> {
   // Hàm lọc nhóm theo tên
   void _filterGroups() {
     final query = _searchController.text.toLowerCase();
+    if (!mounted) return;
     setState(() {
       if (query.isEmpty) {
         _filteredGroups = _groups;
@@ -140,9 +146,9 @@ class _LeftPanelState extends State<LeftPanel> {
                 hintText: "Tìm nhóm...",
                 prefixIcon: const Icon(Icons.search),
                 filled: true,
-                fillColor: Colors.grey.shade200,
+                fillColor: Colors.grey.shade100,
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(30),
+                  borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
                 ),
               ),
@@ -154,11 +160,21 @@ class _LeftPanelState extends State<LeftPanel> {
               leading: const Icon(Icons.home),
               title: const Text("Trang chủ"),
               onTap: () {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (context) => const Home()),
-                );
+                // 1. Luôn gửi tín hiệu chọn "Tất cả" về Trang Chủ (Home)
+                widget.onGroupSelected("ALL", "Tất cả");
                 widget.onClose();
+
+                // 2. Chỉ chuyển hướng nếu đang ở màn hình khác
+                if (widget.isGroupPage) {
+                  if (Navigator.canPop(context)) {
+                    Navigator.pop(context);
+                  } else {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (context) => const Home()),
+                    );
+                  }
+                }
               },
             ),
             const Divider(),
@@ -168,11 +184,10 @@ class _LeftPanelState extends State<LeftPanel> {
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : _filteredGroups.isEmpty
-                  ? Center(
+                  ? const Center(
                       child: Text(
-                        "Không tìm thấy nhóm.\nUser ID: $_currentUserId",
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(color: Colors.grey),
+                        "Không có nhóm nào",
+                        style: TextStyle(color: Colors.grey),
                       ),
                     )
                   : ListView.builder(
@@ -181,25 +196,17 @@ class _LeftPanelState extends State<LeftPanel> {
                       itemBuilder: (context, index) {
                         final group = _filteredGroups[index];
                         return ListTile(
-                          leading: group["avatar_url"] != null
-                              ? CircleAvatar(
-                                  radius: 18,
-                                  backgroundImage: NetworkImage(
-                                    group["avatar_url"],
-                                  ),
-                                  backgroundColor: Colors.grey.shade200,
-                                )
-                              : CircleAvatar(
-                                  radius: 18,
-                                  backgroundColor: Colors.grey.shade200,
-                                  child: Icon(
-                                    group["icon"] as IconData,
-                                    color: Colors.grey.shade700,
-                                  ),
-                                ),
+                          leading: CircleAvatar(
+                            backgroundImage: group["avatar_url"] != null
+                                ? NetworkImage(group["avatar_url"])
+                                : const AssetImage(
+                                        'assets/images/default_group.png',
+                                      )
+                                      as ImageProvider,
+                          ),
                           title: Text(group["name"]),
                           onTap: () {
-                            widget.onGroupSelected(group["name"]);
+                            widget.onGroupSelected(group["id"], group["name"]);
                             widget.onClose();
                           },
                         );

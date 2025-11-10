@@ -12,7 +12,7 @@ class FirestoreServiceUser{
         return Users(
         id_user: e.id,
         email: mapData["email"] ?? "",
-        pass: mapData["pass"] ?? "",
+        // pass: mapData["pass"] ?? "",
         fullname: mapData["fullname"] ?? "",
         url_avt: mapData["avt"] ?? "",
         role: mapData["role"] ?? 0,
