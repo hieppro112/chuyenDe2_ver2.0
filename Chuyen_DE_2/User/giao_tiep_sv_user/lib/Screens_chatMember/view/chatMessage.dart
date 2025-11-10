@@ -1,4 +1,3 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:giao_tiep_sv_user/Data/Users.dart';
 import 'package:giao_tiep_sv_user/Data/message.dart';
@@ -14,7 +13,7 @@ class ScreenMessage extends StatefulWidget {
   final ChatRoom sender_to;
   final String idRoom;
   const ScreenMessage({
-    super.key,
+    super.key, 
     required this.sender_to,
     required this.idRoom,
     required this.myId,

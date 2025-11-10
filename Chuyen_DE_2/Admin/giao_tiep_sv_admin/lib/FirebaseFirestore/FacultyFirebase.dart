@@ -13,6 +13,4 @@ class FireStoreServiceFaculty {
       }).toList();
     });
   }
-
-  
 }
