@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:giao_tiep_sv_admin/Admin/duyet_bai_viet_admin/duyet_bai_viet_admin.dart';
+import 'package:giao_tiep_sv_admin/Admin/duyet_nhom_admin/duyet_nhom_admin.dart';
 import 'package:giao_tiep_sv_admin/Gui_Thong_bao/view/Notifycation_Sceen.dart';
 import 'package:giao_tiep_sv_admin/Tao_nhom_cong_Dong/view/Create_group_community.dart';
 import 'package:giao_tiep_sv_admin/Truy_Xuat_TK_Screens/truy_xuat_tai_Khoan.dart';
@@ -92,23 +92,23 @@ class AdminScreen extends StatelessWidget {
               ),
               const SizedBox(height: 15),
 
-              // Nút "Quản lý bài viết và báo cáo"
+              // Nút "Quản lý Nhóm người dùng"
               _buildAdminButton(
                 context,
-                icon: Icons.report_problem, // Icon báo cáo
-                text: 'Quản lý bài viết và báo cáo',
-                color: const Color(0xFFFFF3E0), // Màu cam nhạt
-                iconColor: Colors.red, // Màu icon đỏ
+                icon: Icons.list_alt,
+                text: 'Quản lý nhóm người dùng',
+                color: const Color(0xFFFFF8E1),
+                iconColor: Color(0xFF1565C0),
                 onPressed: () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => AdminPostManagementScreen(),
+                      builder: (context) => DuyetNhomAdminScreen(),
                     ),
                   );
                 },
               ),
-              SizedBox(height: 15,),
+              SizedBox(height: 15),
               // Nút "Quản lý bài viết và báo cáo"
               _buildAdminButton(
                 context,
@@ -119,13 +119,10 @@ class AdminScreen extends StatelessWidget {
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(
-                      builder: (context) => ScreenNotify(),
-                    ),
+                    MaterialPageRoute(builder: (context) => ScreenNotify()),
                   );
                 },
               ),
-              
             ],
           ),
         ),
