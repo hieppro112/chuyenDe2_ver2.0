@@ -14,7 +14,7 @@ class Userservices {
           return null;
       }
       // print("my ${Users.fromMap(snap.data()!)}");
-      return Users.fromMap(snap.data()!);
+      return  Users.fromMap(snap.data()!);
     }catch(e){
         print("loi dl: $e");
         return null;
@@ -32,7 +32,7 @@ class Userservices {
         email: mapData["email"] ?? "",
         // pass: mapData["pass"] ?? "",
         fullname: mapData["fullname"] ?? "",
-        url_avt: mapData["avt"] ?? "",
+        url_avt: mapData["avt"] ?? "https://www.homepaylater.vn/static/091138555b138c04878fa60cea715e28/7b48c/tdc_computer_logo_68b779e149.jpg",
         role: mapData["role"] ?? 0,
         faculty_id: mapData["faculty_id"] ?? "",
       );

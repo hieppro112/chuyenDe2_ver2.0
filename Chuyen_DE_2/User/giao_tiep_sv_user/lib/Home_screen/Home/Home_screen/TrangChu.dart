@@ -57,7 +57,8 @@ class TrangChuState extends State<TrangChu> {
 
     final groups = await _groupService.fetchJoinedGroups(userId);
 
-    setState(() {
+    if(mounted){
+      setState(() {
       // 	Lưu DATA NHÓM ĐẦY ĐỦ (bao gồm "Tất cả" với id:"ALL")
       _joinedGroupsData = groups;
       // CẬP NHẬT NHÓM HIỂN THỊ MẶC ĐỊNH
@@ -69,6 +70,8 @@ class TrangChuState extends State<TrangChu> {
       }
       _filterPosts();
     });
+  
+    }
   }
 
   void _filterPosts() {

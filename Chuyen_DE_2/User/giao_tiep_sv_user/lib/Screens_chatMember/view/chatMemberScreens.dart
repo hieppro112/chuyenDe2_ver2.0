@@ -91,6 +91,8 @@ class _ChatMemberScreenState extends State<ChatMemberScreen> {
     // );
   }
 
+
+
   //get user tu id
   Future<Users?> fetchIdUs(String myId) {
     return userService.getUserForID(myId);
@@ -99,15 +101,6 @@ class _ChatMemberScreenState extends State<ChatMemberScreen> {
   //lay dl dua vao danh sach chat
   Future<void> FeatchDataListChats(String Uid) async {
     isload = true;
-    // final listChats = await messService.streamChatRooms(Uid);
-    // print("leng listChat: ${listChats.length}");
-    // if(mounted){
-    //   setState(() {
-    //   listMessage = listChats;
-    //   listMessageSearch = listMessage;
-    //   isload = false;
-    // });
-    // }
      await messService.streamChatRooms(Uid).listen((event) {
       
       print("listChat length: ${event.length}");
@@ -117,6 +110,7 @@ class _ChatMemberScreenState extends State<ChatMemberScreen> {
             return element.typeId==0;
           },).toList();
           listMessageSearch = listMessage;
+          
 
           listChatGroup = event.where((element) {
             return element.typeId==1;
@@ -127,6 +121,7 @@ class _ChatMemberScreenState extends State<ChatMemberScreen> {
       }
     },);
   }
+
 
   //custom header
   Widget createHeader(String myId) {
@@ -181,8 +176,8 @@ class _ChatMemberScreenState extends State<ChatMemberScreen> {
             itemBuilder: (context, index) {
               var value = listMessageSearch[index];
               return CustomChatMember(
+                myid: Uid,
                 userInfo: value,
-                id_chat: value.roomId,
                 content: value.lastMessage,
                 isnew: isnew,
                 ontap: (valueTap) {
