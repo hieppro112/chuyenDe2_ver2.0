@@ -4,19 +4,24 @@ import 'package:giao_tiep_sv_user/Data/message.dart';
 import 'package:giao_tiep_sv_user/Data/room_chat.dart';
 import 'package:giao_tiep_sv_user/FireBase_Service/UserServices.dart';
 import 'package:giao_tiep_sv_user/Screens_chatMember/FirebaseStore/MessageService.dart';
+import 'package:giao_tiep_sv_user/Screens_chatMember/data/dataRoomChat.dart';
 import 'package:giao_tiep_sv_user/Screens_chatMember/widget/customMessage.dart';
 import 'package:giao_tiep_sv_user/Screens_chatMember/widget/custom_sender_message.dart';
 import 'package:giao_tiep_sv_user/Screens_chatMember/widget/header_Message.dart';
 
 class ScreenMessage extends StatefulWidget {
   final String myId;
+  final String nameChat;
+  final String avtChat;
   final ChatRoom sender_to;
   final String idRoom;
+
+  final Dataroomchat dataroomchat;
   const ScreenMessage({
     super.key, 
     required this.sender_to,
     required this.idRoom,
-    required this.myId,
+    required this.myId, required this.nameChat, required this.avtChat, required this.dataroomchat,
   });
 
   @override
@@ -107,24 +112,16 @@ class ScreenMessageState extends State<ScreenMessage> {
   Widget create(String myId) {
     return SafeArea(
       child: CustomSenderMessage(
-        onSelectedImage: (value) {
+        onSelectedImage: (value) async{
           //gui hinh anh 
           if (value != null) {
-            // Message messImg = Message(
-            //   sender_avatar: "https://tse1.mm.bing.net/th/id/OIP.Kn_AdPUU9nsSfHQfFmHPDgHaH4?rs=1&pid=ImgDetMain&o=7&rm=3",
-            //   sender_name: "le van test",
-            //   id_message: "",
-            //   sender_id: myId,
-            //   content: "",
-            //   media_url: value.path,
-            //   isread: true,
-            //   create_at: DateTime.now(),
-            // );
-
-            //dua du lieu vao list
-            //   listMessage.add(messImg);
-            // _scrollToBottom();
-            // print(value.path);
+             await messageService.sendImageMessage(
+            roomId: widget.idRoom,            // id phòng chat
+            senderId: myId,                   // id người gửi
+            senderName: myus!.fullname, // tên người gửi
+            senderAvatar:myus!.url_avt,
+            imageFile: value,                 // ảnh đã chọn
+          );
           }
         },
 
@@ -133,13 +130,12 @@ class ScreenMessageState extends State<ScreenMessage> {
           //value tra ve doan tin nhan da nhap
           final newValue = await messageService.sendMessage(
             avt_sender: myus!.url_avt,
-              name_sender: myus!.fullname,
+            name_sender: myus!.fullname,
             roomId: widget.idRoom,
             senderID: widget.myId,
             content: value,
           );
           listMessage.add(newValue!);
-            print(newValue.sender_name);
             _scrollToBottom();
         },
       ),
@@ -170,6 +166,7 @@ class ScreenMessageState extends State<ScreenMessage> {
           itemBuilder: (context, index) {
             var value = lisstMessage[index];
             return Custommessage(
+              dateSend: value.create_at,
               forme_sender: (value.sender_id == widget.myId),
               nameSender:value.sender_name,//ten nguoi gui
               url_avt: value.sender_avatar,//avt nguoi gui
@@ -183,6 +180,6 @@ class ScreenMessageState extends State<ScreenMessage> {
   }
 
   Widget Header() {
-    return HeaderMessage(myInfo: widget.sender_to);
+    return HeaderMessage(myInfo: widget.sender_to,dataroomchat: widget.dataroomchat,);
   }
 }

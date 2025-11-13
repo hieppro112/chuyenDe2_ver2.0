@@ -5,6 +5,7 @@ import 'package:giao_tiep_sv_user/Data/room_chat.dart';
 import 'package:giao_tiep_sv_user/FireBase_Service/UserServices.dart';
 import 'package:giao_tiep_sv_user/Screen_member_group/widget/customSearch.dart';
 import 'package:giao_tiep_sv_user/Screens_chatMember/FirebaseStore/MessageService.dart';
+import 'package:giao_tiep_sv_user/Screens_chatMember/data/dataRoomChat.dart';
 import 'package:giao_tiep_sv_user/Screens_chatMember/view/CreateRoomChat.dart';
 import 'package:giao_tiep_sv_user/Screens_chatMember/view/chatMessage.dart';
 import 'package:giao_tiep_sv_user/Screens_chatMember/widget/custom_chat_member.dart';
@@ -23,8 +24,10 @@ class _ChatMemberScreenState extends State<ChatMemberScreen> {
   final MessageService messService = MessageService();
   final Userservices userService = Userservices();
   bool isload = false;
+  bool isloadListMessage = true;
+
   List<ChatRoom> listMessage = [];
-  List<ChatRoom> listChatGroup=[];
+  List<ChatRoom> listChatGroup = [];
   double width = 0;
   bool ischatGroup = false;
   List<ChatRoom> listMessageSearch = [];
@@ -75,23 +78,25 @@ class _ChatMemberScreenState extends State<ChatMemberScreen> {
       floatingActionButton: Container(
         decoration: BoxDecoration(
           color: Colors.white,
-          border: Border.all(
-            color: Colors.black,
-            width: 1
-          ),
-          borderRadius: BorderRadius.circular(30)
+          border: Border.all(color: Colors.black, width: 1),
+          borderRadius: BorderRadius.circular(30),
         ),
         padding: EdgeInsets.all(0),
-        child: IconButton(onPressed: () {
-          Navigator.push(context, MaterialPageRoute(builder: (context) => CreateRoomChat(myId: Uid,),));
-        }, icon: Icon(Icons.message,size: 24,)),
-      )
-
+        child: IconButton(
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => CreateRoomChat(myId: Uid),
+              ),
+            );
+          },
+          icon: Icon(Icons.message, size: 24),
+        ),
+      ),
     );
     // );
   }
-
-
 
   //get user tu id
   Future<Users?> fetchIdUs(String myId) {
@@ -101,27 +106,24 @@ class _ChatMemberScreenState extends State<ChatMemberScreen> {
   //lay dl dua vao danh sach chat
   Future<void> FeatchDataListChats(String Uid) async {
     isload = true;
-     await messService.streamChatRooms(Uid).listen((event) {
-      
+    await messService.streamChatRooms(Uid).listen((event) {
       print("listChat length: ${event.length}");
-      if(mounted){
+      if (mounted) {
         setState(() {
           listMessage = event.where((element) {
-            return element.typeId==0;
-          },).toList();
+            return element.typeId == 0;
+          }).toList();
           listMessageSearch = listMessage;
-          
 
           listChatGroup = event.where((element) {
-            return element.typeId==1;
-          },).toList();
+            return element.typeId == 1;
+          }).toList();
           listMessageSearch = listChatGroup;
-          isload =false;
+          isload = false;
         });
       }
-    },);
+    });
   }
-
 
   //custom header
   Widget createHeader(String myId) {
@@ -149,8 +151,7 @@ class _ChatMemberScreenState extends State<ChatMemberScreen> {
             onPressed: () => Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) =>
-                    ManHinhThongBao(currentUser: user), 
+                builder: (_) => ManHinhThongBao(currentUser: user),
               ),
             ),
             icon: const Icon(
@@ -166,7 +167,6 @@ class _ChatMemberScreenState extends State<ChatMemberScreen> {
 
   //create listview message
   Widget createListMessage() {
-    // String content = "xin chào bạn";
     bool isnew = true;
     return (isload == true)
         ? Center(child: CircularProgressIndicator())
@@ -176,11 +176,13 @@ class _ChatMemberScreenState extends State<ChatMemberScreen> {
             itemBuilder: (context, index) {
               var value = listMessageSearch[index];
               return CustomChatMember(
+                key: ValueKey(value.roomId),
                 myid: Uid,
                 userInfo: value,
                 content: value.lastMessage,
                 isnew: isnew,
                 ontap: (valueTap) {
+                  Dataroomchat valueOnTap = valueTap;
                   //value tap tra ve id phong da nhan vao
                   //chuyen sang man hinh nhan tin
                   Navigator.push(
@@ -189,8 +191,23 @@ class _ChatMemberScreenState extends State<ChatMemberScreen> {
                       builder: (context) {
                         return ScreenMessage(
                           myId: Uid.toString(),
-                          sender_to: ChatRoom(roomId: "",lastMessage: value.lastMessage,lastSender: value.lastSender,lastTime: DateTime.now(),users: [],name: value.name,createdAt: DateTime.now(),avatarUrl: value.avatarUrl,createdBy: value.createdBy,typeId: (value.users.length<2)?1:2),
-                          idRoom: valueTap,
+                          sender_to: ChatRoom(
+                            roomId: "",
+                            lastMessage: value.lastMessage,
+                            lastSender: value.lastSender,
+                            lastTime: DateTime.now(),
+                            users: [],
+                            name: value.name,
+                            createdAt: DateTime.now(),
+                            avatarUrl: value.avatarUrl,
+                            createdBy: value.createdBy,
+                            typeId: (value.users.length <= 2) ? 0 : 1,
+                            
+                          ),
+                          idRoom: valueOnTap.id,
+                          avtChat: valueOnTap.avt,
+                          nameChat: valueOnTap.name,
+                          dataroomchat: valueOnTap,
                         );
                       },
                     ),
@@ -203,6 +220,7 @@ class _ChatMemberScreenState extends State<ChatMemberScreen> {
           );
   }
 
+  //nut chon ban be va nhom
   Widget createButtonMessage() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -214,11 +232,7 @@ class _ChatMemberScreenState extends State<ChatMemberScreen> {
           ontap: () {
             setState(() {
               ischatGroup = false;
-               listMessageSearch = listMessage;
-              //.where((element) {
-              //   print("type group ${element.typeId}");
-              //   return element.typeId == 0;
-              // }).toList();
+              listMessageSearch = listMessage;
             });
           },
         ),
@@ -230,9 +244,6 @@ class _ChatMemberScreenState extends State<ChatMemberScreen> {
             setState(() {
               ischatGroup = true;
               listMessageSearch = listChatGroup;
-              // listMessage.where((element) {
-              //   return element.typeId != 0;
-              // }).toList();
             });
           },
         ),
@@ -240,6 +251,7 @@ class _ChatMemberScreenState extends State<ChatMemberScreen> {
     );
   }
 
+  //tim kiem cuoc tro chuyen
   Widget createSearchMessage() {
     return Customsearch(
       onTap: (value) {
