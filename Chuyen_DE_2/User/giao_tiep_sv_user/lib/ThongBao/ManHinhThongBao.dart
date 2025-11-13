@@ -7,11 +7,28 @@ import 'package:giao_tiep_sv_user/Widget/headerWidget.dart';
 import 'TieuDe.dart';
 import 'OThongBao.dart';
 
-class ManHinhThongBao extends StatelessWidget {
+class ManHinhThongBao extends StatefulWidget {
   final Users currentUser;
   final Notifycationfirebase notifyService = Notifycationfirebase();
 
   ManHinhThongBao({required this.currentUser, super.key});
+
+  @override
+  State<ManHinhThongBao> createState() => _ManHinhThongBaoState();
+}
+
+class _ManHinhThongBaoState extends State<ManHinhThongBao> {
+  void _handleNotificationTap(Notifycation tb) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ChiTietThongBao(
+          tieuDe: tb.title,
+          noiDung: tb.content,
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -24,9 +41,8 @@ class ManHinhThongBao extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           child: Column(
             children: [
-              // Header với nút back
               Headerwidget(
-                myUs: currentUser,
+                myUs: widget.currentUser,
                 width: widthScreen,
                 chucnang: GestureDetector(
                   onTap: () => Navigator.pop(context),
@@ -41,17 +57,14 @@ class ManHinhThongBao extends StatelessWidget {
               const TieuDeThongBao(),
               const SizedBox(height: 20),
 
-              // Danh sách thông báo
               Expanded(
                 child: StreamBuilder<List<Notifycation>>(
-                  stream: notifyService.getAllNotifycation(),
+                  stream: widget.notifyService.getAllNotifycation(),
                   builder: (context, snapshot) {
-                    // 1. Đang tải
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return const Center(child: CircularProgressIndicator());
                     }
 
-                    // 2. Lỗi kết nối
                     if (snapshot.hasError) {
                       return Center(
                         child: Text(
@@ -61,40 +74,30 @@ class ManHinhThongBao extends StatelessWidget {
                       );
                     }
 
-                    // 3. Không có dữ liệu
                     if (!snapshot.hasData || snapshot.data!.isEmpty) {
                       return const Center(child: Text("Không có thông báo nào"));
                     }
 
                     final allNotify = snapshot.data!;
-                    print("Tổng số thông báo từ Firestore: ${allNotify.length}");
-                    print("User ID: ${currentUser.id_user}, Faculty ID: ${currentUser.faculty_id}");
+                    final userId = widget.currentUser.id_user;
+                    final facultyId = widget.currentUser.faculty_id;
 
-                    // 4. Lọc thông báo dành cho user hiện tại
+                    // Lọc thông báo cho user hiện tại
                     final notifyForUser = allNotify.where((tb) {
-                      final recipientKeys = tb.user_recipient_ID.keys.toSet();
-
-                      final matchUser = recipientKeys.contains(currentUser.id_user);
-                      final matchFaculty = currentUser.faculty_id != null &&
-                          recipientKeys.contains(currentUser.faculty_id);
-
-                      // Debug từng thông báo
-                      print(
-                        "TB: '${tb.title}' → Có trong user: $matchUser | Có trong khoa: $matchFaculty "
-                        "| Recipients: ${recipientKeys.join(', ')}",
-                      );
-
+                      final recipients = tb.user_recipient_ID.keys.toSet();
+                      final matchUser = recipients.contains(userId);
+                      final matchFaculty = facultyId != null && recipients.contains(facultyId);
                       return matchUser || matchFaculty;
-                    }).toList();
+                    }).toList()
+                      // Sort mới nhất lên đầu dựa theo id Firestore
+                      ..sort((a, b) => b.id.compareTo(a.id));
 
-                    // 5. Không có thông báo phù hợp
                     if (notifyForUser.isEmpty) {
                       return const Center(
                         child: Text("Không có thông báo dành cho bạn"),
                       );
                     }
 
-                    // 6. Hiển thị danh sách
                     return ListView.builder(
                       padding: const EdgeInsets.only(top: 8),
                       itemCount: notifyForUser.length,
@@ -105,18 +108,7 @@ class ManHinhThongBao extends StatelessWidget {
                           child: OThongBao(
                             tieuDe: tb.title,
                             noiDung: tb.content,
-                            onTap : () {
-                              // Có thể mở chi tiết thông báo
-                             Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => ChiTietThongBao(
-                                    tieuDe: tb.title,
-                                    noiDung: tb.content,
-                                  ),
-                                ),
-                              );
-                            },
+                            onTap: () => _handleNotificationTap(tb),
                           ),
                         );
                       },
