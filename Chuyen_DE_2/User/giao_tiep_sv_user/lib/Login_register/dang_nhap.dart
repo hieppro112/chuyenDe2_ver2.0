@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:giao_tiep_sv_user/FireBase_Service/Profile_Service.dart';
+import 'package:giao_tiep_sv_user/FireBase_Service/ProfileService.dart';
 import 'dang_ki.dart';
 import 'quen_mk.dart';
 import 'package:giao_tiep_sv_user/Home_screen/home.dart';
@@ -135,7 +135,8 @@ class _DangNhapState extends State<DangNhap> {
       if (e.code == 'user-not-found') msg = "Email chưa đăng ký!";
       if (e.code == 'wrong-password') msg = "Mật khẩu sai!";
       if (e.code == 'too-many-requests') msg = "Thử lại sau vài phút!";
-      if (e.code == 'network-request-failed') msg = "Lỗi mạng! Kiểm tra kết nối";
+      if (e.code == 'network-request-failed')
+        msg = "Lỗi mạng! Kiểm tra kết nối";
 
       _showOverlayMessage(context, msg);
     } on FirebaseException catch (e) {
@@ -172,7 +173,11 @@ class _DangNhapState extends State<DangNhap> {
                 color: isError ? Colors.red.shade600 : Colors.green.shade600,
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: const [
-                  BoxShadow(color: Colors.black26, blurRadius: 10, offset: Offset(0, 4)),
+                  BoxShadow(
+                    color: Colors.black26,
+                    blurRadius: 10,
+                    offset: Offset(0, 4),
+                  ),
                 ],
               ),
               child: Center(
@@ -202,7 +207,10 @@ class _DangNhapState extends State<DangNhap> {
             child: SafeArea(
               child: Center(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 16,
+                  ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -289,12 +297,16 @@ class _DangNhapState extends State<DangNhap> {
               _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
               color: Colors.black54,
             ),
-            onPressed: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
+            onPressed: () =>
+                setState(() => _isPasswordVisible = !_isPasswordVisible),
           ),
           hintText: 'Mật khẩu',
           hintStyle: const TextStyle(color: Colors.black54),
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+          contentPadding: const EdgeInsets.symmetric(
+            vertical: 16,
+            horizontal: 20,
+          ),
         ),
       ),
     );
@@ -309,7 +321,10 @@ class _DangNhapState extends State<DangNhap> {
             context,
             MaterialPageRoute(builder: (_) => const QuenMatKhau()),
           ),
-          child: const Text("Quên mật khẩu?", style: TextStyle(color: Colors.red)),
+          child: const Text(
+            "Quên mật khẩu?",
+            style: TextStyle(color: Colors.red),
+          ),
         ),
       ],
     );
@@ -323,7 +338,9 @@ class _DangNhapState extends State<DangNhap> {
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFF1F65DE),
           foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(25),
+          ),
         ),
         onPressed: () => _dangNhap(context),
         child: const Text(
@@ -338,7 +355,10 @@ class _DangNhapState extends State<DangNhap> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const Text("Bạn chưa có tài khoản? ", style: TextStyle(color: Colors.black)),
+        const Text(
+          "Bạn chưa có tài khoản? ",
+          style: TextStyle(color: Colors.black),
+        ),
         GestureDetector(
           onTap: () => Navigator.pushReplacement(
             context,
@@ -346,7 +366,10 @@ class _DangNhapState extends State<DangNhap> {
           ),
           child: const Text(
             "Đăng ký ngay",
-            style: TextStyle(color: Color(0xFF1F65DE), fontWeight: FontWeight.bold),
+            style: TextStyle(
+              color: Color(0xFF1F65DE),
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
       ],

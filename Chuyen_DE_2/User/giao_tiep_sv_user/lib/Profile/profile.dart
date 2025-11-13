@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:giao_tiep_sv_user/FireBase_Service/Profile_Service.dart';
+import 'package:giao_tiep_sv_user/FireBase_Service/ProfileService.dart';
 import 'package:giao_tiep_sv_user/Login_register/dang_nhap.dart';
 import 'package:giao_tiep_sv_user/Profile/Widget/avatarWidget.dart';
 import 'package:giao_tiep_sv_user/Profile/editProflie/edit_profile_screen.dart';

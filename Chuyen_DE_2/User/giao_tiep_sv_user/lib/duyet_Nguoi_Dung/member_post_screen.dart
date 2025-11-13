@@ -1,4 +1,6 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:giao_tiep_sv_user/FireBase_Service/PostApprovalService.dart';
 import 'package:giao_tiep_sv_user/duyet_Nguoi_Dung/models/MemberApprovalModel.dart';
 import 'package:giao_tiep_sv_user/duyet_Nguoi_Dung/models/User_post_approval_model.dart';
 import 'package:giao_tiep_sv_user/duyet_Nguoi_Dung/widgets/member_approval_widget.dart';
@@ -15,42 +17,19 @@ class MemberPostScreen extends StatefulWidget {
 class _MemberPostScreenState extends State<MemberPostScreen> {
   int _selectedTabIndex = 0;
   String _postFilter = 'Tất cả';
-  String _memberFilter = 'Tất cả';
+  String _memberFilter = 'Tất cả'; // Thêm biến này
 
-  // Dummy data
-  final List<UserPostApprovalModel> _posts = [
-    UserPostApprovalModel(
-      id: '1',
-      authorName: 'Cao Quang Khánh',
-      content: 'Ngày đầu tiên đi học tại TDĐ',
-      image:
-          'https://occ-0-8407-2218.1.nflxso.net/dnm/api/v6/E8vDc_W8CLv7-yMQu8KMEC7Rrr8/AAAABZTsOmV9hdevbqR_nArY3CdINQlYz00L4zdYonWDx-zpqdajGBO5KLt6kazmy6DyFzDjQwp-GyaHQ-sWHOD0qc2ePVBZh47cPAdw.jpg',
-      date: DateTime.now(),
-      status: 'pending',
-      reviewType: 'post',
-    ),
-    UserPostApprovalModel(
-      id: '2',
-      authorName: 'Cao Quang Khanh',
-      content: 'Nội dung bài viết khác',
-      image:
-          'https://cafefcdn.com/203337114487263232/2025/1/21/1722591443-conan-2-7381-width645height387-17373707771021179015512-1737424828485-1737424828574151073796.jpg',
-      date: DateTime.now(),
-      status: 'pending',
-      reviewType: 'post',
-    ),
-    UserPostApprovalModel(
-      id: '3',
-      authorName: 'Nguyễn Văn A',
-      content: 'Bài viết đã được duyệt',
-      image:
-          'https://cafefcdn.com/203337114487263232/2025/1/21/1722591443-conan-2-7381-width645height387-17373707771021179015512-1737424828485-1737424828574151073796.jpg',
-      date: DateTime.now(),
-      status: 'approved',
-      reviewType: 'post',
-    ),
-  ];
+  final PostApprovalService _approvalService = PostApprovalService();
 
+  // Phân trang
+  final int _limit = 10;
+  DocumentSnapshot? _lastDocument;
+  bool _isLoading = false;
+  bool _hasMore = true;
+
+  List<UserPostApprovalModel> _posts = [];
+
+  // === DUMMY DATA CHO THÀNH VIÊN (GIỮ NGUYÊN) ===
   final List<MemberApprovalModel> _users = [
     MemberApprovalModel(
       id: '1',
@@ -78,7 +57,48 @@ class _MemberPostScreenState extends State<MemberPostScreen> {
     ),
   ];
 
-  // Lọc bài viết theo trạng thái
+  @override
+  void initState() {
+    super.initState();
+    _loadPosts(); // Chỉ load bài viết từ Firebase
+  }
+
+  // === LOAD BÀI VIẾT TỪ FIREBASE ===
+  Future<void> _loadPosts({bool isRefresh = false}) async {
+    if (_isLoading || (!_hasMore && !isRefresh)) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      final snapshot = await _approvalService
+          .getPendingPosts(
+            limit: _limit,
+            startAfter: isRefresh ? null : _lastDocument,
+          )
+          .first;
+
+      final newPosts = <UserPostApprovalModel>[];
+      for (var doc in snapshot.docs) {
+        final post = await _approvalService.docToPostModel(doc);
+        newPosts.add(post);
+      }
+
+      if (isRefresh) _posts.clear();
+
+      setState(() {
+        _posts.addAll(newPosts);
+        _lastDocument = snapshot.docs.isNotEmpty ? snapshot.docs.last : null;
+        _hasMore = snapshot.docs.length == _limit;
+      });
+    } catch (e) {
+      print("Lỗi load bài viết: $e");
+      _showSnackBar("Lỗi tải dữ liệu");
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  // === LỌC BÀI VIẾT ===
   List<UserPostApprovalModel> get _filteredPosts {
     if (_postFilter == 'Tất cả') return _posts;
     return _posts.where((post) {
@@ -95,7 +115,7 @@ class _MemberPostScreenState extends State<MemberPostScreen> {
     }).toList();
   }
 
-  // Lọc thành viên theo trạng thái
+  // === LỌC THÀNH VIÊN (DUMMY) ===
   List<MemberApprovalModel> get _filteredUsers {
     if (_memberFilter == 'Tất cả') return _users;
     return _users.where((user) {
@@ -112,7 +132,7 @@ class _MemberPostScreenState extends State<MemberPostScreen> {
     }).toList();
   }
 
-  // widget lọc bài viết
+  // === BỘ LỌC ===
   Widget _buildFilterSection() {
     final currentFilter = _selectedTabIndex == 0 ? _postFilter : _memberFilter;
     final filterOptions = ['Tất cả', 'Chờ duyệt', 'Đã duyệt', 'Từ chối'];
@@ -148,7 +168,6 @@ class _MemberPostScreenState extends State<MemberPostScreen> {
                   value: currentFilter,
                   isExpanded: true,
                   icon: Icon(Icons.keyboard_arrow_down, color: Colors.grey),
-                  elevation: 2,
                   style: TextStyle(
                     fontSize: 14,
                     color: Colors.black87,
@@ -164,12 +183,9 @@ class _MemberPostScreenState extends State<MemberPostScreen> {
                       }
                     });
                   },
-                  items: filterOptions.map<DropdownMenuItem<String>>((
-                    String value,
-                  ) {
+                  items: filterOptions.map((value) {
                     IconData icon;
                     Color color;
-
                     switch (value) {
                       case 'Chờ duyệt':
                         icon = Icons.access_time;
@@ -187,8 +203,7 @@ class _MemberPostScreenState extends State<MemberPostScreen> {
                         icon = Icons.all_inclusive_rounded;
                         color = Colors.blue;
                     }
-
-                    return DropdownMenuItem<String>(
+                    return DropdownMenuItem(
                       value: value,
                       child: Row(
                         children: [
@@ -208,24 +223,37 @@ class _MemberPostScreenState extends State<MemberPostScreen> {
     );
   }
 
+  // === DANH SÁCH BÀI VIẾT ===
   Widget _buildPostsList() {
-    if (_filteredPosts.isEmpty) {
-      return Center(child: Text('Không có bài viết nào'));
+    if (_posts.isEmpty && !_isLoading) {
+      return Center(child: Text('Không có bài viết chờ duyệt'));
     }
 
-    return ListView.builder(
-      itemCount: _filteredPosts.length,
-      itemBuilder: (context, index) {
-        final post = _filteredPosts[index];
-        return UserPostApproval(
-          post: post,
-          onApprove: () => _duyetBaiViet(post),
-          onReject: () => _tuChoiBaiviet(post),
-        );
-      },
+    return RefreshIndicator(
+      onRefresh: () => _loadPosts(isRefresh: true),
+      child: ListView.builder(
+        itemCount: _filteredPosts.length + (_hasMore ? 1 : 0),
+        itemBuilder: (context, index) {
+          if (index == _filteredPosts.length) {
+            _loadPosts();
+            return Padding(
+              padding: EdgeInsets.all(16),
+              child: Center(child: CircularProgressIndicator()),
+            );
+          }
+
+          final post = _filteredPosts[index];
+          return UserPostApproval(
+            post: post,
+            onApprove: () => _approvePost(post),
+            onReject: () => _rejectPost(post),
+          );
+        },
+      ),
     );
   }
 
+  // === DANH SÁCH THÀNH VIÊN (DUMMY) ===
   Widget _buildMemberList() {
     if (_filteredUsers.isEmpty) {
       return Center(child: Text('Không có thành viên nào'));
@@ -244,51 +272,53 @@ class _MemberPostScreenState extends State<MemberPostScreen> {
     );
   }
 
-  void _duyetBaiViet(UserPostApprovalModel post) {
-    _showConfirmationDialog(
-      title: 'Duyệt bài viết',
-      content: 'Bạn có chắc muốn duyệt bài viết này?',
-      onConfirm: () {
-        setState(() {
-          // CÁCH 2: Tìm và cập nhật trực tiếp
-          final index = _posts.indexWhere((p) => p.id == post.id);
-          if (index != -1) {
-            _posts[index].status = 'approved';
-          }
-        });
-        _showSnackBar('Đã duyệt bài viết của ${post.authorName}');
-      },
+  // === DUYỆT BÀI VIẾT (CẬP NHẬT FIRESTORE) ===
+  Future<void> _approvePost(UserPostApprovalModel post) async {
+    final confirm = await _showConfirm(
+      'Duyệt bài viết',
+      'Bạn có chắc muốn duyệt?',
     );
+    if (!confirm) return;
+
+    try {
+      await _approvalService.approvePost(post.id);
+      setState(() {
+        _posts.removeWhere((p) => p.id == post.id);
+      });
+      _showSnackBar('Đã duyệt bài viết');
+    } catch (e) {
+      _showSnackBar('Lỗi duyệt bài viết');
+    }
   }
 
-  void _tuChoiBaiviet(UserPostApprovalModel post) {
-    _showConfirmationDialog(
-      title: 'Từ chối bài viết',
-      content: 'Bạn có chắc muốn từ chối bài viết này?',
-      onConfirm: () {
-        setState(() {
-          // CÁCH 2: Tìm và cập nhật trực tiếp
-          final index = _posts.indexWhere((p) => p.id == post.id);
-          if (index != -1) {
-            _posts[index].status = 'rejected';
-          }
-        });
-        _showSnackBar('Đã từ chối bài viết của ${post.authorName}');
-      },
+  // === TỪ CHỐI BÀI VIẾT ===
+  Future<void> _rejectPost(UserPostApprovalModel post) async {
+    final confirm = await _showConfirm(
+      'Từ chối bài viết',
+      'Bạn có chắc muốn từ chối?',
     );
+    if (!confirm) return;
+
+    try {
+      await _approvalService.rejectPost(post.id);
+      setState(() {
+        _posts.removeWhere((p) => p.id == post.id);
+      });
+      _showSnackBar('Đã từ chối bài viết');
+    } catch (e) {
+      _showSnackBar('Lỗi từ chối bài viết');
+    }
   }
 
+  // === DUYỆT/TỪ CHỐI THÀNH VIÊN (DUMMY - GIỮ NGUYÊN) ===
   void _duyetThanhVien(MemberApprovalModel user) {
     _showConfirmationDialog(
       title: 'Duyệt thành viên',
       content: 'Bạn có chắc muốn duyệt thành viên này?',
       onConfirm: () {
         setState(() {
-          // CÁCH 2: Tìm và cập nhật trực tiếp
           final index = _users.indexWhere((u) => u.id == user.id);
-          if (index != -1) {
-            _users[index].reviewStatus = 'approved';
-          }
+          if (index != -1) _users[index].reviewStatus = 'approved';
         });
         _showSnackBar('Đã duyệt thành viên ${user.fullName}');
       },
@@ -301,15 +331,34 @@ class _MemberPostScreenState extends State<MemberPostScreen> {
       content: 'Bạn có chắc muốn từ chối thành viên này?',
       onConfirm: () {
         setState(() {
-          // Tìm và cập nhật trực tiếp
           final index = _users.indexWhere((u) => u.id == user.id);
-          if (index != -1) {
-            _users[index].reviewStatus = 'rejected';
-          }
+          if (index != -1) _users[index].reviewStatus = 'rejected';
         });
         _showSnackBar('Đã từ chối thành viên ${user.fullName}');
       },
     );
+  }
+
+  // === DIALOG XÁC NHẬN ===
+  Future<bool> _showConfirm(String title, String content) async {
+    return await showDialog(
+          context: context,
+          builder: (_) => AlertDialog(
+            title: Text(title),
+            content: Text(content),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: Text('Hủy'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: Text('Xác nhận', style: TextStyle(color: Colors.red)),
+              ),
+            ],
+          ),
+        ) ??
+        false;
   }
 
   void _showConfirmationDialog({
@@ -319,35 +368,29 @@ class _MemberPostScreenState extends State<MemberPostScreen> {
   }) {
     showDialog(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text(title),
-          content: Text(content),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text('Hủy', style: TextStyle(color: Colors.grey)),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                onConfirm();
-              },
-              child: Text('Xác nhận', style: TextStyle(color: Colors.red)),
-            ),
-          ],
-        );
-      },
+      builder: (_) => AlertDialog(
+        title: Text(title),
+        content: Text(content),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Hủy', style: TextStyle(color: Colors.grey)),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              onConfirm();
+            },
+            child: Text('Xác nhận', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
     );
   }
 
   void _showSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        duration: Duration(seconds: 2),
-        action: SnackBarAction(label: 'OK', onPressed: () {}),
-      ),
+      SnackBar(content: Text(message), duration: Duration(seconds: 2)),
     );
   }
 
@@ -362,18 +405,11 @@ class _MemberPostScreenState extends State<MemberPostScreen> {
       ),
       body: Column(
         children: [
-          // Tabs
           Tabs_Member_Approval_Widget(
             selectedIndex: _selectedTabIndex,
-            onTabSelected: (index) {
-              setState(() {
-                _selectedTabIndex = index;
-              });
-            },
+            onTabSelected: (index) => setState(() => _selectedTabIndex = index),
           ),
-          // Bộ lọc
           _buildFilterSection(),
-          // Content
           Expanded(
             child: _selectedTabIndex == 0
                 ? _buildPostsList()
