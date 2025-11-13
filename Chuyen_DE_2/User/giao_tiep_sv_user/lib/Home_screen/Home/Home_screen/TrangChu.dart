@@ -39,8 +39,9 @@ class TrangChuState extends State<TrangChu> {
   );
 
   bool _isOpen = false;
-  String currentGroupId = "ALL";
-  String currentGroupName = "Tất cả";
+  // Thay đổi mặc định sang giá trị trống, sẽ được đặt lại trong _fetchJoinedGroupNames
+  String currentGroupId = "";
+  String currentGroupName = "Loading...";
 
   List<Map<String, dynamic>> allPosts = [];
   List<Map<String, dynamic>> filteredPosts = [];
@@ -78,46 +79,53 @@ class TrangChuState extends State<TrangChu> {
       // 	Lưu DATA NHÓM ĐẦY ĐỦ (bao gồm "Tất cả" với id:"ALL")
 
       _joinedGroupsData = groups;
-      if (currentGroupId == "ALL" && groups.length > 1) {
-        final defaultGroup = groups[1];
+
+      // LOGIC MỚI: Chọn nhóm đầu tiên mà người dùng tham gia (Index 1) làm mặc định
+      // Nhóm "ALL" (Index 0) sẽ bị bỏ qua
+      if (currentGroupId.isEmpty && groups.length > 1) {
+        final defaultGroup = groups[1]; // Lấy nhóm đầu tiên sau "Tất cả"
         currentGroupId = defaultGroup["id"] as String;
         currentGroupName = defaultGroup["name"] as String;
+      } else if (currentGroupId.isEmpty && groups.length == 1) {
+        // Trường hợp chỉ có nhóm "Tất cả" (groups[0]), nhưng ta sẽ không hiển thị nó
+        currentGroupId = "NO_GROUP_SELECTED";
+        currentGroupName = "Hãy tham gia nhóm!";
+      } else if (currentGroupId.isEmpty && groups.isEmpty) {
+        currentGroupId = "NO_GROUP_SELECTED";
+        currentGroupName = "Hãy tham gia nhóm!";
       }
+
       _filterPosts();
     });
   
     }
   }
 
+  // Chỉnh sửa _filterPosts để loại bỏ case "ALL"
   void _filterPosts() {
-    if (currentGroupId == "ALL") {
-      filteredPosts = allPosts.map((post) {
-        return {
-          ...post,
-          "group_name":
-              _joinedGroupsData.firstWhere(
-                (g) => g['id'] == post['group_id'],
-                orElse: () => {"name": "Không rõ"},
-              )['name'] ??
-              "Không rõ",
-        };
-      }).toList();
-    } else {
-      filteredPosts = allPosts
-          .where((post) => post["group_id"] == currentGroupId)
-          .map((post) {
-            return {
-              ...post,
-              "group_name":
-                  _joinedGroupsData.firstWhere(
-                    (g) => g['id'] == post['group_id'],
-                    orElse: () => {"name": "Không rõ"},
-                  )['name'] ??
-                  "Không rõ",
-            };
-          })
-          .toList();
+    if (currentGroupId.isEmpty ||
+        currentGroupId == "ALL" ||
+        currentGroupId == "NO_GROUP_SELECTED") {
+      // Nếu ID rỗng hoặc là "ALL", không hiển thị bài viết
+      filteredPosts = [];
+      return;
     }
+
+    // Chỉ lọc bài viết theo group_id hiện tại
+    filteredPosts = allPosts
+        .where((post) => post["group_id"] == currentGroupId)
+        .map((post) {
+          return {
+            ...post,
+            "group_name":
+                _joinedGroupsData.firstWhere(
+                  (g) => g['id'] == post['group_id'],
+                  orElse: () => {"name": "Không rõ"},
+                )['name'] ??
+                "Không rõ",
+          };
+        })
+        .toList();
   }
 
   void _changeGroup(String newGroupId, String newGroupName) {
@@ -169,7 +177,7 @@ class TrangChuState extends State<TrangChu> {
   // ---------------- HÀM HỖ TRỢ ----------------
 
   String _getGroupNameFromId(String groupId) {
-    if (groupId == "ALL") return "Tất cả";
+    if (groupId == "ALL" || groupId == "NO_GROUP_SELECTED") return "Tất cả";
     final groupData = _joinedGroupsData.firstWhere(
       (group) => group['id'] == groupId,
       orElse: () => {"name": "Không rõ"},
@@ -182,6 +190,11 @@ class TrangChuState extends State<TrangChu> {
       (group) => group['id'] == currentGroupId,
       orElse: () => {"avatar_url": null},
     );
+    // Thay đổi ảnh mặc định nếu không có nhóm hoặc nhóm đang được tải
+    if (currentGroupId == "NO_GROUP_SELECTED" ||
+        currentGroupData['avatar_url'] == null) {
+      return "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTq0u-w59YWMH2YXama4Hu6dNpdzg8Ra2ZfjQ&s";
+    }
     return currentGroupData['avatar_url'] ??
         "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTq0u-w59YWMH2YXama4Hu6dNpdzg8Ra2ZfjQ&s";
   }
@@ -191,7 +204,7 @@ class TrangChuState extends State<TrangChu> {
   void changeGroup(String groupName) {
     final group = _joinedGroupsData.firstWhere(
       (g) => g['name'] == groupName,
-      orElse: () => {"id": "ALL", "name": "Tất cả"},
+      orElse: () => {"id": "NO_GROUP_SELECTED", "name": "Hãy tham gia nhóm!"},
     );
     _changeGroup(group["id"] as String, group["name"] as String);
   }
@@ -325,7 +338,9 @@ class TrangChuState extends State<TrangChu> {
                             ),
                           ],
                         ),
-                        if (currentGroupId != "ALL")
+                        // Bỏ điều kiện if (currentGroupId != "ALL") vì currentGroupId giờ luôn là ID nhóm cụ thể
+                        // (trừ khi nó là NO_GROUP_SELECTED)
+                        if (currentGroupId != "NO_GROUP_SELECTED")
                           IconButton(
                             icon: const Icon(
                               Icons.info_outline,

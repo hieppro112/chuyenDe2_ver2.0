@@ -160,8 +160,23 @@ class _LeftPanelState extends State<LeftPanel> {
               leading: const Icon(Icons.home),
               title: const Text("Trang chủ"),
               onTap: () {
-                // 1. Luôn gửi tín hiệu chọn "Tất cả" về Trang Chủ (Home)
-                widget.onGroupSelected("ALL", "Tất cả");
+                // LOGIC ĐÃ ĐIỀU CHỈNH: Không còn chọn "ALL" cho Trang Chủ
+
+                if (_groups.isNotEmpty) {
+                  // Chọn nhóm đầu tiên trong danh sách (đã được lọc bỏ "ALL")
+                  final defaultGroup = _groups[0];
+                  widget.onGroupSelected(
+                    defaultGroup["id"],
+                    defaultGroup["name"],
+                  );
+                } else {
+                  // Nếu không có nhóm nào, gửi tín hiệu không có nhóm để Trang Chủ hiển thị thông báo
+                  widget.onGroupSelected(
+                    "NO_GROUP_SELECTED",
+                    "Hãy tham gia nhóm!",
+                  );
+                }
+
                 widget.onClose();
 
                 // 2. Chỉ chuyển hướng nếu đang ở màn hình khác
