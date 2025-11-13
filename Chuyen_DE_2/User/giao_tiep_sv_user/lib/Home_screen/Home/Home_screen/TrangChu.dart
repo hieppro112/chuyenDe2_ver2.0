@@ -178,7 +178,7 @@ class TrangChuState extends State<TrangChu> {
       orElse: () => {"avatar_url": null},
     );
     return currentGroupData['avatar_url'] ??
-        "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSTaXZWZglx63-gMfBzslxSUQdqqvCp0QJiOA&s";
+        "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTq0u-w59YWMH2YXama4Hu6dNpdzg8Ra2ZfjQ&s";
   }
 
   String get currentGroup => currentGroupName;
