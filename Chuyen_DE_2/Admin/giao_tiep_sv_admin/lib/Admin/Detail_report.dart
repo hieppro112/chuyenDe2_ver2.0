@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../data/ViolationReport.dart';
+import 'package:giao_tiep_sv_admin/data/violation_report.dart';
 
 class DetailScreen extends StatelessWidget {
   final ViolationReport report;
@@ -9,7 +9,6 @@ class DetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
@@ -42,27 +41,21 @@ class DetailScreen extends StatelessWidget {
             ),
             const SizedBox(height: 15),
 
-            // 2. TÊN & ID
+            // 2. TÊN (Title) & ID người nhận
             Text(
-              report.name,
+              report.title,
               style: const TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
                 height: 1.2,
               ),
             ),
-            Text(
-              report.id,
-              style: const TextStyle(fontSize: 16, color: Colors.grey),
-            ),
             const SizedBox(height: 30),
 
-            // 3. THÔNG TIN CÁ NHÂN
             _buildInfoRow('Khoa:', report.department),
-            _buildInfoRow('Email:', report.email),
+
             const SizedBox(height: 20),
 
-            // 4. CHI TIẾT BÁO CÁO (Container màu hồng)
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(15),
@@ -74,15 +67,16 @@ class DetailScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Bị báo cáo lúc: ${report.reportTime}',
+                    'Document ID: ${report.docId}',
                     style: const TextStyle(
                       fontWeight: FontWeight.w600,
-                      color: Colors.redAccent,
+                      color: Colors.purple,
                     ),
                   ),
                   const SizedBox(height: 5),
                   Text(
-                    'Lý do : ${report.reason}',
+                    // Hiển thị Lý do (content)
+                    'Lý do : ${report.content}',
                     style: const TextStyle(fontSize: 16),
                   ),
                 ],
@@ -90,7 +84,6 @@ class DetailScreen extends StatelessWidget {
             ),
             const SizedBox(height: 40),
 
-            // 5. NÚT HÀNH ĐỘNG
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: <Widget>[
@@ -101,7 +94,7 @@ class DetailScreen extends StatelessWidget {
                     icon: Icons.warning_amber_rounded,
                     color: Colors.amber,
                     onPressed: () {
-                      _showActionDialog(context, 'Cảnh báo', report.name);
+                      _showActionDialog(context, 'Cảnh báo', report.title);
                     },
                   ),
                 ),
@@ -113,7 +106,11 @@ class DetailScreen extends StatelessWidget {
                     icon: Icons.close,
                     color: Colors.red.shade400,
                     onPressed: () {
-                      _showActionDialog(context, 'Khóa tài khoản', report.name);
+                      _showActionDialog(
+                        context,
+                        'Khóa tài khoản',
+                        report.title,
+                      );
                     },
                   ),
                 ),
@@ -127,6 +124,7 @@ class DetailScreen extends StatelessWidget {
 
   // Hàm tiện ích tạo hàng thông tin
   Widget _buildInfoRow(String title, String value) {
+    // ... (Giữ nguyên)
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 5.0),
       child: Row(
@@ -156,6 +154,7 @@ class DetailScreen extends StatelessWidget {
     required Color color,
     required VoidCallback onPressed,
   }) {
+    // ... (Giữ nguyên)
     return ElevatedButton.icon(
       onPressed: onPressed,
       icon: Icon(icon, color: Colors.white),
@@ -177,6 +176,7 @@ class DetailScreen extends StatelessWidget {
 
   // Hàm tiện ích hiển thị Dialog xác nhận
   void _showActionDialog(BuildContext context, String action, String userName) {
+    // ... (Giữ nguyên)
     showDialog(
       context: context,
       builder: (BuildContext context) {

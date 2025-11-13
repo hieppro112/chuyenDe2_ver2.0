@@ -1,6 +1,8 @@
+// lib/screens/report_screen.dart
 import 'package:flutter/material.dart';
-import '../data/ViolationReport.dart';
-import 'Detail_report.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:giao_tiep_sv_admin/data/violation_report.dart';
+import 'detail_report.dart';
 
 class ReportScreen extends StatelessWidget {
   const ReportScreen({super.key});
@@ -14,9 +16,7 @@ class ReportScreen extends StatelessWidget {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () {
-            Navigator.pop(context);
-          },
+          onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
           'Báo cáo vi phạm',
@@ -26,13 +26,11 @@ class ReportScreen extends StatelessWidget {
             fontSize: 24,
           ),
         ),
-        centerTitle: false,
       ),
       body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
+        children: [
           const Padding(
-            padding: EdgeInsets.fromLTRB(20, 10, 20, 10),
+            padding: EdgeInsets.all(16),
             child: Text(
               'Các tài khoản bị báo cáo',
               style: TextStyle(
@@ -42,14 +40,43 @@ class ReportScreen extends StatelessWidget {
               ),
             ),
           ),
-
-          // Danh sách các báo cáo
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              itemCount: mockReports.length,
-              itemBuilder: (context, index) {
-                return ReportItem(report: mockReports[index]);
+            child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+              // SỬA TÊN COLLECTION: Notifycations (thiếu i)
+              stream: FirebaseFirestore.instance
+                  .collection('Notifycations')
+                  .where('type_notify', isEqualTo: 1)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                print('State: ${snapshot.connectionState}');
+                print('Has error: ${snapshot.hasError}');
+                print('Has data: ${snapshot.hasData}');
+                print('Docs count: ${snapshot.data?.docs.length ?? 0}');
+
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                if (snapshot.hasError) {
+                  return Center(child: Text('Lỗi: ${snapshot.error}'));
+                }
+
+                final docs = snapshot.data?.docs ?? [];
+                if (docs.isEmpty) {
+                  return const Center(child: Text('Không có báo cáo nào.'));
+                }
+
+                final reports = docs.map((doc) {
+                  print('Document ID: ${doc.id}');
+                  print('Data: ${doc.data()}');
+                  return ViolationReport.fromFirestore(doc);
+                }).toList();
+
+                return ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: reports.length,
+                  itemBuilder: (context, i) => ReportItem(report: reports[i]),
+                );
               },
             ),
           ),
@@ -59,61 +86,40 @@ class ReportScreen extends StatelessWidget {
   }
 }
 
-// Widget cho mỗi mục báo cáo
 class ReportItem extends StatelessWidget {
   final ViolationReport report;
-
   const ReportItem({super.key, required this.report});
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => DetailScreen(report: report)),
-        );
-      },
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 15),
-        padding: const EdgeInsets.all(15),
-        decoration: BoxDecoration(
-          color: const Color(0xFFFFEBEE),
-          borderRadius: BorderRadius.circular(15),
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      color: const Color(0xFFFFEBEE),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: ListTile(
+        leading: CircleAvatar(backgroundImage: NetworkImage(report.avatarUrl)),
+        title: Text(
+          report.title,
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
-        child: Row(
+        subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            // Avatar
-            CircleAvatar(
-              radius: 20,
-              backgroundImage: NetworkImage(report.avatarUrl),
-              backgroundColor: const Color(0xFFE3F2FD),
+          children: [
+            Text(
+              'Lý do: ${report.content}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(width: 15),
-
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  report.name,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                    color: Colors.black,
-                  ),
-                ),
-                Text(
-                  report.id,
-                  style: const TextStyle(fontSize: 14, color: Colors.grey),
-                ),
-                Text(
-                  report.reason,
-                  style: const TextStyle(fontSize: 14, color: Colors.black87),
-                ),
-              ],
+            Text(
+              report.department,
+              style: const TextStyle(color: Colors.blue, fontSize: 12),
             ),
           ],
+        ),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => DetailScreen(report: report)),
         ),
       ),
     );
