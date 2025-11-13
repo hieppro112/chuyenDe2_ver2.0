@@ -1,4 +1,3 @@
-// lib/screens/report_screen.dart
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:giao_tiep_sv_admin/data/violation_report.dart';
@@ -42,17 +41,13 @@ class ReportScreen extends StatelessWidget {
           ),
           Expanded(
             child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-              // SỬA TÊN COLLECTION: Notifycations (thiếu i)
               stream: FirebaseFirestore.instance
                   .collection('Notifycations')
-                  .where('type_notify', isEqualTo: 1)
+                  .where('type_notify', isEqualTo: 0)
+                  .where('id_status', isEqualTo: 0)
+                  .orderBy('created_at', descending: true)
                   .snapshots(),
               builder: (context, snapshot) {
-                print('State: ${snapshot.connectionState}');
-                print('Has error: ${snapshot.hasError}');
-                print('Has data: ${snapshot.hasData}');
-                print('Docs count: ${snapshot.data?.docs.length ?? 0}');
-
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 }
@@ -67,8 +62,6 @@ class ReportScreen extends StatelessWidget {
                 }
 
                 final reports = docs.map((doc) {
-                  print('Document ID: ${doc.id}');
-                  print('Data: ${doc.data()}');
                   return ViolationReport.fromFirestore(doc);
                 }).toList();
 
@@ -92,27 +85,46 @@ class ReportItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Tên người bị báo cáo
+    final String reportedUserName = report.title;
+
+    // ID người bị báo cáo
+    final String reportedUserId =
+        report.recipientId?.toString() ?? 'ID không rõ';
+
+    // Lý do/Nội dung báo cáo
+    final String reportReason = report.content;
+
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       color: const Color(0xFFFFEBEE),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      elevation: 2,
       child: ListTile(
-        leading: CircleAvatar(backgroundImage: NetworkImage(report.avatarUrl)),
+        leading: CircleAvatar(
+          backgroundImage: NetworkImage(report.avatarUrl),
+          radius: 24,
+        ),
         title: Text(
-          report.title,
-          style: const TextStyle(fontWeight: FontWeight.bold),
+          reportedUserName,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Lý do: ${report.content}',
+              reportedUserId,
+              style: const TextStyle(fontSize: 12, color: Colors.black54),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              reportReason,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-            ),
-            Text(
-              report.department,
-              style: const TextStyle(color: Colors.blue, fontSize: 12),
+              style: const TextStyle(
+                color: Colors.red,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ],
         ),
