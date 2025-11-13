@@ -4,12 +4,15 @@ import 'package:giao_tiep_sv_user/Data/Notifycation.dart';
 class Notifycationfirebase {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
+  /// Lấy toàn bộ thông báo (stream realtime)
   Stream<List<Notifycation>> getAllNotifycation() {
     return _firestore
-        .collection('Notifycations')
+        .collection('Notifycations') // đúng tên collection Firestore
         .snapshots()
         .map((snapshot) {
-      return snapshot.docs.map((doc) => Notifycation.fromFirestore(doc)).toList();
+      return snapshot.docs
+          .map((doc) => Notifycation.fromFirestore(doc))
+          .toList();
     });
   }
 }

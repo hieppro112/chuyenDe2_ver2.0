@@ -16,21 +16,33 @@ class Notifycation {
   });
 
   factory Notifycation.fromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
+    final data = doc.data() as Map<String, dynamic>? ?? {};
+
     return Notifycation(
       id: doc.id,
-      title: data['title'] ?? '',
-      content: data['content'] ?? '',
-      type_notify: data['type_notify'] ?? 0,
+      title: data['title']?.toString() ?? '',
+      content: data['content']?.toString() ?? '',
+      type_notify: data['type_notify'] is int
+          ? data['type_notify']
+          : int.tryParse('${data['type_notify']}') ?? 0,
       user_recipient_ID: _parseRecipientMap(data['user_recipient_id']),
     );
   }
 
-  // Hàm parse an toàn cho Map
   static Map<String, String> _parseRecipientMap(dynamic input) {
     if (input is Map) {
-      return input.map((key, value) => MapEntry(key.toString(), value.toString()));
+      return input.map((key, value) =>
+          MapEntry(key.toString(), value.toString()));
     }
     return {};
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'title': title,
+      'content': content,
+      'type_notify': type_notify,
+      'user_recipient_id': user_recipient_ID,
+    };
   }
 }
