@@ -240,7 +240,7 @@ class _CreateRoomChatState extends State<CreateRoomChat> {
               backgroundColor: Colors.red.withOpacity(0.6),
             ),
           );
-        } else if (chatroom.users.length < 2) {
+        }  if (chatroom.users.length < 2) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text("Vui long chon thanh vien tro chuyen"),

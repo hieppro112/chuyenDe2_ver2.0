@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:giao_tiep_sv_user/Data/Users.dart';
 import 'package:giao_tiep_sv_user/Data/room_chat.dart';
+import 'package:giao_tiep_sv_user/Screens_chatMember/data/dataRoomChat.dart';
 
 class HeaderMessage extends StatelessWidget {
   final ChatRoom myInfo;
-  const HeaderMessage({super.key, required this.myInfo, });
+  final Dataroomchat dataroomchat;
+   HeaderMessage({super.key, required this.myInfo, required this.dataroomchat, });
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +38,7 @@ class HeaderMessage extends StatelessWidget {
 
         Row(
           children: [
-            Text(myInfo.name,
+            Text((myInfo.typeId==1)?myInfo.name:dataroomchat.name,
             overflow: TextOverflow.ellipsis,
         style: TextStyle(
           fontWeight: FontWeight.bold,
@@ -51,7 +52,7 @@ class HeaderMessage extends StatelessWidget {
             print("avatar");
           },
           child: ClipOval(
-            child: Image.network(myInfo.avatarUrl,fit: BoxFit.cover,width: 45,height: 45,),
+            child: Image.network((myInfo.typeId==1)?myInfo.avatarUrl:dataroomchat.avt,fit: BoxFit.cover,width: 45,height: 45,),
           ),
         ),
           ],
