@@ -12,6 +12,7 @@ class PersonalPostItemWidget extends StatefulWidget {
   final String avatarUrl;
   final File? avatarFile;
   final String currentUserName;
+  final String groupId;
 
   const PersonalPostItemWidget({
     super.key,
@@ -20,6 +21,7 @@ class PersonalPostItemWidget extends StatefulWidget {
     required this.avatarUrl,
     this.avatarFile,
     required this.currentUserName,
+    required this.groupId,
   });
 
   @override

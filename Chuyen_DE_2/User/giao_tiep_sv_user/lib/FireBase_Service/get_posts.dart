@@ -1,7 +1,15 @@
+// File: get_posts.dart
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class GetPosts {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  // Biến final để lưu userId được truyền vào
+  final String currentUserId;
+
+  // Constructor chỉ cần nhận currentUserId
+  GetPosts({required this.currentUserId});
 
   /// Hỗ trợ tra cứu thông tin người dùng từ Collection 'Users'
   Future<Map<String, dynamic>> _fetchUserDetail(String userId) async {
@@ -10,9 +18,7 @@ class GetPosts {
       if (userDoc.exists && userDoc.data() != null) {
         final userData = userDoc.data()!;
         return {
-          // Lấy key 'fullname'
           "fullname": userData["fullname"] ?? "Ẩn danh",
-          // Lấy key 'avt' từ Firestore (avatar)
           "avatar":
               userData["avt"] ??
               "https://cellphones.com.vn/sforum/wp-content/uploads/2023/10/avatar-trang-4.jpg",
@@ -21,7 +27,40 @@ class GetPosts {
     } catch (e) {
       print("Lỗi tra cứu thông tin người dùng: $e");
     }
-    return {};
+    return {
+      "fullname": "Ẩn danh",
+      "avatar":
+          "https://cellphones.com.vn/sforum/wp-content/uploads/2023/10/avatar-trang-4.jpg",
+    };
+  }
+
+  /// Tra cứu tương tác (Like, Comment count) cho từng bài viết
+  Future<Map<String, dynamic>> _fetchInteractions(String postId) async {
+    final likesSnapshot = await _firestore
+        .collection('Post_like')
+        .where('id_post', isEqualTo: postId)
+        .get();
+    final int totalLikes = likesSnapshot.docs.length;
+
+    final commentsSnapshot = await _firestore
+        .collection('Post_comment')
+        .where('id_post', isEqualTo: postId)
+        .get();
+    final int totalComments = commentsSnapshot.docs.length;
+
+    final isLikedSnapshot = await _firestore
+        .collection('Post_like')
+        .where('id_post', isEqualTo: postId)
+        .where('id_user', isEqualTo: currentUserId)
+        .limit(1)
+        .get();
+    final bool isLikedByUser = isLikedSnapshot.docs.isNotEmpty;
+
+    return {
+      "likes": totalLikes,
+      "comments": totalComments,
+      "isLiked": isLikedByUser,
+    };
   }
 
   /// Lấy tất cả bài viết từ Firestore với status_id = 1
@@ -29,37 +68,39 @@ class GetPosts {
     try {
       final snapshot = await _firestore
           .collection('Post')
-          // LỌC THEO STATUS_ID
           .where('status_id', isEqualTo: 1)
           .orderBy('date_created', descending: true)
           .get();
 
-      // ... (Phần tra cứu chi tiết người dùng)
       final postsWithDetails = await Future.wait(
         snapshot.docs.map((doc) async {
           final data = doc.data();
-          final userId = data["user_id"] as String?;
-          Map<String, dynamic> userDetails = {};
+          final postId = doc.id;
+          final posterId = data["user_id"] as String?;
 
-          if (userId != null && userId.isNotEmpty) {
-            userDetails = await _fetchUserDetail(userId);
+          Map<String, dynamic> userDetails = {};
+          Map<String, dynamic> interactions = {};
+
+          if (posterId != null && posterId.isNotEmpty) {
+            userDetails = await _fetchUserDetail(posterId);
           }
 
+          interactions = await _fetchInteractions(postId);
+
           return {
-            "id": doc.id,
-            "user_id": userId ?? "Ẩn danh",
+            "id": postId,
+            "user_id": posterId ?? "Ẩn danh",
             "fullname": userDetails["fullname"] ?? "Ẩn danh",
             "avatar": userDetails["avatar"],
-            // ✅ SỬA: Đổi key lưu ID nhóm từ "group" thành "group_id"
             "group_id": data["group_id"] ?? "Không rõ",
             "title": data["content"] ?? "Không có nội dung",
             "date": (data["date_created"] is Timestamp)
                 ? (data["date_created"] as Timestamp).toDate().toString()
                 : null,
-            "images": data["image_urls"] ?? [],
-            "likes": 0,
-            "isLiked": false,
-            "comments": <Map<String, dynamic>>[],
+            "images": data["image_urls"] is List ? data["image_urls"] : [],
+            "likes": interactions["likes"],
+            "comments": interactions["comments"],
+            "isLiked": interactions["isLiked"],
           };
         }).toList(),
       );

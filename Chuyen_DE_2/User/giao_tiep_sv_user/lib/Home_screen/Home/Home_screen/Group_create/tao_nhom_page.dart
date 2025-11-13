@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
-import 'package:giao_tiep_sv_user/FireBase_Service/create_group_service.dart'; // Import service mới
-import 'package:giao_tiep_sv_user/Data/global_state.dart'; // Import GlobalState
+import 'package:giao_tiep_sv_user/FireBase_Service/create_group_service.dart';
+import '../../../../Data/global_state.dart';
 
 class TaoNhomPage extends StatefulWidget {
   const TaoNhomPage({super.key});
@@ -22,16 +22,27 @@ class _TaoNhomPageState extends State<TaoNhomPage> {
   final ImagePicker _picker = ImagePicker();
 
   bool _isCreating = false; // Trạng thái loading
-  // Giá trị tạm thời (Cần thay thế bằng dữ liệu lấy từ User Profile)
-  final String _currentFacultyId = "CNTT";
 
   // Màu chủ đạo
   static const Color _primaryColor = Color.fromARGB(255, 0, 85, 150); // Teal
-  static const Color _backgroundColor = Color(
-    0xFFF0F4F8,
-  ); // Light Blue-Gray Background
+  static const Color _backgroundColor = Color(0xFFF0F4F8);
 
-  // --- Functions ---
+  // HÀM TRÍCH XUẤT MÃ KHOA TỪ ID NGƯỜI DÙNG
+  String _extractFacultyCode(String userId) {
+    if (userId.isEmpty) return '';
+
+    // Regex tìm cụm chữ cái in hoa (A-Z) liên tiếp
+    final RegExp facultyRegex = RegExp(r'[A-Z]+');
+    final Iterable<RegExpMatch> matches = facultyRegex.allMatches(userId);
+
+    if (matches.isNotEmpty) {
+      // Lấy match đầu tiên (ví dụ: TT từ 23211TT4679)
+      return matches.first.group(0)!;
+    } else {
+      return '';
+    }
+  }
+
   Future<void> _chonAnh() async {
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
     if (image != null) {
@@ -61,10 +72,15 @@ class _TaoNhomPageState extends State<TaoNhomPage> {
     final userId = GlobalState.currentUserId;
     final fullname = GlobalState.currentFullname;
 
-    if (userId.isEmpty) {
+    // ✅ LẤY MÃ KHOA ĐỘNG
+    final facultyId = _extractFacultyCode(userId);
+
+    if (userId.isEmpty || facultyId.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Lỗi: Vui lòng đăng nhập để tạo nhóm."),
+          content: Text(
+            "Lỗi: Không tìm thấy thông tin đăng nhập hoặc Mã Khoa. Vui lòng đăng nhập lại.",
+          ),
           duration: Duration(seconds: 3),
           backgroundColor: Colors.red,
         ),
@@ -83,7 +99,7 @@ class _TaoNhomPageState extends State<TaoNhomPage> {
       name: ten,
       description: moTa,
       groupImage: _anhNhom,
-      facultyId: _currentFacultyId,
+      facultyId: facultyId, // ✅ Truyền Mã Khoa động đã trích xuất
     );
 
     setState(() {
@@ -116,6 +132,8 @@ class _TaoNhomPageState extends State<TaoNhomPage> {
   }
 
   // --- Widgets ---
+
+  // ... (Phần Widgets _buildTextField, _buildGroupImagePicker, _buildCreateButton giữ nguyên) ...
 
   Widget _buildTextField({
     required TextEditingController controller,
