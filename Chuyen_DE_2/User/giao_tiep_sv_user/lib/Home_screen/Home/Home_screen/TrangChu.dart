@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:giao_tiep_sv_user/Home_screen/Home/Home_screen/wiget/comment_sheet_content.dart';
+import 'package:giao_tiep_sv_user/Home_screen/Home/Home_screen/wiget/report_dialog.dart';
 import '../../../FireBase_Service/get_posts.dart';
 import 'port_card.dart';
 import 'dang_bai_dialog.dart';
@@ -431,7 +432,11 @@ class TrangChuState extends State<TrangChu> {
                         post: post,
                         onCommentPressed: () => _showCommentSheet(post),
                         onLikePressed: () => _toggleLike(post),
-                        onMenuSelected: (value) {},
+                        onMenuSelected: (value) {
+                          if (value == 'report') {
+                            _showReportDialog(post);
+                          }
+                        },
                       );
                     },
                   ),
@@ -491,5 +496,40 @@ class TrangChuState extends State<TrangChu> {
         );
       },
     );
+  }
+
+  // --- HÀM MỚI: Mở Dialog Báo cáo ---
+  void _showReportDialog(Map<String, dynamic> post) async {
+    final String postId = post["id"] as String;
+    final String postTitle = post["content"] as String? ?? "Bài viết";
+
+    // >> LẤY ID NGƯỜI ĐĂNG BÀI: Giả định trường user_id chứa ID người đăng
+    final String authorId = post["user_id"] as String? ?? '';
+
+    if (authorId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Lỗi: Không tìm thấy ID người đăng bài.")),
+      );
+      return;
+    }
+
+    // Mở dialog và đợi kết quả (true nếu gửi thành công)
+    final bool? isSubmitted = await showDialog<bool>(
+      context: context,
+      builder: (context) => ReportDialog(
+        postId: postId,
+        postTitle: postTitle,
+        recipientUserId: authorId, // << TRUYỀN ID NGƯỜI ĐĂNG VÀO ĐÂY
+      ),
+    );
+
+    if (isSubmitted == true && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("✅ Báo cáo đã được gửi."),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
   }
 }
