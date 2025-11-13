@@ -1,10 +1,31 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/widgets.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'dart:io';
 import 'package:giao_tiep_sv_user/Data/message.dart';
 import 'package:giao_tiep_sv_user/Data/room_chat.dart';
 
 class MessageService {
   final FirebaseFirestore messDB = FirebaseFirestore.instance;
+
+  //xu ly dua anh len storage
+  final FirebaseStorage ref = FirebaseStorage.instance;
+
+  //dua hinh anh len storage
+  Future<String?> uploadImageGroupChat(String nameGroup, File imageFile)async{
+    try{
+      final putImage = ref.ref().child("chats/$nameGroup");
+    
+    await putImage.putFile(imageFile!);
+    //lay url imm
+    final imgUrl = await putImage.getDownloadURL();
+    print("url anh nhom");
+    return imgUrl;
+    }
+    catch(e){
+      print("loi khi up anh: $e");
+      return null;
+    }
+  }
 
   //lay danh sách tin nhan
   Future<List<ChatRoom>> listChat(String myID) async {
@@ -39,13 +60,14 @@ class MessageService {
   Stream<List<ChatRoom>> streamChatRooms(String myID) {
     return messDB
         .collection("ChatRooms")
-        .where("users", arrayContains: myID.toUpperCase())
+        .where("users", arrayContains: myID.toUpperCase().trim())
         .orderBy("lastTime", descending: true)
         .snapshots()
         .map(
           (snapshot) => snapshot.docs.map((doc) {
             final data = doc.data();
             data["roomId"] = doc.id;
+            print(myID.toUpperCase());
             return ChatRoom.fromFirestore(doc);
           }).toList(),
         );
