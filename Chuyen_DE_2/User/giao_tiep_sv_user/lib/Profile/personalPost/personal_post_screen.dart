@@ -3,8 +3,8 @@ import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
-import 'package:giao_tiep_sv_user/FireBase_Service/post_user.dart';
-import 'package:giao_tiep_sv_user/FireBase_Service/Profile_Service.dart';
+import 'package:giao_tiep_sv_user/FireBase_Service/UserPostRepository.dart';
+import 'package:giao_tiep_sv_user/FireBase_Service/ProfileService.dart';
 import 'package:giao_tiep_sv_user/Profile/editProflie/models/profile_model.dart';
 import 'package:giao_tiep_sv_user/Profile/personalPost/models/personal_post_model.dart';
 import 'package:giao_tiep_sv_user/Profile/personalPost/widgets/personal_post_item.dart';
@@ -231,6 +231,7 @@ class _PersonalPostScreenState extends State<PersonalPostScreen> {
                           avatarUrl: displayAvatarUrl,
                           avatarFile: widget.avatarFile,
                           currentUserName: displayName,
+                          groupId: '',
                         );
                       }, childCount: posts.length),
                     ),

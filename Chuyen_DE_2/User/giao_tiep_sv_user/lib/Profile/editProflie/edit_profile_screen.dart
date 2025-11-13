@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:giao_tiep_sv_user/Data/faculty.dart';
-import 'package:giao_tiep_sv_user/FireBase_Service/Profile_Service.dart';
+import 'package:giao_tiep_sv_user/FireBase_Service/ProfileService.dart';
 import 'package:top_snackbar_flutter/custom_snack_bar.dart';
 import 'package:top_snackbar_flutter/top_snack_bar.dart';
 import 'package:flutter/material.dart';
