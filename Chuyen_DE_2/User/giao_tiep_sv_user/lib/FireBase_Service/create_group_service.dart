@@ -37,7 +37,7 @@ class CreateGroupService {
         "type_group": 0,
         "approval_mode": true,
         "avt": imageUrl,
-        "created_by": creatorUserId,
+        "created_by": {creatorUserId: creatorFullname},
         "id_status": 0,
         "faculty_id": facultyId,
         "created_at": FieldValue.serverTimestamp(),
