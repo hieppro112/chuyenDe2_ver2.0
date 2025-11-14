@@ -6,7 +6,7 @@ class NotificationService {
   Future<List<Map<String, dynamic>>> loadTypeZeroNotifications() async {
     try {
       final notificationsSnapshot = await _firestore
-          .collection('Notifications') // ✅ Sửa chính tả
+          .collection('Notifycations')
           .where('type_notify', isEqualTo: 0)
           .get();
 
