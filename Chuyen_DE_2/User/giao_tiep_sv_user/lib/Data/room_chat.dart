@@ -1,3 +1,42 @@
+// import 'package:flutter/material.dart';
+
+// class Room_chat{
+//   final String room_id;
+//   final int type_id;
+//   final String name;
+//   final String avt_url;
+//   final String created_id;
+//   final DateTime create_at;
+
+//   Room_chat({required this.room_id, required this.type_id, required this.name, required this.avt_url, required this.created_id, required this.create_at});
+
+
+// // là các trường khi đưa dữ liệu lên
+//   Map<String, dynamic> tomap() {
+//     return {
+//       'id': room_id,
+//       "name": name,
+//       'created_id': created_id,
+//       'create_at':create_at,
+//       'avt_url': avt_url,
+//       'type_id': type_id,
+//     };
+//   }
+
+  
+//   // khi doc len 
+//  factory Room_chat.fromMap(Map<String, dynamic> map) {
+//   return Room_chat(
+//     room_id: map['room_id']?.toString() ?? '',
+//     type_id: int.tryParse(map['type_id'].toString()) ?? 0,
+//     name: map['name']?.toString() ?? '',
+//     avt_url: map['avt_url']?.toString() ?? '',
+//     created_id: map['created_id']?.toString() ?? "",
+//     create_at: DateTime.tryParse(map['create_at'].toString()) ?? DateTime.now(),
+//   );
+// }
+  
+// }
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ChatRoom {
