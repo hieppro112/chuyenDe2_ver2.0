@@ -18,6 +18,32 @@ class ManHinhThongBao extends StatefulWidget {
 }
 
 class _ManHinhThongBaoState extends State<ManHinhThongBao> {
+  // 1. Thêm controller và biến trạng thái tìm kiếm
+  final TextEditingController _searchController = TextEditingController();
+  String _searchText = "";
+
+  @override
+  void initState() {
+    super.initState();
+    // Lắng nghe thay đổi của TextField
+    _searchController.addListener(_onSearchChanged);
+  }
+
+  @override
+  void dispose() {
+    // Giải phóng controller khi widget bị hủy
+    _searchController.removeListener(_onSearchChanged);
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _onSearchChanged() {
+    // Cập nhật biến trạng thái tìm kiếm, gọi setState để rebuild widget
+    setState(() {
+      _searchText = _searchController.text.toLowerCase();
+    });
+  }
+
   void _handleNotificationTap(Notifycation tb) {
     Navigator.push(
       context,
@@ -41,6 +67,7 @@ class _ManHinhThongBaoState extends State<ManHinhThongBao> {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           child: Column(
             children: [
+              // Header
               Headerwidget(
                 myUs: widget.currentUser,
                 width: widthScreen,
@@ -57,8 +84,29 @@ class _ManHinhThongBaoState extends State<ManHinhThongBao> {
               const TieuDeThongBao(),
               const SizedBox(height: 20),
 
+              // Thêm ô tìm kiếm
+              Padding(
+                padding: const EdgeInsets.only(bottom: 20),
+                child: TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: "Tìm kiếm thông báo...",
+                    prefixIcon: const Icon(Icons.search),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide.none,
+                    ),
+                    filled: true,
+                    fillColor: Colors.grey[200],
+                    contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 10),
+                  ),
+                ),
+              ),
+
+              // Danh sách thông báo
               Expanded(
                 child: StreamBuilder<List<Notifycation>>(
+                  // Stream đã được sắp xếp bởi server (trong notifycationFirebase)
                   stream: widget.notifyService.getAllNotifycation(),
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
@@ -82,27 +130,46 @@ class _ManHinhThongBaoState extends State<ManHinhThongBao> {
                     final userId = widget.currentUser.id_user;
                     final facultyId = widget.currentUser.faculty_id;
 
-                    // Lọc thông báo cho user hiện tại
+                    // Lọc thông báo cho user hiện tại 
                     final notifyForUser = allNotify.where((tb) {
                       final recipients = tb.user_recipient_ID.keys.toSet();
                       final matchUser = recipients.contains(userId);
                       final matchFaculty = facultyId != null && recipients.contains(facultyId);
                       return matchUser || matchFaculty;
-                    }).toList()
-                      // Sort mới nhất lên đầu dựa theo id Firestore
-                      ..sort((a, b) => b.id.compareTo(a.id));
+                    }).toList();
 
-                    if (notifyForUser.isEmpty) {
-                      return const Center(
-                        child: Text("Không có thông báo dành cho bạn"),
+                    // Lọc theo từ khóa tìm kiếm 
+                    final filteredNotify = notifyForUser.where((tb) {
+                      if (_searchText.isEmpty) {
+                        return true; // Nếu không có từ khóa tìm kiếm, hiển thị tất cả
+                      }
+                      // Tìm kiếm theo tiêu đề hoặc nội dung
+                      return tb.title.toLowerCase().contains(_searchText) ||
+                          tb.content.toLowerCase().contains(_searchText);
+                    }).toList()
+                      // Sắp xếp mới nhất lên đầu dựa theo created_at
+                      ..sort((a, b) {
+                        // Đẩy các thông báo thiếu timestamp xuống cuối danh sách
+                        if (a.created_at == null) return 1;
+                        if (b.created_at == null) return -1;
+
+                        // Sắp xếp giảm dần (b.compareTo(a) => mới nhất lên đầu)
+                        return b.created_at!.compareTo(a.created_at!);
+                      });
+
+                    if (filteredNotify.isEmpty) {
+                      return Center(
+                        child: Text(_searchText.isEmpty 
+                            ? "Không có thông báo dành cho bạn"
+                            : "Không tìm thấy thông báo nào khớp với \"${_searchController.text}\""),
                       );
                     }
 
                     return ListView.builder(
                       padding: const EdgeInsets.only(top: 8),
-                      itemCount: notifyForUser.length,
+                      itemCount: filteredNotify.length,
                       itemBuilder: (context, index) {
-                        final tb = notifyForUser[index];
+                        final tb = filteredNotify[index];
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 12),
                           child: OThongBao(
