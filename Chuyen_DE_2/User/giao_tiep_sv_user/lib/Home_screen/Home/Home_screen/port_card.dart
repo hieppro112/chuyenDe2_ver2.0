@@ -6,6 +6,7 @@ class PostCard extends StatelessWidget {
   final VoidCallback onCommentPressed;
   final VoidCallback onLikePressed;
   final void Function(String value)? onMenuSelected;
+  final String? currentUserId;
 
   const PostCard({
     super.key,
@@ -13,6 +14,7 @@ class PostCard extends StatelessWidget {
     required this.onCommentPressed,
     required this.onLikePressed,
     this.onMenuSelected,
+    this.currentUserId,
   });
 
   String _formatDate(String? dateStr) {
@@ -85,13 +87,25 @@ class PostCard extends StatelessWidget {
               ),
               PopupMenuButton<String>(
                 onSelected: (value) {
-                  // value = "save" hoặc "report"
-                  onMenuSelected?.call(value); // <-- GỌI CALLBACK ĐÚNG
+                  onMenuSelected?.call(value);
                 },
-                itemBuilder: (context) => const [
-                  PopupMenuItem(value: "report", child: Text("Báo cáo")),
-                  PopupMenuItem(value: "save", child: Text("Lưu bài viết")),
-                ],
+                itemBuilder: (context) {
+                  final bool isOwnPost =
+                      (post['user_id'] as String?) == currentUserId;
+
+                  return [
+                    const PopupMenuItem(
+                      value: "report",
+                      child: Text("Báo cáo"),
+                    ),
+                    // ẩn nút lưu nếu đó là bài của chính mình
+                    if (!isOwnPost)
+                      const PopupMenuItem(
+                        value: "save",
+                        child: Text("Lưu bài viết"),
+                      ),
+                  ];
+                },
                 icon: const Icon(
                   Icons.more_vert,
                   size: 18,

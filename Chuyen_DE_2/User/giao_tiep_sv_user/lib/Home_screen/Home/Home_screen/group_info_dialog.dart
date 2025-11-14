@@ -58,7 +58,11 @@ class GroupInfoDialog extends StatelessWidget {
         if (text == "Duyệt") {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => MemberPostScreen()),
+            MaterialPageRoute(
+              builder: (context) => MemberPostScreen(
+                groupId: currentGroupId, // ← Truyền groupId
+              ),
+            ),
           );
           return;
         } else if (text == "Thành viên") {

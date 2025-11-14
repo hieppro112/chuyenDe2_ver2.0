@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:giao_tiep_sv_admin/FirebaseFirestore/admin_action_service.dart';
 import 'package:giao_tiep_sv_admin/data/violation_report.dart';
-import 'package:intl/intl.dart';
 import 'duyet_nhom_admin/widget/post_card.dart';
+import 'package:intl/intl.dart';
 
 class DetailScreen extends StatelessWidget {
   final ViolationReport report;
+  final AdminActionService _service = AdminActionService();
 
-  const DetailScreen({super.key, required this.report});
+  DetailScreen({super.key, required this.report});
 
   // Chuyển đổi Timestamp sang chuỗi format
   String _formatDate(dynamic timestamp) {
@@ -18,7 +20,7 @@ class DetailScreen extends StatelessWidget {
     return 'Không rõ thời gian';
   }
 
-  // --- HÀM TẢI DỮ LIỆU BÀI VIẾT ---
+  // ------- Lấy dữ liệu bài viết -------
   Future<Map<String, dynamic>?> _fetchPostDetails() async {
     if (report.postId == null || report.postId!.isEmpty) return null;
     try {
@@ -26,6 +28,7 @@ class DetailScreen extends StatelessWidget {
           .collection('Post')
           .doc(report.postId!)
           .get();
+
       if (postDoc.exists) return postDoc.data();
     } catch (e) {
       print('Lỗi tải bài viết: $e');
@@ -63,8 +66,8 @@ class DetailScreen extends StatelessWidget {
         padding: const EdgeInsets.all(20.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            // 1. AVATAR
+          children: <Widget>[
+            // 1. Avatar
             CircleAvatar(
               radius: 60,
               backgroundImage: NetworkImage(report.avatarUrl),
@@ -72,7 +75,7 @@ class DetailScreen extends StatelessWidget {
             ),
             const SizedBox(height: 15),
 
-            // 2. TÊN (ID người bị báo cáo)
+            // 2. Info người bị báo cáo
             Text(
               reportedUserName,
               style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
@@ -81,12 +84,11 @@ class DetailScreen extends StatelessWidget {
               recipientId,
               style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
             ),
-
             _buildInfoRow('Người gửi:', senderId),
 
             const SizedBox(height: 20),
 
-            // 3. KHUNG BÁO CÁO
+            // 3. Khung thông tin báo cáo
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(15),
@@ -117,7 +119,6 @@ class DetailScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 20),
 
-                  // Hiển thị bài viết vi phạm
                   _buildViolatingPostWidget(context),
                 ],
               ),
@@ -125,17 +126,23 @@ class DetailScreen extends StatelessWidget {
 
             const SizedBox(height: 40),
 
-            // 4. NÚT HÀNH ĐỘNG
+            // 4. Nút hành động
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
+              children: <Widget>[
                 Expanded(
                   child: _buildActionButton(
                     text: 'Cảnh báo',
                     icon: Icons.warning_amber_rounded,
                     color: Colors.amber,
-                    onPressed: () =>
-                        _showActionDialog(context, 'Cảnh báo', report.title),
+                    onPressed: () {
+                      _showActionDialog(
+                        context,
+                        'Cảnh báo',
+                        report.title,
+                        recipientId: recipientId,
+                        reportDocId: report.docId,
+                      );
+                    },
                   ),
                 ),
                 const SizedBox(width: 15),
@@ -144,11 +151,15 @@ class DetailScreen extends StatelessWidget {
                     text: 'Khóa tài khoản',
                     icon: Icons.close,
                     color: Colors.red.shade400,
-                    onPressed: () => _showActionDialog(
-                      context,
-                      'Khóa tài khoản',
-                      report.title,
-                    ),
+                    onPressed: () {
+                      _showActionDialog(
+                        context,
+                        'Khóa tài khoản',
+                        report.title,
+                        recipientId: recipientId,
+                        reportDocId: report.docId,
+                      );
+                    },
                   ),
                 ),
               ],
@@ -159,7 +170,7 @@ class DetailScreen extends StatelessWidget {
     );
   }
 
-  // --- WIDGET HIỂN THỊ BÀI VIẾT VI PHẠM (PostCard) ---
+  // ------- Widget hiển thị bài viết -------
   Widget _buildViolatingPostWidget(BuildContext context) {
     if (report.postId == null || report.postId!.isEmpty) {
       return const Text(
@@ -175,20 +186,34 @@ class DetailScreen extends StatelessWidget {
           return const Center(child: CircularProgressIndicator(strokeWidth: 2));
         }
 
-        if (snapshot.hasError || !snapshot.hasData || snapshot.data == null) {
-          return Center(
-            child: Text('Không thể tải bài viết (ID: ${report.postId})'),
-          );
+        if (snapshot.hasError || !snapshot.hasData) {
+          return Text('Không thể tải bài viết (ID: ${report.postId})');
         }
 
         final postData = snapshot.data!;
+        dynamic fileData = postData['file_url'];
+
+        List<Map<String, String>> filesList = [];
+        if (fileData is List) {
+          filesList = fileData
+              .map((item) => Map<String, String>.from(item))
+              .toList();
+        } else if (fileData is String && fileData.isNotEmpty) {
+          filesList = [
+            {'name': 'Tệp đính kèm', 'path': fileData},
+          ];
+        }
+
         final adaptedPostData = {
           'id': report.postId,
+          'title': postData['content'],
           'content': postData['content'],
           'images': postData['image_urls'] is List
               ? postData['image_urls']
-              : [],
-          'files': postData['file_url'] is List ? postData['file_url'] : [],
+              : (postData['image_urls'] is String
+                    ? [postData['image_urls']]
+                    : []),
+          'files': filesList,
           'date': postData['date_created']?.toString(),
           'user_id': postData['user_id'],
           'group_id': postData['group_id'],
@@ -210,12 +235,14 @@ class DetailScreen extends StatelessWidget {
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
             ),
             const SizedBox(height: 10),
+
             PostCard(
               post: adaptedPostData,
               onCommentPressed: () {},
               onLikePressed: () {},
               onMenuSelected: (value) {},
             ),
+
             _buildInfoRow('ID Bài viết:', report.postId!),
           ],
         );
@@ -223,7 +250,7 @@ class DetailScreen extends StatelessWidget {
     );
   }
 
-  // Hàm tiện ích tạo hàng thông tin
+  // ------- UI tiện ích -------
   Widget _buildInfoRow(String title, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 5.0),
@@ -272,19 +299,28 @@ class DetailScreen extends StatelessWidget {
     );
   }
 
-  void _showActionDialog(BuildContext context, String action, String userName) {
+  // ------- Dialog xử lý hành động -------
+  void _showActionDialog(
+    BuildContext context,
+    String action,
+    String userName, {
+    String? recipientId,
+    String? reportDocId,
+  }) {
+    final AdminActionService service = AdminActionService();
+
     showDialog(
       context: context,
-      builder: (BuildContext context) {
+      builder: (BuildContext dialogContext) {
         return AlertDialog(
           title: Text('$action người dùng'),
           content: Text(
             'Bạn có chắc chắn muốn $action tài khoản $userName không?',
           ),
-          actions: [
+          actions: <Widget>[
             TextButton(
               child: const Text('Hủy'),
-              onPressed: () => Navigator.of(context).pop(),
+              onPressed: () => Navigator.of(dialogContext).pop(),
             ),
             TextButton(
               child: Text(
@@ -293,15 +329,45 @@ class DetailScreen extends StatelessWidget {
                   color: action == 'Khóa tài khoản' ? Colors.red : Colors.amber,
                 ),
               ),
-              onPressed: () {
+              onPressed: () async {
+                Navigator.of(dialogContext).pop();
+                bool success = false;
+                String message = 'Đã thực hiện hành động.';
+
+                if (action == 'Cảnh báo' &&
+                    recipientId != null &&
+                    reportDocId != null) {
+                  success = await service.sendWarningAndMarkResolved(
+                    context,
+                    recipientId,
+                    reportDocId,
+                  );
+                  message = success
+                      ? '✅ Đã gửi cảnh báo và đánh dấu báo cáo.'
+                      : '❌ Lỗi khi gửi cảnh báo.';
+                } else if (action == 'Khóa tài khoản' && recipientId != null) {
+                  success = await service.lockUserAccount(recipientId);
+                  message = success
+                      ? '✅ Đã khóa tài khoản thành công.'
+                      : '❌ Lỗi khi khóa tài khoản.';
+
+                  if (success && reportDocId != null) {
+                    await service.sendWarningAndMarkResolved(
+                      context,
+                      recipientId,
+                      reportDocId,
+                    );
+                  }
+                }
+
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text(
-                      'Đã thực hiện hành động "$action" với $userName',
-                    ),
+                    content: Text(message),
+                    backgroundColor: success ? Colors.green : Colors.red,
                   ),
                 );
-                Navigator.of(context).pop();
+
+                Navigator.pop(context);
               },
             ),
           ],
