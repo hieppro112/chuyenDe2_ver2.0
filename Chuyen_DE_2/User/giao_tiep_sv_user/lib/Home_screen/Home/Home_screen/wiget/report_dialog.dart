@@ -52,6 +52,7 @@ class _ReportDialogState extends State<ReportDialog> {
         'id_user': currentUserId,
         'user_recipient_id': widget.recipientUserId,
         'created_at': FieldValue.serverTimestamp(),
+        'id_status': 0,
       };
 
       try {
