@@ -32,7 +32,6 @@ class _DuyetNhomAdminScreenState extends State<DuyetNhomAdminScreen> {
               data['id'] = doc.id;
               return DuyetNhomAdminModel.fromMap(data);
             }).toList();
-
             if (mounted) {
               setState(() {
                 groups = loadedGroups;
@@ -57,12 +56,11 @@ class _DuyetNhomAdminScreenState extends State<DuyetNhomAdminScreen> {
   // Bộ lọc
   GroupFilterType _currentFilter = GroupFilterType.all;
 
-  // Duyệt nhóm theo ID
   void _duyetNhom(String groupId, String groupName) {
     FirebaseFirestore.instance
         .collection('Groups')
         .doc(groupId)
-        .update({'id_status': 1})
+        .update({'status_id': 1}) // Đổi thành status_id
         .then((_) {
           _showSnackBar('Đã duyệt nhóm "$groupName"');
         })
@@ -76,7 +74,7 @@ class _DuyetNhomAdminScreenState extends State<DuyetNhomAdminScreen> {
     FirebaseFirestore.instance
         .collection('Groups')
         .doc(groupId)
-        .update({'id_status': 2})
+        .update({'status_id': 2}) // Đổi thành status_id
         .then((_) {
           _showSnackBar('Đã từ chối nhóm "$groupName"');
         })

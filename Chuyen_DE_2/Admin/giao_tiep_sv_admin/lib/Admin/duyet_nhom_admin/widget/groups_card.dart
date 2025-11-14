@@ -41,11 +41,11 @@ class GroupCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(25),
                     color: Colors.grey[200],
                   ),
-                  child: group.avatarUrl != null && group.avatarUrl!.isNotEmpty
+                  child: group.avt.isNotEmpty
                       ? ClipRRect(
                           borderRadius: BorderRadius.circular(25),
                           child: Image.network(
-                            group.avatarUrl!,
+                            group.avt,
                             fit: BoxFit.cover,
                             errorBuilder: (context, error, stackTrace) {
                               return Icon(Icons.group, color: Colors.grey[600]);
@@ -68,11 +68,15 @@ class GroupCard extends StatelessWidget {
                       ),
                       SizedBox(height: 4),
                       Text(
-                        'Tạo bởi: ${group.createdBy}',
+                        'Thành viên: ${_formatMembers(group.members)}',
                         style: TextStyle(color: Colors.grey[600], fontSize: 14),
                       ),
                       Text(
-                        'Khoa: ${group.facultyId}',
+                        'Khoa: ${group.facultyName}',
+                        style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                      ),
+                      Text(
+                        'Chế độ duyệt: ${group.approvalMode ? "Có" : "Không"}',
                         style: TextStyle(color: Colors.grey[600], fontSize: 14),
                       ),
                     ],
@@ -100,12 +104,26 @@ class GroupCard extends StatelessWidget {
             SizedBox(height: 12),
 
             // Mô tả nhóm
-            Text(
-              'Mô tả: ${group.description}',
-              style: TextStyle(color: Colors.grey[700], fontSize: 14),
-            ),
-
-            SizedBox(height: 8),
+            if (group.description.isNotEmpty)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Mô tả:',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey[700],
+                      fontSize: 14,
+                    ),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    group.description,
+                    style: TextStyle(color: Colors.grey[700], fontSize: 14),
+                  ),
+                  SizedBox(height: 8),
+                ],
+              ),
 
             // Action Buttons
             Row(
@@ -126,14 +144,6 @@ class GroupCard extends StatelessWidget {
                   isEnabled: group.status == GroupStatus.pending,
                 ),
               ],
-            ),
-
-            SizedBox(height: 8),
-
-            // Ngày tạo
-            Text(
-              'Tạo ngày: ${_formatDate(group.createdAt)}',
-              style: TextStyle(color: Colors.grey[500], fontSize: 12),
             ),
           ],
         ),
@@ -201,7 +211,9 @@ class GroupCard extends StatelessWidget {
     }
   }
 
-  String _formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year} ${date.hour}:${date.minute.toString().padLeft(2, '0')}';
+  String _formatMembers(List<String> members) {
+    if (members.isEmpty) return 'Không có thành viên';
+    if (members.length == 1) return members.first;
+    return '${members.first} và ${members.length - 1} người khác';
   }
 }
