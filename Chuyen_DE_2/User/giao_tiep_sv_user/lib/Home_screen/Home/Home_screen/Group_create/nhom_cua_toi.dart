@@ -16,7 +16,7 @@ class _NhomCuaToiState extends State<NhomCuaToi> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   // ✅ Gọi từ service thay vì trực tiếp Firestore
-  final Stream<QuerySnapshot> _groupsStream = MygroupService.getMyGroupsStream();
+final Stream<List<DocumentSnapshot>> _groupsStream = MygroupService.getMyGroupsStream();
 
   @override
   Widget build(BuildContext context) {
@@ -75,7 +75,8 @@ class _NhomCuaToiState extends State<NhomCuaToi> {
   }
 
   Widget _buildGroupList() {
-    return StreamBuilder<QuerySnapshot>(
+    // Cập nhật kiểu dữ liệu của StreamBuilder
+    return StreamBuilder<List<DocumentSnapshot>>(
       stream: _groupsStream, 
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -86,20 +87,22 @@ class _NhomCuaToiState extends State<NhomCuaToi> {
           return Center(child: Text('Đã xảy ra lỗi khi tải dữ liệu: ${snapshot.error}'));
         }
 
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+        // Lấy dữ liệu là List<DocumentSnapshot>
+        final groupsDocs = snapshot.data ?? [];
+
+        if (groupsDocs.isEmpty) {
           if (GlobalState.currentUserId.isEmpty) {
             return const Center(child: Text('Lỗi: ID người dùng chưa được thiết lập.'));
           }
           return const Center(child: Text('Bạn chưa tạo nhóm nào.'));
         }
 
-        final groupsDocs = snapshot.data!.docs;
-
         return ListView.builder(
           itemCount: groupsDocs.length,
           itemBuilder: (context, index) {
             final groupDoc = groupsDocs[index];
             final groupData = groupDoc.data() as Map<String, dynamic>;
+            
             final group = {
               "id": groupDoc.id,
               "name": groupData["name"] ?? "Nhóm không tên",
