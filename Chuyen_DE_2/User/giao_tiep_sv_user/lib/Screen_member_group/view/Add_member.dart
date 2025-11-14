@@ -165,7 +165,8 @@ class _AddMemberScreenState extends State<AddMemberScreen> {
 
   Future<void> loadUsers()async{
     isload =true;
-    await userDB.streamBuilder().listen((event) {
+     userDB.streamBuilder().listen((event) {
+      List<Users> listTemp =[];
       for(var item in event){
         var check =false;
         for(var x in widget.listMemberGroup){
@@ -175,15 +176,15 @@ class _AddMemberScreenState extends State<AddMemberScreen> {
           }
         }
         if(!check){
-          ListMember.add(item);
+          listTemp.add(item);
         }
         check = false;
       }
-      Listsearch = ListMember;
+      setState(() {
+        ListMember = listTemp;
+        Listsearch = listTemp;
+        isload =false;
+      });
     },);
-
-    setState(() {
-      isload =false;
-    });
   }
 }
