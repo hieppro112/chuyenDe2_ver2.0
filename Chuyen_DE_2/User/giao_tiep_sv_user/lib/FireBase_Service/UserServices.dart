@@ -3,11 +3,12 @@ import 'package:giao_tiep_sv_user/Data/Users.dart';
 
 class Userservices {
   final FirebaseFirestore userDB = FirebaseFirestore.instance;
-  
+
   Future<Users?> getUserForID(String myID)async{
     try{
       final snap = await userDB.collection("Users").doc(myID.trim().toUpperCase()).get();
-      
+      print("my ${snap}");
+
       if(!snap.exists){
         print("khong co gia tri");
           return null;
