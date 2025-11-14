@@ -3,8 +3,13 @@ import 'package:giao_tiep_sv_user/duyet_Nguoi_Dung/member_post_screen.dart';
 import 'package:giao_tiep_sv_user/maneger_member_group_Screens/view/maneger_member_group.dart';
 
 class GroupInfoDialog extends StatelessWidget {
+  final String groupId; // THÊM
   final String groupName;
-  const GroupInfoDialog({super.key, required this.groupName});
+  const GroupInfoDialog({
+    super.key,
+    required this.groupName,
+    required this.groupId,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -57,7 +62,11 @@ class GroupInfoDialog extends StatelessWidget {
         if (text == "Duyệt") {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => MemberPostScreen()),
+            MaterialPageRoute(
+              builder: (context) => MemberPostScreen(
+                groupId: groupId, // ← Truyền groupId
+              ),
+            ),
           );
           return;
         } else if (text == "Thành viên") {

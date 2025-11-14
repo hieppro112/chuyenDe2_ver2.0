@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:giao_tiep_sv_user/FireBase_Service/SavedPostsService.dart';
 import 'package:giao_tiep_sv_user/Home_screen/Home/Home_screen/wiget/comment_sheet_content.dart';
 import '../../../FireBase_Service/get_posts.dart';
 import 'port_card.dart';
@@ -37,6 +38,7 @@ class TrangChuState extends State<TrangChu> {
         ? GlobalState.currentFullname
         : "Người dùng ẩn danh",
   );
+  final SavedPostsService _savedPostsService = SavedPostsService();
 
   bool _isOpen = false;
   String currentGroupId = "ALL";
@@ -330,6 +332,7 @@ class TrangChuState extends State<TrangChu> {
                               showDialog(
                                 context: context,
                                 builder: (_) => GroupInfoDialog(
+                                  groupId: currentGroupId,
                                   groupName: currentGroupName,
                                 ),
                               );
@@ -360,9 +363,26 @@ class TrangChuState extends State<TrangChu> {
                       final post = filteredPosts[i];
                       return PostCard(
                         post: post,
+                        currentUserId: _currentUserId,
                         onCommentPressed: () => _showCommentSheet(post),
                         onLikePressed: () => _toggleLike(post),
-                        onMenuSelected: (value) {},
+                        onMenuSelected: (value) async {
+                          if (value == "save") {
+                            final postId = post["id"] as String;
+                            await _savedPostsService.savePost(
+                              _currentUserId,
+                              postId,
+                            );
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text("Đã lưu bài viết!"),
+                                  duration: Duration(seconds: 1),
+                                ),
+                              );
+                            }
+                          }
+                        },
                       );
                     },
                   ),
