@@ -83,20 +83,6 @@ class PostCard extends StatelessWidget {
                   ),
                 ],
               ),
-              PopupMenuButton<String>(
-                onSelected: (value) {
-                  onMenuSelected?.call(value);
-                },
-                itemBuilder: (context) => const [
-                  PopupMenuItem(value: "report", child: Text("Báo cáo")),
-                  PopupMenuItem(value: "save", child: Text("Lưu bài viết")),
-                ],
-                icon: const Icon(
-                  Icons.more_vert,
-                  size: 18,
-                  color: Colors.black54,
-                ),
-              ),
             ],
           ),
           const SizedBox(height: 8),
@@ -114,41 +100,6 @@ class PostCard extends StatelessWidget {
             _buildFileSection(List<Map<String, String>>.from(post["files"])),
 
           const SizedBox(height: 8),
-
-          //  Bình luận + Lượt thích
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                "${post["likes"] ?? 0} lượt thích ${post["comments"] ?? 0} bình luận",
-                style: const TextStyle(fontSize: 12, color: Colors.grey),
-              ),
-              Row(
-                children: [
-                  TextButton(
-                    onPressed: onCommentPressed,
-                    child: const Text(
-                      "Bình luận",
-                      style: TextStyle(fontSize: 12, color: Colors.blue),
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: onLikePressed,
-                    icon: Icon(
-                      (post["isLiked"] ?? false)
-                          ? Icons.favorite
-                          : Icons.favorite_border,
-                      size: 16,
-                      color: (post["isLiked"] ?? false)
-                          ? Colors.red
-                          : Colors.redAccent,
-                    ),
-                    padding: EdgeInsets.zero,
-                  ),
-                ],
-              ),
-            ],
-          ),
         ],
       ),
     );
