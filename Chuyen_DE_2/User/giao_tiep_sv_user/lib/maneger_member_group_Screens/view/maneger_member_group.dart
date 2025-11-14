@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:giao_tiep_sv_user/Data/Users.dart';
+import 'package:giao_tiep_sv_user/FireBase_Service/UserServices.dart';
 import 'package:giao_tiep_sv_user/Screen_member_group/view/Add_member.dart';
 import 'package:giao_tiep_sv_user/Screen_member_group/widget/customSearch.dart';
 import 'package:giao_tiep_sv_user/Widget/MyButton.dart';
+import 'package:giao_tiep_sv_user/maneger_member_group_Screens/serviceGroup/groupService.dart';
 import 'package:giao_tiep_sv_user/maneger_member_group_Screens/widget/custom_member_group.dart';
 
 class ManegerMemberGroupScreen extends StatefulWidget {
-  const ManegerMemberGroupScreen({super.key});
+  final String idGroup;
+  const ManegerMemberGroupScreen({super.key, required this.idGroup});
 
   @override
   State<ManegerMemberGroupScreen> createState() =>
@@ -14,15 +17,21 @@ class ManegerMemberGroupScreen extends StatefulWidget {
 }
 
 class _ManegerMemberGroupScreenState extends State<ManegerMemberGroupScreen> {
-  List<Users> Listsearch = [];
-  List<Users> ListMember = [];
+  final manegerDB = GroupserviceManeger();
+  final userDB = Userservices();
+  List<Users?> Listsearch = [];
+  List<Users?> ListMember = [];
 
+  bool isload = false;
   bool selecAll = true;
+  String? idAdminGroups;
 
   @override
   void initState() {
     // TODO: implement initState
     super.initState();
+    getMemberGroup(widget.idGroup);
+    getAdminGroup(widget.idGroup);
     Listsearch = ListMember;
   }
 
@@ -61,7 +70,7 @@ class _ManegerMemberGroupScreenState extends State<ManegerMemberGroupScreen> {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => AddMemberScreen()),
+                  MaterialPageRoute(builder: (context) => AddMemberScreen(groupID: widget.idGroup , listMemberGroup: ListMember,)),
                 );
               },
               child: Row(
@@ -98,6 +107,8 @@ class _ManegerMemberGroupScreenState extends State<ManegerMemberGroupScreen> {
                   url_icon: "assets/icons/ic_tabAll.png",
                   nameButton: "Tất cả",
                   ontap: () {
+                    print("tat ca ");
+
                     setState(() {
                       selecAll = true;
 
@@ -116,10 +127,11 @@ class _ManegerMemberGroupScreenState extends State<ManegerMemberGroupScreen> {
                   nameButton: "Quản trị",
                   ontap: () {
                     setState(() {
-                      selecAll = !selecAll;
+                      selecAll = false;
                       if (selecAll == false) {
                         Listsearch = ListMember.where((element) {
-                          return element.role == 1;
+                          // return element!.id_user.contains(idAdminGroups!.trim());
+                          return element!.id_user.trim() == idAdminGroups!;
                         }).toList();
                       }
                     });
@@ -135,14 +147,14 @@ class _ManegerMemberGroupScreenState extends State<ManegerMemberGroupScreen> {
                   if (checkSearchMail == true) {
                     Listsearch = ListMember.where((element) {
                       // print("e: ${element.email}");
-                      return element.email.toLowerCase().contains(
+                      return element!.email.toLowerCase().contains(
                         value.toLowerCase(),
                       );
                     }).toList();
-                    print(Listsearch.length);
+
                   } else {
                     Listsearch = ListMember.where((element) {
-                      return element.fullname.toLowerCase().contains(
+                      return element!.fullname.toLowerCase().contains(
                         value.toLowerCase(),
                       );
                     }).toList();
@@ -160,18 +172,47 @@ class _ManegerMemberGroupScreenState extends State<ManegerMemberGroupScreen> {
     );
   }
 
+
+//list cac member
   Widget createListMember() {
-    return ListView.builder(
+    return (isload)?Center(child: CircularProgressIndicator(color: Colors.blueAccent,),)
+    : ListView.builder(
       // physics: NeverScrollableScrollPhysics(),
       shrinkWrap: true,
       itemCount: Listsearch.length,
       itemBuilder: (context, index) {
         var value = Listsearch[index];
         return CustomMemberGroupManeger(
-          url: value.url_avt,
-          fullname: value.fullname,
+          url: value!.url_avt,
+          fullname: value!.fullname,
         );
       },
     );
   }
+  //lay danh sach thanh vien trong nhom
+  Future<void> getMemberGroup(String idRoom)async{
+    isload =true;
+    ListMember.clear();
+    var listData = await manegerDB.listChat(idRoom);
+    for(var item in listData){
+      var newValue = await userDB.getUserForID(item!);
+      ListMember.add(newValue);
+    }
+    print("list member: ${ListMember.length}");
+
+    if(mounted){
+      setState(() {
+      isload =false;
+    });
+    }
+  }
+  //lay danh sach admin
+  Future<void> getAdminGroup(String idRoom) async{
+    isload =true;
+    idAdminGroups = await manegerDB.getCreateAtID(idRoom);
+    setState(() {
+      isload =false;
+    });
+  }
+
 }
