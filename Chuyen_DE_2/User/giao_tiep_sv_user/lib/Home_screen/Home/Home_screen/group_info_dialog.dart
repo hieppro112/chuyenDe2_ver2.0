@@ -1,15 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:giao_tiep_sv_user/duyet_Nguoi_Dung/member_post_screen.dart';
 import 'package:giao_tiep_sv_user/maneger_member_group_Screens/view/maneger_member_group.dart';
+import '../../../Data/global_state.dart'; // Cần import GlobalState
 
 class GroupInfoDialog extends StatelessWidget {
-  final String groupId; // THÊM
   final String groupName;
+  final String currentGroupId;
+  final int currentUserRole;
+  final String groupOwnerId;
+
   const GroupInfoDialog({
     super.key,
     required this.groupName,
-    required this.groupId,
+    required this.currentGroupId,
+    required this.currentUserRole,
+    required this.groupOwnerId,
   });
+
+  bool get isOwner {
+    return groupOwnerId.isNotEmpty && groupOwnerId == GlobalState.currentUserId;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -24,16 +34,22 @@ class GroupInfoDialog extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             // ======= Các tùy chọn chính =======
-            _buildOption(context, Icons.check_circle, "Duyệt", Colors.green),
-            _buildOption(context, Icons.group, "Thành viên", Colors.blue),
-            // _buildOption(
-            //   context,
-            //   Icons.search,
-            //   "Tìm kiếm cuộc đối thoại",
-            //   Colors.grey,
-            // ),
-            _buildOption(context, Icons.logout, "Rời nhóm", Colors.red),
-            _buildOption(context, Icons.delete, "Xóa chat nhóm", Colors.black),
+            if (isOwner)
+              _buildOption(
+                context,
+                Icons.check_circle,
+                "Duyệt",
+                Colors.green,
+                currentGroupId,
+              ),
+
+            _buildOption(
+              context,
+              Icons.group,
+              "Thành viên",
+              Colors.blue,
+              currentGroupId,
+            ),
           ],
         ),
       ),
@@ -51,6 +67,7 @@ class GroupInfoDialog extends StatelessWidget {
     IconData icon,
     String text,
     Color color,
+    String groupId,
   ) {
     return ListTile(
       dense: true,
@@ -58,13 +75,13 @@ class GroupInfoDialog extends StatelessWidget {
       title: Text(text),
       onTap: () {
         Navigator.pop(context);
-        // bat sk khi click vao duyet
+
         if (text == "Duyệt") {
           Navigator.push(
             context,
             MaterialPageRoute(
               builder: (context) => MemberPostScreen(
-                groupId: groupId, // ← Truyền groupId
+                groupId: currentGroupId, // ← Truyền groupId
               ),
             ),
           );
@@ -76,7 +93,6 @@ class GroupInfoDialog extends StatelessWidget {
           );
           return;
         }
-        // bat sk khac cho thanh vien,tim kiem,...
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text("Đã chọn: $text")));

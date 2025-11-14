@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:giao_tiep_sv_user/FireBase_Service/SavedPostsService.dart';
 import 'package:giao_tiep_sv_user/Home_screen/Home/Home_screen/wiget/comment_sheet_content.dart';
+import 'package:giao_tiep_sv_user/Home_screen/Home/Home_screen/wiget/report_dialog.dart';
 import '../../../FireBase_Service/get_posts.dart';
 import 'port_card.dart';
 import 'dang_bai_dialog.dart';
@@ -41,14 +42,15 @@ class TrangChuState extends State<TrangChu> {
   final SavedPostsService _savedPostsService = SavedPostsService();
 
   bool _isOpen = false;
-  String currentGroupId = "ALL";
-  String currentGroupName = "Tất cả";
+  String currentGroupId = "";
+  String currentGroupName = "Loading...";
+  int _currentUserRole = 1;
+  String _groupOwnerId = ""; // ID người tạo nhóm hiện tại
 
   List<Map<String, dynamic>> allPosts = [];
   List<Map<String, dynamic>> filteredPosts = [];
   List<Map<String, dynamic>> _joinedGroupsData = [];
 
-  // Constructor khởi tạo _postService
   TrangChuState()
     : _postService = GetPosts(
         currentUserId: GlobalState.currentUserId.isNotEmpty
@@ -68,6 +70,76 @@ class TrangChuState extends State<TrangChu> {
     }
   }
 
+  Future<void> _fetchCurrentUserRole(String groupId) async {
+    if (groupId.isEmpty || groupId == "NO_GROUP_SELECTED" || groupId == "ALL") {
+      if (mounted) setState(() => _currentUserRole = 1);
+      return;
+    }
+    try {
+      final memberDoc = await FirebaseFirestore.instance
+          .collection('Groups_members')
+          .where('user_id', isEqualTo: _currentUserId)
+          .where('group_id', isEqualTo: groupId)
+          .where('status_id', isEqualTo: 1)
+          .get();
+
+      int role = 1;
+      if (memberDoc.docs.isNotEmpty) {
+        role = memberDoc.docs.first.data()['role'] as int? ?? 1;
+      }
+
+      if (mounted) {
+        setState(() {
+          _currentUserRole = role;
+        });
+      }
+    } catch (e) {
+      print("Lỗi tra cứu vai trò: $e");
+      if (mounted) setState(() => _currentUserRole = 1);
+    }
+  }
+
+  Future<void> _fetchGroupOwnerId(String groupId) async {
+    if (groupId.isEmpty || groupId == "NO_GROUP_SELECTED" || groupId == "ALL") {
+      if (mounted) setState(() => _groupOwnerId = "");
+      return;
+    }
+    try {
+      final groupDoc = await FirebaseFirestore.instance
+          .collection('Groups')
+          .doc(groupId)
+          .get();
+
+      String ownerId = "";
+      if (groupDoc.exists && groupDoc.data() != null) {
+        final createdByData = groupDoc.data()!['created_by'];
+
+        if (createdByData is String) {
+          ownerId = createdByData;
+        } else if (createdByData is Map) {
+          final Map<String, dynamic> createdByMap = createdByData
+              .cast<String, dynamic>();
+          if (createdByMap.isNotEmpty) {
+            ownerId = createdByMap.keys.first;
+          }
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          _groupOwnerId = ownerId;
+        });
+      }
+    } catch (e) {
+      print("Lỗi tra cứu ID người tạo: $e");
+      if (mounted) {
+        setState(() {
+          _groupOwnerId = "";
+        });
+      }
+    }
+  }
+
   Future<void> _fetchJoinedGroupNames() async {
     final userId = GlobalState.currentUserId.isNotEmpty
         ? GlobalState.currentUserId
@@ -75,46 +147,52 @@ class TrangChuState extends State<TrangChu> {
 
     final groups = await _groupService.fetchJoinedGroups(userId);
 
-    setState(() {
-      _joinedGroupsData = groups;
-      if (currentGroupId == "ALL" && groups.length > 1) {
-        final defaultGroup = groups[1];
-        currentGroupId = defaultGroup["id"] as String;
-        currentGroupName = defaultGroup["name"] as String;
-      }
-      _filterPosts();
-    });
+    if (mounted) {
+      setState(() {
+        _joinedGroupsData = groups;
+
+        if (currentGroupId.isEmpty && groups.length > 1) {
+          final defaultGroup = groups[1];
+          currentGroupId = defaultGroup["id"] as String;
+          currentGroupName = defaultGroup["name"] as String;
+        } else if (currentGroupId.isEmpty && groups.length == 1) {
+          currentGroupId = "NO_GROUP_SELECTED";
+          currentGroupName = "Hãy tham gia nhóm!";
+        } else if (currentGroupId.isEmpty && groups.isEmpty) {
+          currentGroupId = "NO_GROUP_SELECTED";
+          currentGroupName = "Hãy tham gia nhóm!";
+        }
+
+        _filterPosts();
+      });
+
+      _fetchCurrentUserRole(currentGroupId);
+      _fetchGroupOwnerId(currentGroupId);
+    }
   }
 
   void _filterPosts() {
-    if (currentGroupId == "ALL") {
-      filteredPosts = allPosts.map((post) {
-        return {
-          ...post,
-          "group_name":
-              _joinedGroupsData.firstWhere(
-                (g) => g['id'] == post['group_id'],
-                orElse: () => {"name": "Không rõ"},
-              )['name'] ??
-              "Không rõ",
-        };
-      }).toList();
-    } else {
-      filteredPosts = allPosts
-          .where((post) => post["group_id"] == currentGroupId)
-          .map((post) {
-            return {
-              ...post,
-              "group_name":
-                  _joinedGroupsData.firstWhere(
-                    (g) => g['id'] == post['group_id'],
-                    orElse: () => {"name": "Không rõ"},
-                  )['name'] ??
-                  "Không rõ",
-            };
-          })
-          .toList();
+    if (currentGroupId.isEmpty ||
+        currentGroupId == "ALL" ||
+        currentGroupId == "NO_GROUP_SELECTED") {
+      filteredPosts = [];
+      return;
     }
+
+    filteredPosts = allPosts
+        .where((post) => post["group_id"] == currentGroupId)
+        .map((post) {
+          return {
+            ...post,
+            "group_name":
+                _joinedGroupsData.firstWhere(
+                  (g) => g['id'] == post['group_id'],
+                  orElse: () => {"name": "Không rõ"},
+                )['name'] ??
+                "Không rõ",
+          };
+        })
+        .toList();
   }
 
   void _changeGroup(String newGroupId, String newGroupName) {
@@ -124,6 +202,8 @@ class TrangChuState extends State<TrangChu> {
       _isOpen = false;
       _filterPosts();
     });
+    _fetchCurrentUserRole(newGroupId);
+    _fetchGroupOwnerId(newGroupId);
   }
 
   void _toggleLike(Map<String, dynamic> post) async {
@@ -163,10 +243,8 @@ class TrangChuState extends State<TrangChu> {
     _fetchPosts();
   }
 
-  // ---------------- HÀM HỖ TRỢ ----------------
-
   String _getGroupNameFromId(String groupId) {
-    if (groupId == "ALL") return "Tất cả";
+    if (groupId == "ALL" || groupId == "NO_GROUP_SELECTED") return "Tất cả";
     final groupData = _joinedGroupsData.firstWhere(
       (group) => group['id'] == groupId,
       orElse: () => {"name": "Không rõ"},
@@ -179,25 +257,14 @@ class TrangChuState extends State<TrangChu> {
       (group) => group['id'] == currentGroupId,
       orElse: () => {"avatar_url": null},
     );
+    if (currentGroupId == "NO_GROUP_SELECTED" ||
+        currentGroupData['avatar_url'] == null) {
+      return "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTq0u-w59YWMH2YXama4Hu6dNpdzg8Ra2ZfjQ&s";
+    }
     return currentGroupData['avatar_url'] ??
         "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTq0u-w59YWMH2YXama4Hu6dNpdzg8Ra2ZfjQ&s";
   }
 
-  String get currentGroup => currentGroupName;
-
-  void changeGroup(String groupName) {
-    final group = _joinedGroupsData.firstWhere(
-      (g) => g['name'] == groupName,
-      orElse: () => {"id": "ALL", "name": "Tất cả"},
-    );
-    _changeGroup(group["id"] as String, group["name"] as String);
-  }
-
-  void scrollToPost(String postId) {
-    // Logic cuộn tới bài viết
-  }
-
-  // ---------------- BUILD ----------------
   @override
   Widget build(BuildContext context) {
     final groupAvatarUrl = _getCurrentGroupAvatar();
@@ -322,7 +389,7 @@ class TrangChuState extends State<TrangChu> {
                             ),
                           ],
                         ),
-                        if (currentGroupId != "ALL")
+                        if (currentGroupId != "NO_GROUP_SELECTED")
                           IconButton(
                             icon: const Icon(
                               Icons.info_outline,
@@ -332,8 +399,11 @@ class TrangChuState extends State<TrangChu> {
                               showDialog(
                                 context: context,
                                 builder: (_) => GroupInfoDialog(
-                                  groupId: currentGroupId,
+                                  //groupId: currentGroupId,
                                   groupName: currentGroupName,
+                                  currentGroupId: currentGroupId,
+                                  currentUserRole: _currentUserRole,
+                                  groupOwnerId: _groupOwnerId,
                                 ),
                               );
                             },
@@ -381,6 +451,10 @@ class TrangChuState extends State<TrangChu> {
                                 ),
                               );
                             }
+                          }
+
+                          if (value == "report") {
+                            _showReportDialog(post);
                           }
                         },
                       );
@@ -442,5 +516,40 @@ class TrangChuState extends State<TrangChu> {
         );
       },
     );
+  }
+
+  // --- HÀM MỚI: Mở Dialog Báo cáo ---
+  void _showReportDialog(Map<String, dynamic> post) async {
+    final String postId = post["id"] as String;
+    final String postTitle = post["content"] as String? ?? "Bài viết";
+
+    // >> LẤY ID NGƯỜI ĐĂNG BÀI: Giả định trường user_id chứa ID người đăng
+    final String authorId = post["user_id"] as String? ?? '';
+
+    if (authorId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Lỗi: Không tìm thấy ID người đăng bài.")),
+      );
+      return;
+    }
+
+    // Mở dialog và đợi kết quả (true nếu gửi thành công)
+    final bool? isSubmitted = await showDialog<bool>(
+      context: context,
+      builder: (context) => ReportDialog(
+        postId: postId,
+        postTitle: postTitle,
+        recipientUserId: authorId, // << TRUYỀN ID NGƯỜI ĐĂNG VÀO ĐÂY
+      ),
+    );
+
+    if (isSubmitted == true && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("✅ Báo cáo đã được gửi."),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
   }
 }

@@ -6,6 +6,7 @@ class PostApprovalService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   // [SỬA - 14/11/2025 23:59] Tối ưu: Lấy tất cả user info 1 lần
+  // [SỬA - 15/11/2025 01:00] Giữ lại method cũ để tương thích nếu cần
   Stream<QuerySnapshot> getPendingPosts({
     int limit = 10,
     DocumentSnapshot? startAfter,
@@ -20,7 +21,30 @@ class PostApprovalService {
       query = query.startAfterDocument(startAfter);
     }
 
-    return query.snapshots(); // ← Realtime!
+    return query.snapshots(); // Realtime!
+  }
+
+  // [SỬA - 15/11/2025 01:00] MỚI: Lấy bài viết theo trạng thái
+  // statusId = -1 → Tất cả, 0 → pending, 1 → approved, 2 → rejected
+  Stream<QuerySnapshot> getPostsByStatus({
+    int limit = 20,
+    DocumentSnapshot? startAfter,
+    int statusId = -1,
+  }) {
+    Query query = _firestore
+        .collection('Post')
+        .orderBy('date_created', descending: true)
+        .limit(limit);
+
+    if (statusId >= 0) {
+      query = query.where('status_id', isEqualTo: statusId);
+    }
+
+    if (startAfter != null) {
+      query = query.startAfterDocument(startAfter);
+    }
+
+    return query.snapshots(); // Realtime cho mọi trạng thái
   }
 
   // [SỬA - 14/11/2025 23:59] Tối ưu: Lấy nhiều user cùng lúc
@@ -52,6 +76,7 @@ class PostApprovalService {
   }
 
   // [SỬA - 14/11/2025 23:59] Dùng batch
+  // [SỬA - 15/11/2025 01:00] Sửa: Dùng status_id thực tế từ Firestore
   Future<List<UserPostApprovalModel>> docsToPostModels(
     List<QueryDocumentSnapshot> docs,
   ) async {
@@ -88,6 +113,10 @@ class PostApprovalService {
         images = [data['file_url']];
       }
 
+      // [SỬA - 15/11/2025 01:00] Lấy status_id từ Firestore
+      final int statusId = (data['status_id'] as num?)?.toInt() ?? 0;
+      final String status = _statusIdToString(statusId);
+
       posts.add(
         UserPostApprovalModel(
           id: doc.id,
@@ -95,12 +124,26 @@ class PostApprovalService {
           content: data['content'] ?? '',
           image: images.isNotEmpty ? images[0] : '',
           date: (data['date_created'] as Timestamp).toDate(),
-          status: 'pending',
+          status: status, // Dùng status thực tế
           reviewType: 'post',
         ),
       );
     }
     return posts;
+  }
+
+  // [SỬA - 15/11/2025 01:00] Helper: Chuyển status_id → string
+  String _statusIdToString(int id) {
+    switch (id) {
+      case 0:
+        return 'pending';
+      case 1:
+        return 'approved';
+      case 2:
+        return 'rejected';
+      default:
+        return 'pending';
+    }
   }
 
   Future<void> approvePost(String postId) async {

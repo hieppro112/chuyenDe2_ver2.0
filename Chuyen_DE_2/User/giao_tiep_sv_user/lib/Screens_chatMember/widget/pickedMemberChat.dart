@@ -8,10 +8,11 @@ import 'package:giao_tiep_sv_user/Screens_chatMember/widget/customMemberUyquyen.
 
 
 class Pickedmemberchat extends StatefulWidget {
+  final String myID;
   final ValueChanged<List<Users>>? GetList;
   final int throwss;
 
-  const Pickedmemberchat({super.key, this.GetList, required this.throwss});
+  const Pickedmemberchat({super.key, this.GetList, required this.throwss, required this.myID});
 
   @override
   State<Pickedmemberchat> createState() => _Pickedmemberchat();
@@ -71,6 +72,8 @@ class _Pickedmemberchat extends State<Pickedmemberchat> {
                   Listsearch = listUyQuyen.where((element) {
                     return element.fullname.toLowerCase().contains(
                       value.toLowerCase(),
+                    ) && !element.id_user.toLowerCase().contains(
+                      widget.myID.toLowerCase(),
                     );
                   }).toList();
                 });
@@ -125,7 +128,7 @@ class _Pickedmemberchat extends State<Pickedmemberchat> {
     );
   }
 
-  //menu chon khoa
+  //menu chon khoa tim tho+eo khoa
   Widget createChoseKhoa() {
     return PopupMenuButton<String>(
       child: Container(
@@ -157,7 +160,7 @@ class _Pickedmemberchat extends State<Pickedmemberchat> {
             Listsearch = listUyQuyen.where((element) {
               return element.faculty_id.toLowerCase().contains(
                 value.toLowerCase(),
-              );
+              ) && !element.id_user.toLowerCase().trim().contains(widget.myID.toLowerCase());
             }).toList();
           });
         }
@@ -196,8 +199,6 @@ class _Pickedmemberchat extends State<Pickedmemberchat> {
                       });
                     }
                   });
-
-                  print("ds uy quyen = ${listUyQuyen_out.length}");
                 },
               );
             },
@@ -221,51 +222,18 @@ class _Pickedmemberchat extends State<Pickedmemberchat> {
     });
   }
 
-  //lay dach sach nguoi dung vao list uy quyen
+  //lay dach sach nguoi dung vao list uy quyen khac me
   Future<void> featchMembers() async {
     isLoading = true;
-    // final snap = await FirebaseFirestore.instance.collection("Users").get();
-
-    // final data = snap.docs.map((e) {
-    //   final mapData = e.data();
-    //   return Users(
-    //     id_user: e.id,
-    //     email: mapData["email"] ?? "",
-    //     pass: mapData["pass"] ?? "",
-    //     fullname: mapData["fullname"] ?? "",
-    //     url_avt: mapData["avt"] ?? "",
-    //     role: mapData["role"] ?? 0,
-    //     faculty_id: mapData["faculty_id"] ?? "",
-    //   );
-    // }).toList();
-
-    // setState(() {
-    //   listUyQuyen = data;
-    //   Listsearch =data;
-    //   isLoading =false;
-    // });
-
     try {
-      // FirebaseFirestore.instance.collection("Users").snapshots().listen((
-      //   event,
-      // ) {
-      //   final data = event.docs.map((e) {
-      //     final mapData = e.data();
-      //     return Users(
-      //       id_user: e.id,
-      //       email: mapData["email"] ?? "",
-      //       pass: mapData["pass"] ?? "",
-      //       fullname: mapData["fullname"] ?? "",
-      //       url_avt: mapData["avt"] ?? "",
-      //       role: mapData["role"] ?? 0,
-      //       faculty_id: mapData["faculty_id"] ?? "",
-      //     );
-      //   }).toList();
-
       firestoreService.streamBuilder().listen((data) {
         setState(() {
           listUyQuyen = data;
-          Listsearch = data;
+          Listsearch = listUyQuyen.where((element) {
+            return !element.id_user.toLowerCase().trim().contains(
+              widget.myID
+            );
+          },).toList();
           isLoading = false;
         });
       },);

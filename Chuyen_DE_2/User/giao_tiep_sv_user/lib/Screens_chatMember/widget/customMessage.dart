@@ -8,13 +8,14 @@ class Custommessage extends StatelessWidget {
   final String nameSender;
   final String content;
   final String? Url_media;
+  final DateTime dateSend;
 
   const Custommessage({
     super.key,
     required this.forme_sender,
     required this.url_avt,
     required this.content,
-    this.Url_media, required this.nameSender,
+    this.Url_media, required this.nameSender, required this.dateSend,
   });
 
   @override
@@ -65,6 +66,13 @@ class Custommessage extends StatelessWidget {
                   const SizedBox(height: 8),
                   _buildImage(Url_media!),
                 ],
+
+                SizedBox(height: 5,),
+                //thoi gian gui tin nhan
+                Text("${dateSend.hour}:${dateSend.minute}",style: TextStyle(
+                  fontSize: 13,
+                  color: Colors.grey
+                ),)
               ],
             ),
           ),
@@ -87,7 +95,7 @@ class Custommessage extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
           ),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               if (hasText)
                 Text(
@@ -99,6 +107,13 @@ class Custommessage extends StatelessWidget {
                 const SizedBox(height: 8),
                 _buildImage(Url_media!),
               ],
+
+               SizedBox(height: 5,),
+                //thoi gian gui tin nhan
+                Text("${dateSend.hour}:${dateSend.minute}",style: TextStyle(
+                  fontSize: 13,
+                  color: Colors.grey
+                ),)
             ],
           ),
         ),

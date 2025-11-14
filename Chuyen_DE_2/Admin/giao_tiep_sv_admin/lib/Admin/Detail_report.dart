@@ -1,23 +1,56 @@
 import 'package:flutter/material.dart';
-import '../data/ViolationReport.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:giao_tiep_sv_admin/FirebaseFirestore/admin_action_service.dart';
+import 'package:giao_tiep_sv_admin/data/violation_report.dart';
+import 'duyet_nhom_admin/widget/post_card.dart';
+import 'package:intl/intl.dart';
 
 class DetailScreen extends StatelessWidget {
   final ViolationReport report;
+  final AdminActionService _service = AdminActionService();
 
-  const DetailScreen({super.key, required this.report});
+  DetailScreen({super.key, required this.report});
+
+  // Chuyển đổi Timestamp sang chuỗi format
+  String _formatDate(dynamic timestamp) {
+    if (timestamp is Timestamp) {
+      DateTime date = timestamp.toDate();
+      return DateFormat('dd/MM/yyyy HH:mm').format(date);
+    }
+    return 'Không rõ thời gian';
+  }
+
+  // ------- Lấy dữ liệu bài viết -------
+  Future<Map<String, dynamic>?> _fetchPostDetails() async {
+    if (report.postId == null || report.postId!.isEmpty) return null;
+    try {
+      final postDoc = await FirebaseFirestore.instance
+          .collection('Post')
+          .doc(report.postId!)
+          .get();
+
+      if (postDoc.exists) return postDoc.data();
+    } catch (e) {
+      print('Lỗi tải bài viết: $e');
+    }
+    return null;
+  }
 
   @override
   Widget build(BuildContext context) {
+    final String recipientId = report.recipientId ?? '232xxxxxxx';
+    final String senderId = report.senderId ?? 'Không rõ';
+    final String reportedUserName =
+        report.recipientId ?? 'Người dùng bị báo cáo';
+    final String createdAt = _formatDate(report.createdAt);
+
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () {
-            Navigator.pop(context);
-          },
+          onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
           'Chi Tiết',
@@ -34,7 +67,7 @@ class DetailScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: <Widget>[
-            // 1. AVATAR
+            // 1. Avatar
             CircleAvatar(
               radius: 60,
               backgroundImage: NetworkImage(report.avatarUrl),
@@ -42,27 +75,20 @@ class DetailScreen extends StatelessWidget {
             ),
             const SizedBox(height: 15),
 
-            // 2. TÊN & ID
+            // 2. Info người bị báo cáo
             Text(
-              report.name,
-              style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                height: 1.2,
-              ),
+              reportedUserName,
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             Text(
-              report.id,
-              style: const TextStyle(fontSize: 16, color: Colors.grey),
+              recipientId,
+              style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
             ),
-            const SizedBox(height: 30),
+            _buildInfoRow('Người gửi:', senderId),
 
-            // 3. THÔNG TIN CÁ NHÂN
-            _buildInfoRow('Khoa:', report.department),
-            _buildInfoRow('Email:', report.email),
             const SizedBox(height: 20),
 
-            // 4. CHI TIẾT BÁO CÁO (Container màu hồng)
+            // 3. Khung thông tin báo cáo
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(15),
@@ -74,46 +100,65 @@ class DetailScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Bị báo cáo lúc: ${report.reportTime}',
+                    'Bị báo cáo lúc: $createdAt',
                     style: const TextStyle(
                       fontWeight: FontWeight.w600,
-                      color: Colors.redAccent,
+                      color: Colors.black,
+                      fontSize: 16,
                     ),
                   ),
-                  const SizedBox(height: 5),
+                  const SizedBox(height: 10),
                   Text(
-                    'Lý do : ${report.reason}',
+                    'Title : ${report.title}',
                     style: const TextStyle(fontSize: 16),
                   ),
+                  const SizedBox(height: 10),
+                  Text(
+                    'Lý do : ${report.content}',
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                  const SizedBox(height: 20),
+
+                  _buildViolatingPostWidget(context),
                 ],
               ),
             ),
+
             const SizedBox(height: 40),
 
-            // 5. NÚT HÀNH ĐỘNG
+            // 4. Nút hành động
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: <Widget>[
-                // Nút Cảnh báo
                 Expanded(
                   child: _buildActionButton(
                     text: 'Cảnh báo',
                     icon: Icons.warning_amber_rounded,
                     color: Colors.amber,
                     onPressed: () {
-                      _showActionDialog(context, 'Cảnh báo', report.name);
+                      _showActionDialog(
+                        context,
+                        'Cảnh báo',
+                        report.title,
+                        recipientId: recipientId,
+                        reportDocId: report.docId,
+                      );
                     },
                   ),
                 ),
                 const SizedBox(width: 15),
-                // Nút Khóa tài khoản
                 Expanded(
                   child: _buildActionButton(
                     text: 'Khóa tài khoản',
                     icon: Icons.close,
                     color: Colors.red.shade400,
                     onPressed: () {
-                      _showActionDialog(context, 'Khóa tài khoản', report.name);
+                      _showActionDialog(
+                        context,
+                        'Khóa tài khoản',
+                        report.title,
+                        recipientId: recipientId,
+                        reportDocId: report.docId,
+                      );
                     },
                   ),
                 ),
@@ -125,7 +170,87 @@ class DetailScreen extends StatelessWidget {
     );
   }
 
-  // Hàm tiện ích tạo hàng thông tin
+  // ------- Widget hiển thị bài viết -------
+  Widget _buildViolatingPostWidget(BuildContext context) {
+    if (report.postId == null || report.postId!.isEmpty) {
+      return const Text(
+        "Không có ID bài viết vi phạm.",
+        style: TextStyle(color: Colors.grey),
+      );
+    }
+
+    return FutureBuilder<Map<String, dynamic>?>(
+      future: _fetchPostDetails(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator(strokeWidth: 2));
+        }
+
+        if (snapshot.hasError || !snapshot.hasData) {
+          return Text('Không thể tải bài viết (ID: ${report.postId})');
+        }
+
+        final postData = snapshot.data!;
+        dynamic fileData = postData['file_url'];
+
+        List<Map<String, String>> filesList = [];
+        if (fileData is List) {
+          filesList = fileData
+              .map((item) => Map<String, String>.from(item))
+              .toList();
+        } else if (fileData is String && fileData.isNotEmpty) {
+          filesList = [
+            {'name': 'Tệp đính kèm', 'path': fileData},
+          ];
+        }
+
+        final adaptedPostData = {
+          'id': report.postId,
+          'title': postData['content'],
+          'content': postData['content'],
+          'images': postData['image_urls'] is List
+              ? postData['image_urls']
+              : (postData['image_urls'] is String
+                    ? [postData['image_urls']]
+                    : []),
+          'files': filesList,
+          'date': postData['date_created']?.toString(),
+          'user_id': postData['user_id'],
+          'group_id': postData['group_id'],
+          'fullname': 'Người đăng bài',
+          'avatar':
+              'https://cellphones.com.vn/sforum/wp-content/uploads/2023/10/avatar-trang-4.jpg',
+          'group_name': 'Không rõ nhóm',
+          'likes': postData['likes'] ?? 0,
+          'comments': postData['comments'] ?? 0,
+          'isLiked': false,
+        };
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Divider(height: 20, thickness: 1, color: Colors.black26),
+            const Text(
+              "Bài viết bị báo cáo:",
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+            const SizedBox(height: 10),
+
+            PostCard(
+              post: adaptedPostData,
+              onCommentPressed: () {},
+              onLikePressed: () {},
+              onMenuSelected: (value) {},
+            ),
+
+            _buildInfoRow('ID Bài viết:', report.postId!),
+          ],
+        );
+      },
+    );
+  }
+
+  // ------- UI tiện ích -------
   Widget _buildInfoRow(String title, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 5.0),
@@ -149,7 +274,6 @@ class DetailScreen extends StatelessWidget {
     );
   }
 
-  // Hàm tiện ích tạo nút hành động
   Widget _buildActionButton({
     required String text,
     required IconData icon,
@@ -175,11 +299,19 @@ class DetailScreen extends StatelessWidget {
     );
   }
 
-  // Hàm tiện ích hiển thị Dialog xác nhận
-  void _showActionDialog(BuildContext context, String action, String userName) {
+  // ------- Dialog xử lý hành động -------
+  void _showActionDialog(
+    BuildContext context,
+    String action,
+    String userName, {
+    String? recipientId,
+    String? reportDocId,
+  }) {
+    final AdminActionService service = AdminActionService();
+
     showDialog(
       context: context,
-      builder: (BuildContext context) {
+      builder: (BuildContext dialogContext) {
         return AlertDialog(
           title: Text('$action người dùng'),
           content: Text(
@@ -188,9 +320,7 @@ class DetailScreen extends StatelessWidget {
           actions: <Widget>[
             TextButton(
               child: const Text('Hủy'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
+              onPressed: () => Navigator.of(dialogContext).pop(),
             ),
             TextButton(
               child: Text(
@@ -199,15 +329,45 @@ class DetailScreen extends StatelessWidget {
                   color: action == 'Khóa tài khoản' ? Colors.red : Colors.amber,
                 ),
               ),
-              onPressed: () {
+              onPressed: () async {
+                Navigator.of(dialogContext).pop();
+                bool success = false;
+                String message = 'Đã thực hiện hành động.';
+
+                if (action == 'Cảnh báo' &&
+                    recipientId != null &&
+                    reportDocId != null) {
+                  success = await service.sendWarningAndMarkResolved(
+                    context,
+                    recipientId,
+                    reportDocId,
+                  );
+                  message = success
+                      ? '✅ Đã gửi cảnh báo và đánh dấu báo cáo.'
+                      : '❌ Lỗi khi gửi cảnh báo.';
+                } else if (action == 'Khóa tài khoản' && recipientId != null) {
+                  success = await service.lockUserAccount(recipientId);
+                  message = success
+                      ? '✅ Đã khóa tài khoản thành công.'
+                      : '❌ Lỗi khi khóa tài khoản.';
+
+                  if (success && reportDocId != null) {
+                    await service.sendWarningAndMarkResolved(
+                      context,
+                      recipientId,
+                      reportDocId,
+                    );
+                  }
+                }
+
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text(
-                      'Đã thực hiện hành động "$action" với $userName',
-                    ),
+                    content: Text(message),
+                    backgroundColor: success ? Colors.green : Colors.red,
                   ),
                 );
-                Navigator.of(context).pop();
+
+                Navigator.pop(context);
               },
             ),
           ],

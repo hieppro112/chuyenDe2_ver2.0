@@ -1,3 +1,4 @@
+// GroupMemberApprovalService.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:giao_tiep_sv_user/duyet_Nguoi_Dung/models/MemberApprovalModel.dart';
 
@@ -5,21 +6,42 @@ class MemberApprovalService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final String _collection = 'Groups_members';
 
-  /// [SỬA - 14/11/2025 23:15]
-  /// - Bỏ .where('status_id', isEqualTo: 0) để lấy TẤT CẢ trạng thái (pending, approved, rejected)
-  /// - Tăng limit mặc định lên 100
-  /// → Mục đích: Hiển thị thành viên đã duyệt/từ chối, không bị mất khi lọc
+  // [SỬA - 15/11/2025 02:30] Giữ lại để tương thích
   Stream<QuerySnapshot> getPendingMembers({
-    int limit = 100, // [SỬA - 14/11/2025 23:15] Tăng từ 10 → 100
+    int limit = 100,
     DocumentSnapshot? startAfter,
     required String groupId,
   }) {
     Query query = _firestore
         .collection(_collection)
         .where('group_id', isEqualTo: groupId)
-        // [SỬA - 14/11/2025 23:15] BỎ DÒNG: .where('status_id', isEqualTo: 0)
+        .where('status_id', isEqualTo: 0) // Chỉ pending
         .orderBy('joined_at', descending: true)
         .limit(limit);
+
+    if (startAfter != null) {
+      query = query.startAfterDocument(startAfter);
+    }
+
+    return query.snapshots();
+  }
+
+  // [SỬA - 15/11/2025 02:30] MỚI: Lấy thành viên theo trạng thái
+  Stream<QuerySnapshot> getMembersByStatus({
+    required String groupId,
+    int limit = 100,
+    DocumentSnapshot? startAfter,
+    int statusId = -1, // -1: tất cả
+  }) {
+    Query query = _firestore
+        .collection(_collection)
+        .where('group_id', isEqualTo: groupId)
+        .orderBy('joined_at', descending: true)
+        .limit(limit);
+
+    if (statusId >= 0) {
+      query = query.where('status_id', isEqualTo: statusId);
+    }
 
     if (startAfter != null) {
       query = query.startAfterDocument(startAfter);
@@ -32,19 +54,16 @@ class MemberApprovalService {
     QueryDocumentSnapshot doc,
   ) async {
     final data = doc.data() as Map<String, dynamic>;
+    final String? userId = data['user_id'] as String?;
 
     String fullName = 'Không tên';
     String avatar = '';
     String? faculty;
     String? facultyId;
-    String? academicYear;
-
-    final String? userId = data['user_id'] as String?;
 
     if (userId != null && userId.isNotEmpty) {
       try {
         final userDoc = await _firestore.collection('Users').doc(userId).get();
-
         if (userDoc.exists) {
           final userData = userDoc.data()!;
           fullName = userData['fullname'] ?? 'Không tên';
@@ -52,32 +71,22 @@ class MemberApprovalService {
           facultyId = userData['faculty_id']?.toString();
 
           if (facultyId != null && facultyId.isNotEmpty) {
-            try {
-              final facultySnapshot = await _firestore
-                  .collection('Faculty')
-                  .where('id', isEqualTo: facultyId)
-                  .limit(1)
-                  .get();
-
-              if (facultySnapshot.docs.isNotEmpty) {
-                final facultyDoc = facultySnapshot.docs.first;
-                faculty = facultyDoc['name'] ?? 'Không rõ khoa';
-              } else {
-                faculty = facultyId;
-              }
-            } catch (e) {
-              faculty = facultyId;
-            }
+            final facultySnapshot = await _firestore
+                .collection('Faculty')
+                .where('id', isEqualTo: facultyId)
+                .limit(1)
+                .get();
+            faculty = facultySnapshot.docs.isNotEmpty
+                ? facultySnapshot.docs.first['name'] ?? 'Không rõ khoa'
+                : facultyId;
           }
         }
-      } catch (e, s) {
-        print("Lỗi khi lấy user: $e\n$s");
+      } catch (e) {
+        print("Lỗi lấy user: $e");
       }
     }
 
     final int statusId = (data['status_id'] as num?)?.toInt() ?? 0;
-    final String status = _statusIdToString(statusId);
-
     return MemberApprovalModel(
       id: doc.id,
       userId: userId ?? '',
@@ -85,11 +94,10 @@ class MemberApprovalService {
       avatar: avatar,
       groupId: data['group_id'] ?? '',
       role: _roleToString((data['role'] as num?)?.toInt() ?? 0),
-      status: status,
+      status: _statusIdToString(statusId),
       joinedAt: (data['joined_at'] as Timestamp?)?.toDate() ?? DateTime.now(),
       faculty: faculty,
       facultyId: facultyId,
-      academicYear: academicYear,
     );
   }
 

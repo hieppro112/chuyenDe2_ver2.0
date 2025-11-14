@@ -121,7 +121,7 @@ class _DangKiState extends State<DangKi> {
         "phone": "",
         "address": "",
         "avt":
-            "https://cellphones.com.vn/sforum/wp-content/uploads/2023/10/avatar-trang-4.jpg", // anh mac dinh
+            "https://cellphones.com.vn/sforum/wp-content/uploads/2023/10/avatar-trang-4.jpg", // ảnh mặc định
         "role": 0,
         "faculty_id": ma,
       });

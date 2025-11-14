@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:giao_tiep_sv_user/Data/global_state.dart'; 
 import 'package:giao_tiep_sv_user/Home_screen/home.dart';
 import '../left_panel.dart';
+import 'package:giao_tiep_sv_user/FireBase_Service/myGroup_service.dart';
 
 class NhomCuaToi extends StatefulWidget {
   const NhomCuaToi({super.key});
@@ -12,32 +15,13 @@ class NhomCuaToi extends StatefulWidget {
 class _NhomCuaToiState extends State<NhomCuaToi> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
-  // ✅ Dữ liệu mẫu
-  final List<Map<String, dynamic>> groups = [
-    {
-      "name": "Dev vui vẻ",
-      "image": "assets/images/dev.png",
-      "id": "DEV_VUI_VE_ID",
-    },
-    {
-      "name": "Cơ sở dữ liệu",
-      "image": "assets/images/database.png",
-      "id": "CSDL_ID",
-    },
-    {
-      "name": "Công nghệ vui vẻ",
-      "image": "assets/images/database.png",
-      "id": "CNVV_ID",
-    },
-    {
-      "name": "Lập trình di động",
-      "image": "assets/images/dev.png",
-      "id": "LTDĐ_ID",
-    },
-  ];
+  // ✅ Gọi từ service thay vì trực tiếp Firestore
+  final Stream<QuerySnapshot> _groupsStream = MygroupService.getMyGroupsStream();
 
   @override
   Widget build(BuildContext context) {
+    print(">>> Current User ID: ${GlobalState.currentUserId}"); 
+    
     return Scaffold(
       key: _scaffoldKey,
       backgroundColor: Colors.white,
@@ -47,20 +31,16 @@ class _NhomCuaToiState extends State<NhomCuaToi> {
     );
   }
 
-  // Drawer bên trái
   Drawer _buildDrawer() {
     return Drawer(
       child: LeftPanel(
         onClose: () => Navigator.of(context).pop(),
-        onGroupSelected: (id, name) {
-          // Có thể thêm logic cập nhật GlobalState ở đây
-        },
+        onGroupSelected: (id, name) {},
         isGroupPage: true,
       ),
     );
   }
 
-  // AppBar
   AppBar _buildAppBar() {
     return AppBar(
       backgroundColor: Colors.white,
@@ -81,7 +61,6 @@ class _NhomCuaToiState extends State<NhomCuaToi> {
     );
   }
 
-  // Body chính
   Widget _buildBody() {
     return Column(
       children: [
@@ -95,18 +74,47 @@ class _NhomCuaToiState extends State<NhomCuaToi> {
     );
   }
 
-  // Danh sách nhóm
   Widget _buildGroupList() {
-    return ListView.builder(
-      itemCount: groups.length,
-      itemBuilder: (context, index) {
-        final group = groups[index];
-        return _buildGroupCard(group);
+    return StreamBuilder<QuerySnapshot>(
+      stream: _groupsStream, 
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (snapshot.hasError) {
+          return Center(child: Text('Đã xảy ra lỗi khi tải dữ liệu: ${snapshot.error}'));
+        }
+
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          if (GlobalState.currentUserId.isEmpty) {
+            return const Center(child: Text('Lỗi: ID người dùng chưa được thiết lập.'));
+          }
+          return const Center(child: Text('Bạn chưa tạo nhóm nào.'));
+        }
+
+        final groupsDocs = snapshot.data!.docs;
+
+        return ListView.builder(
+          itemCount: groupsDocs.length,
+          itemBuilder: (context, index) {
+            final groupDoc = groupsDocs[index];
+            final groupData = groupDoc.data() as Map<String, dynamic>;
+            final group = {
+              "id": groupDoc.id,
+              "name": groupData["name"] ?? "Nhóm không tên",
+              "image": groupData.containsKey("avt") && groupData["avt"] is String
+                  ? groupData["avt"]
+                  : "assets/images/database.png",
+            };
+
+            return _buildGroupCard(group);
+          },
+        );
       },
     );
   }
 
-  // Card nhóm
   Widget _buildGroupCard(Map<String, dynamic> group) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -127,15 +135,30 @@ class _NhomCuaToiState extends State<NhomCuaToi> {
     );
   }
 
-  // Ảnh nhóm
   Widget _buildGroupImage(String imagePath) {
+    final bool isNetworkImage = imagePath.startsWith('http') || imagePath.startsWith('https');
+
     return ClipRRect(
       borderRadius: BorderRadius.circular(12),
-      child: Image.asset(imagePath, width: 60, height: 60, fit: BoxFit.cover),
+      child: SizedBox(
+        width: 60, 
+        height: 60,
+        child: isNetworkImage 
+            ? Image.network(
+                imagePath,
+                fit: BoxFit.cover,
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return const Center(child: CircularProgressIndicator(strokeWidth: 2));
+                },
+                errorBuilder: (context, error, stackTrace) => 
+                  Image.asset("assets/images/database.png", fit: BoxFit.cover),
+              )
+            : Image.asset(imagePath, fit: BoxFit.cover),
+      ),
     );
   }
 
-  // Thông tin nhóm + nút truy cập
   Widget _buildGroupInfo(Map<String, dynamic> group) {
     return Expanded(
       child: Column(
@@ -156,7 +179,6 @@ class _NhomCuaToiState extends State<NhomCuaToi> {
     );
   }
 
-  // Nút truy cập
   Widget _buildAccessButton(String groupId, String groupName) {
     return OutlinedButton(
       onPressed: () => _handleAccessGroup(groupId, groupName),
@@ -176,10 +198,9 @@ class _NhomCuaToiState extends State<NhomCuaToi> {
     );
   }
 
-  // Xử lý truy cập nhóm
   void _handleAccessGroup(String groupId, String groupName) {
     print(">>> Đang chuyển hướng và chọn nhóm: ID=$groupId | Tên=$groupName");
-
+    
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (context) => const Home()),

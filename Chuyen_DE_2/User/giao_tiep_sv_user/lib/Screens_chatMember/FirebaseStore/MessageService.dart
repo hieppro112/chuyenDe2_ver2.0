@@ -1,10 +1,81 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/widgets.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'dart:io';
 import 'package:giao_tiep_sv_user/Data/message.dart';
 import 'package:giao_tiep_sv_user/Data/room_chat.dart';
 
 class MessageService {
   final FirebaseFirestore messDB = FirebaseFirestore.instance;
+
+  //xu ly dua anh len storage
+  final FirebaseStorage ref = FirebaseStorage.instance;
+
+  //dua hinh anh len storage
+  Future<String?> uploadImageGroupChat(String namefile, File imageFile) async {
+    try {
+      final putImage = ref.ref().child("chats/group/$namefile");
+
+      await putImage.putFile(imageFile!);
+      //lay url img
+      final imgUrl = await putImage.getDownloadURL();
+      print("url anh nhom");
+      return imgUrl;
+    } catch (e) {
+      print("loi khi up anh: $e");
+      return null;
+    }
+  }
+
+  //gui tin nhan anh 
+   Future<void> sendImageMessage({
+    required String roomId,
+    required String senderId,
+    required String senderName,
+    required String senderAvatar,
+    required File imageFile,
+  }) async {
+    try {
+      // upload ảnh lên Firebase Storage
+      final String? imageUrl = await uploadImageGroupChat(
+        "${DateTime.now().millisecondsSinceEpoch}_${senderId}.jpg",
+        imageFile,
+      );
+
+      if (imageUrl == null) throw Exception("Upload ảnh thất bại");
+
+      // tạo id message
+      final docRef = messDB
+          .collection("ChatRooms")
+          .doc(roomId)
+          .collection("Message")
+          .doc();
+
+      // tạo model Message
+      final message = Message(
+        id_message: docRef.id,
+        sender_id: senderId,
+        content: "", // không có nội dung text
+        media_url: imageUrl,
+        isread: false,
+        sender_name: senderName,
+        sender_avatar: senderAvatar,
+        create_at: DateTime.now(),
+      );
+
+      // lưu vào Firestore
+      await docRef.set(message.toMap());
+
+      // cập nhật lastMessage cho phòng chat
+      await messDB.collection("ChatRooms").doc(roomId).update({
+        "lastMessage": "📷 Ảnh",
+        "lastTime": FieldValue.serverTimestamp(),
+      });
+
+      print(" Gửi ảnh thành công: $imageUrl");
+    } catch (e) {
+      print(" Lỗi khi gửi ảnh: $e");
+    }
+  }
 
   //lay danh sách tin nhan
   Future<List<ChatRoom>> listChat(String myID) async {
@@ -19,8 +90,6 @@ class MessageService {
         print("Không có phòng chat nào cả");
         return [];
       }
-
-
 
       List<ChatRoom> roomsChat = querySnap.docs.map((e) {
         final data = e.data();
@@ -39,13 +108,14 @@ class MessageService {
   Stream<List<ChatRoom>> streamChatRooms(String myID) {
     return messDB
         .collection("ChatRooms")
-        .where("users", arrayContains: myID.toUpperCase())
+        .where("users", arrayContains: myID.toUpperCase().trim())
         .orderBy("lastTime", descending: true)
         .snapshots()
         .map(
           (snapshot) => snapshot.docs.map((doc) {
             final data = doc.data();
             data["roomId"] = doc.id;
+            print(myID.toUpperCase());
             return ChatRoom.fromFirestore(doc);
           }).toList(),
         );
@@ -84,11 +154,11 @@ class MessageService {
       final message = Message(
         isread: false,
         id_message: messRef.id,
-        content:content??"null roi" ,
+        content: content ?? "null roi",
         sender_id: senderID,
         sender_avatar: avt_sender,
         sender_name: name_sender,
-        media_url: mediaUrl??"",
+        media_url: mediaUrl ?? "",
         create_at: DateTime.now(),
       );
 
@@ -97,11 +167,10 @@ class MessageService {
 
       //cap nhat lai phong chat
       await messDB.collection("ChatRooms").doc(roomId).update({
-        "lastMessage":content??"",
-        "lastTime":FieldValue.serverTimestamp(),
+        "lastMessage": content ?? "",
+        "lastTime": FieldValue.serverTimestamp(),
       });
       return message;
-
     } catch (e) {
       print("loi khi gui tin nhan $e");
       return null;
@@ -109,10 +178,15 @@ class MessageService {
   }
 
   //tao nhom chats
-  Future<void> createChatRooms(ChatRoom chatroom)async{
-    try{
-      await messDB.collection("ChatRooms").doc(chatroom.roomId).set(chatroom.toMap());
+  Future<void> createChatRooms(ChatRoom chatroom) async {
+    try {
+      await messDB
+          .collection("ChatRooms")
+          .doc(chatroom.roomId)
+          .set(chatroom.toMap());
       print("tao nhom chat thanh cong");
-    }catch(e){print("loi khi tao nhom: $e");}
+    } catch (e) {
+      print("loi khi tao nhom: $e");
+    }
   }
 }
