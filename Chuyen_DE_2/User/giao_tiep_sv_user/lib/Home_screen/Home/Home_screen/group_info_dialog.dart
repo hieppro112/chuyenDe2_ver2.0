@@ -4,7 +4,8 @@ import 'package:giao_tiep_sv_user/maneger_member_group_Screens/view/maneger_memb
 
 class GroupInfoDialog extends StatelessWidget {
   final String groupName;
-  const GroupInfoDialog({super.key, required this.groupName});
+  final String idGroup;
+  const GroupInfoDialog({super.key, required this.groupName, required this.idGroup});
 
   @override
   Widget build(BuildContext context) {
@@ -63,7 +64,7 @@ class GroupInfoDialog extends StatelessWidget {
         } else if (text == "Thành viên") {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => ManegerMemberGroupScreen()),
+            MaterialPageRoute(builder: (context) => ManegerMemberGroupScreen(idGroup: idGroup,)),
           );
           return;
         }

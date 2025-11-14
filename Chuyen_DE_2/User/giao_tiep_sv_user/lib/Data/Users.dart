@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class Users {
   final String id_user;
   final String email;
@@ -16,7 +18,21 @@ class Users {
     return Users(
       id_user: idUs,
      email: map['email']??"",
-      // pass: pass, 
+      fullname: map['fullname']??"", 
+      url_avt: map['avt']??"", 
+      role: 1,
+       faculty_id: map['faculty_id'].toString()??"",
+       address: map['address']??"",
+       phone: map['phone']??"",
+       );
+       
+  }
+
+  factory Users.fromFirebase(DocumentSnapshot map){
+    final idUs = map['email'].toString().split("@")[0]??" ";
+    return Users(
+      id_user: idUs,
+     email: map['email']??"",
       fullname: map['fullname']??"", 
       url_avt: map['avt']??"", 
       role: 1,

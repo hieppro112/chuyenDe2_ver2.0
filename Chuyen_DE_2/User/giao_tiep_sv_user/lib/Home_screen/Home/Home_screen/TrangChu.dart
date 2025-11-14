@@ -273,7 +273,10 @@ class TrangChuState extends State<TrangChu> {
                         ),
                         const SizedBox(width: 10),
                         GestureDetector(
-                          onTap: _openDangBaiDialog,
+                          onTap: () {
+                            _openDangBaiDialog();
+                            print("clicked");
+                          },
                           child: Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 18,
@@ -347,9 +350,11 @@ class TrangChuState extends State<TrangChu> {
                               color: Colors.blue,
                             ),
                             onPressed: () {
+                              print("name group: ${currentGroupId}");
                               showDialog(
                                 context: context,
                                 builder: (_) => GroupInfoDialog(
+                                  idGroup: currentGroupId.trim(),
                                   groupName: currentGroupName,
                                 ),
                               );
