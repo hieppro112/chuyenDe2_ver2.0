@@ -1,19 +1,20 @@
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:giao_tiep_sv_user/FireBase_Service/upload_service.dart'; // Giả định service này đã tồn tại
+import 'package:giao_tiep_sv_user/FireBase_Service/upload_service.dart';
 
 class CreateGroupService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final UploadService _uploadService = UploadService();
 
   /// Tạo một nhóm mới và thêm người tạo vào nhóm thành viên
+
   Future<bool> createGroup({
     required String creatorUserId,
     required String creatorFullname,
     required String name,
     required String description,
     File? groupImage,
-    required String facultyId,
+    required Map<String, String> facultyId,
   }) async {
     try {
       String? imageUrl;
@@ -35,7 +36,6 @@ class CreateGroupService {
         "name": name,
         "description": description,
         "type_group": 0,
-        "approval_mode": true,
         "avt": imageUrl,
         "created_by": {creatorUserId: creatorFullname},
         "id_status": 0,

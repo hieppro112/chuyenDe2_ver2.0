@@ -1,26 +1,32 @@
-// faculty_service.dart
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class FacultyService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  /// Tra cứu tên Khoa dựa trên facultyId.
-  Future<String> getFacultyName(String facultyId) async {
-    if (facultyId.isEmpty) {
-      return "Không rõ";
-    }
+  /// Truy vấn Firebase để lấy tên khoa dựa trên mã khoa (ví dụ: 'TT').
+  /// Trả về Map<String, String> {facultyCode: facultyName}
+  Future<Map<String, String>?> fetchFacultyIdMap(String facultyCode) async {
+    if (facultyCode.isEmpty) return null;
+
     try {
-      final doc = await _firestore.collection('Faculty').doc(facultyId).get();
-      if (doc.exists && doc.data() != null) {
-        // Dựa trên cấu trúc ảnh Firebase bạn cung cấp, tên khoa là trường 'name'
-        final name = doc.data()!['name'];
-        return name ?? "Không rõ";
+      // 1. Truy vấn collection 'Faculty'
+      // 2. Tìm document có trường 'id' khớp với mã khoa (facultyCode)
+      final querySnapshot = await _firestore
+          .collection('Faculty')
+          .where('id', isEqualTo: facultyCode)
+          .limit(1)
+          .get();
+
+      if (querySnapshot.docs.isNotEmpty) {
+        final data = querySnapshot.docs.first.data();
+        final facultyName = data['name'] as String? ?? 'Khoa chưa xác định';
+
+        // Trả về Map {Mã khoa: Tên khoa} đúng định dạng cần lưu vào Groups
+        return {facultyCode: facultyName};
       }
-      return "Không tìm thấy";
     } catch (e) {
-      print("Lỗi tra cứu tên Khoa: $e");
-      return "Lỗi dữ liệu";
+      print("🔥 Lỗi khi lấy thông tin Khoa từ Firestore: $e");
     }
+    return null;
   }
 }
