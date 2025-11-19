@@ -3,12 +3,14 @@ import 'package:flutter/material.dart';
 class OThongBao extends StatelessWidget {
   final String tieuDe;
   final String noiDung;
+  final String thoiGian; // <<< 1. THÊM TRƯỜNG THỜI GIAN
   final VoidCallback? onTap;
 
   const OThongBao({
     super.key,
     required this.tieuDe,
     required this.noiDung,
+    required this.thoiGian, // <<< 2. THÊM VÀO CONSTRUCTOR
     this.onTap,
   });
 
@@ -17,7 +19,6 @@ class OThongBao extends StatelessWidget {
     const Color primaryColor = Color(0xFF1E88E5);
 
     return Padding(
-  
       padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
       child: Material(
         color: Colors.transparent,
@@ -83,6 +84,17 @@ class OThongBao extends StatelessWidget {
                           color: Colors.grey[800],
                           fontSize: 15,
                           height: 1.5,
+                        ),
+                      ),
+                      
+                      // <<< 3. HIỂN THỊ THỜI GIAN Ở ĐÂY
+                      const SizedBox(height: 4), 
+                      Text(
+                        thoiGian,
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ],

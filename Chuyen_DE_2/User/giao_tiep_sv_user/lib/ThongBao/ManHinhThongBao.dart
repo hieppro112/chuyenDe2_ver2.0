@@ -4,6 +4,8 @@ import 'package:giao_tiep_sv_user/Data/Notifycation.dart';
 import 'package:giao_tiep_sv_user/FireBase_Service/notifycationFirebase.dart';
 import 'package:giao_tiep_sv_user/ThongBao/chi_tiet_thong_bao.dart';
 import 'package:giao_tiep_sv_user/Widget/headerWidget.dart';
+import 'package:intl/intl.dart'; // <<< 1. THÊM IMPORT NÀY
+import 'package:cloud_firestore/cloud_firestore.dart'; // Cần thiết cho Timestamp
 import 'TieuDe.dart';
 import 'OThongBao.dart';
 
@@ -98,7 +100,8 @@ class _ManHinhThongBaoState extends State<ManHinhThongBao> {
                     ),
                     filled: true,
                     fillColor: Colors.grey[200],
-                    contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 10),
+                    contentPadding:
+                        const EdgeInsets.symmetric(vertical: 0, horizontal: 10),
                   ),
                 ),
               ),
@@ -130,7 +133,7 @@ class _ManHinhThongBaoState extends State<ManHinhThongBao> {
                     final userId = widget.currentUser.id_user;
                     final facultyId = widget.currentUser.faculty_id;
 
-                    // Lọc thông báo cho user hiện tại 
+                    // Lọc thông báo cho user hiện tại
                     final notifyForUser = allNotify.where((tb) {
                       final recipients = tb.user_recipient_ID.keys.toSet();
                       final matchUser = recipients.contains(userId);
@@ -138,7 +141,7 @@ class _ManHinhThongBaoState extends State<ManHinhThongBao> {
                       return matchUser || matchFaculty;
                     }).toList();
 
-                    // Lọc theo từ khóa tìm kiếm 
+                    // Lọc theo từ khóa tìm kiếm
                     final filteredNotify = notifyForUser.where((tb) {
                       if (_searchText.isEmpty) {
                         return true; // Nếu không có từ khóa tìm kiếm, hiển thị tất cả
@@ -159,7 +162,7 @@ class _ManHinhThongBaoState extends State<ManHinhThongBao> {
 
                     if (filteredNotify.isEmpty) {
                       return Center(
-                        child: Text(_searchText.isEmpty 
+                        child: Text(_searchText.isEmpty
                             ? "Không có thông báo dành cho bạn"
                             : "Không tìm thấy thông báo nào khớp với \"${_searchController.text}\""),
                       );
@@ -170,11 +173,26 @@ class _ManHinhThongBaoState extends State<ManHinhThongBao> {
                       itemCount: filteredNotify.length,
                       itemBuilder: (context, index) {
                         final tb = filteredNotify[index];
+                        
+                        // 2. LẤY VÀ ĐỊNH DẠNG THỜI GIAN
+                        String timeString = '';
+                        if (tb.created_at != null && tb.created_at is Timestamp) {
+                          // Chuyển Timestamp sang DateTime
+                          final DateTime dateTime = (tb.created_at as Timestamp).toDate();
+                          // Định dạng
+                          timeString = formatTimeAgo(dateTime);
+                        } else {
+                          // Trường hợp created_at không có hoặc không phải Timestamp
+                          timeString = 'Không rõ thời gian';
+                        }
+                        
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 12),
                           child: OThongBao(
                             tieuDe: tb.title,
                             noiDung: tb.content,
+                            // <<< 3. TRUYỀN THỜI GIAN ĐÃ ĐỊNH DẠNG VÀO OThongBao
+                            thoiGian: timeString, 
                             onTap: () => _handleNotificationTap(tb),
                           ),
                         );
@@ -188,5 +206,23 @@ class _ManHinhThongBaoState extends State<ManHinhThongBao> {
         ),
       ),
     );
+  }
+}
+
+// hàm định dạng thời gian "time ago"
+String formatTimeAgo(DateTime time) {
+  final Duration diff = DateTime.now().difference(time);
+
+  if (diff.inDays > 7) {
+    // Nếu quá 7 ngày, hiển thị ngày tháng năm đầy đủ
+    return DateFormat('dd/MM/yyyy HH:mm').format(time); 
+  } else if (diff.inDays > 0) {
+    return '${diff.inDays} ngày trước';
+  } else if (diff.inHours > 0) {
+    return '${diff.inHours} giờ trước';
+  } else if (diff.inMinutes > 0) {
+    return '${diff.inMinutes} phút trước';
+  } else {
+    return 'Vừa xong';
   }
 }
