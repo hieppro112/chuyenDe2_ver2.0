@@ -19,17 +19,14 @@ class GetJoinedGroupsService {
     return Icons.people;
   }
 
-  // Hàm tra cứu chi tiết thông tin nhóm từ Collection 'Groups'
-  // CHỈ chấp nhận Group có id_status = 1
   Future<Map<String, dynamic>?> _fetchGroupDetails(String groupId) async {
     try {
       final groupDoc = await _firestore.collection('Groups').doc(groupId).get();
       if (groupDoc.exists && groupDoc.data() != null) {
         final data = groupDoc.data()!;
 
-        // >> ĐÃ SỬA: Kiểm tra trường "id_status" trong collection Groups
         if (data["id_status"] != 1) {
-          return null; // Loại bỏ nếu Group không hoạt động (id_status != 1)
+          return null;
         }
 
         // URL ảnh mặc định nếu không có ảnh nhóm
@@ -42,15 +39,11 @@ class GetJoinedGroupsService {
           "id": groupId,
         };
       }
-    } catch (e) {
-      // Bỏ qua lỗi tra cứu chi tiết một nhóm cụ thể
-    }
+    } catch (e) {}
     return null;
   }
 
-  /// Lấy danh sách nhóm mà người dùng đã tham gia
   Future<List<Map<String, dynamic>>> fetchJoinedGroups(String userId) async {
-    // Giữ lại mục "Tất cả" (ID: ALL) để đảm bảo tính tương thích với các màn hình khác
     List<Map<String, dynamic>> resultGroups = [
       {"name": "Tất cả", "icon": Icons.public, "id": "ALL"},
     ];
@@ -60,14 +53,10 @@ class GetJoinedGroupsService {
     }
 
     try {
-      // >> ĐÃ SỬA: Lọc Groups_members với status_id BẰNG 1 (Member Status)
       final memberSnapshot = await _firestore
           .collection('Groups_members')
           .where('user_id', isEqualTo: userId)
-          .where(
-            'status_id',
-            isEqualTo: 1,
-          ) // Kiểm tra trường status_id trong Groups_members
+          .where('status_id', isEqualTo: 1)
           .get();
 
       final groupIds = memberSnapshot.docs
@@ -81,13 +70,11 @@ class GetJoinedGroupsService {
       List<Future<Map<String, dynamic>?>> groupsFutures = [];
 
       for (final groupId in groupIds) {
-        // Mỗi group được kiểm tra Group Status (id_status=1) trong _fetchGroupDetails
         groupsFutures.add(_fetchGroupDetails(groupId));
       }
 
       final fetchedGroups = await Future.wait(groupsFutures);
 
-      // Sau khi Future.wait chạy, chỉ những nhóm thỏa mãn cả 2 điều kiện mới còn lại
       final validGroups = fetchedGroups
           .whereType<Map<String, dynamic>>()
           .toList();

@@ -51,8 +51,7 @@ class GroupService {
     // 3. Truy vấn danh sách tất cả các nhóm theo điều kiện
     final QuerySnapshot allGroupsSnapshot = await _firestore
         .collection('Groups')
-        .where('faculty_id', isEqualTo: facultyCode) // Cùng khoa
-        .where('approval_mode', isEqualTo: true) // Nhóm đã được duyệt (Boolean)
+        .where('faculty_id', isEqualTo: facultyCode)
         .where('id_status', isEqualTo: 1) // Nhóm đã được duyệt (Status ID)
         .get();
 
