@@ -191,7 +191,7 @@ class _ManHinhThongBaoState extends State<ManHinhThongBao> {
                           child: OThongBao(
                             tieuDe: tb.title,
                             noiDung: tb.content,
-                            // <<< 3. TRUYỀN THỜI GIAN ĐÃ ĐỊNH DẠNG VÀO OThongBao
+                            // 3. TRUYỀN THỜI GIAN ĐÃ ĐỊNH DẠNG VÀO OThongBao
                             thoiGian: timeString, 
                             onTap: () => _handleNotificationTap(tb),
                           ),
