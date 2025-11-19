@@ -18,7 +18,7 @@ class Groupsfirebase {
   Future<void> updateGroupStatus(String groupId, int statusId) async {
     try {
       await groupDb.collection("Groups").doc(groupId).update({
-        'status_id': statusId,
+        'id_status': statusId,
       });
       print("Cap nhat trang thai nhom thanh cong");
     } catch (e) {

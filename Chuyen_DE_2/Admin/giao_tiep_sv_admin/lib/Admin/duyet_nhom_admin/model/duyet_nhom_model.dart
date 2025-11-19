@@ -1,4 +1,5 @@
-// duyet_nhom_model.dart
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class DuyetNhomAdminModel {
   final String id;
   final String name;
@@ -9,6 +10,7 @@ class DuyetNhomAdminModel {
   final int statusId;
   final int typeGroup;
   final bool approvalMode;
+  final DateTime? createdAt;
 
   DuyetNhomAdminModel({
     required this.id,
@@ -20,47 +22,50 @@ class DuyetNhomAdminModel {
     required this.statusId,
     required this.typeGroup,
     required this.approvalMode,
+    this.createdAt,
   });
 
   factory DuyetNhomAdminModel.fromMap(Map<String, dynamic> map) {
-    try {
-      // Debug: in ra toàn bộ dữ liệu để kiểm tra
-      print('Raw data from Firestore: $map');
-
-      return DuyetNhomAdminModel(
-        id: _parseString(map['id']),
-        name: _parseString(map['name']),
-        description: _parseString(map['description']),
-        avt: _parseString(map['avt']),
-        createdBy: _parseMap(map['created_by']),
-        facultyId: _parseMap(map['faculty_id']),
-        statusId: _parseInt(map['status_id']),
-        typeGroup: _parseInt(map['type_group']),
-        approvalMode: _parseBool(map['approval_mode']),
-      );
-    } catch (e) {
-      print('Error parsing DuyetNhomAdminModel: $e');
-      print('Problematic data: $map');
-      rethrow;
-    }
+    return DuyetNhomAdminModel(
+      id: _parseString(map['id']),
+      name: _parseString(map['name']),
+      description: _parseString(map['description']),
+      avt: _parseString(map['avt']),
+      createdBy: _parseMap(map['created_by']),
+      facultyId: _parseMap(map['faculty_id']),
+      statusId: _parseInt(map['id_status']),
+      typeGroup: _parseInt(map['type_group']),
+      approvalMode: _parseBool(map['approval_mode']),
+      createdAt: _parseCreatedAt(map['created_at']),
+    );
   }
 
-  // Helper methods để xử lý các kiểu dữ liệu
   static String _parseString(dynamic value) {
     if (value == null) return '';
-    if (value is String) return value;
     return value.toString();
   }
 
+  static DateTime? _parseCreatedAt(dynamic value) {
+    if (value == null) return null;
+
+    if (value is Timestamp) return value.toDate();
+
+    if (value is String) return DateTime.tryParse(value);
+
+    if (value is int) {
+      return DateTime.fromMillisecondsSinceEpoch(value);
+    }
+
+    return null;
+  }
+
   static int _parseInt(dynamic value) {
-    if (value == null) return 0;
     if (value is int) return value;
     if (value is String) return int.tryParse(value) ?? 0;
     return 0;
   }
 
   static bool _parseBool(dynamic value) {
-    if (value == null) return false;
     if (value is bool) return value;
     if (value is String) return value.toLowerCase() == 'true';
     if (value is int) return value == 1;
@@ -68,25 +73,23 @@ class DuyetNhomAdminModel {
   }
 
   static Map<String, dynamic> _parseMap(dynamic value) {
-    if (value == null) return {};
     if (value is Map<String, dynamic>) return value;
-    if (value is Map) {
-      return value.cast<String, dynamic>();
-    }
+    if (value is Map) return value.cast<String, dynamic>();
     return {};
   }
 
-  // Thêm getter để lấy thông tin hiển thị
   String get facultyName {
-    if (facultyId.isNotEmpty) {
-      // Lấy giá trị đầu tiên từ map facultyId
-      final firstValue = facultyId.values.first;
-      return firstValue is String ? firstValue : firstValue.toString();
-    }
-    return 'Không xác định';
+    if (facultyId.isEmpty) return 'Không xác định';
+
+    final value = facultyId.values.first;
+
+    if (value == null) return 'Không xác định';
+
+    return value.toString();
   }
 
   List<String> get members {
+    if (createdBy.isEmpty) return [];
     return createdBy.values.map((e) => e.toString()).toList();
   }
 
@@ -99,6 +102,26 @@ class DuyetNhomAdminModel {
       default:
         return GroupStatus.pending;
     }
+  }
+
+  // Lấy tên người tạo
+  String get creator {
+    if (createdBy.isNotEmpty) {
+      // Lấy giá trị đầu tiên trong map
+      final firstValue = createdBy.values.first;
+      return firstValue is String ? firstValue : firstValue.toString();
+    }
+    return 'Không xác định';
+  }
+
+  // Format ngày dd/MM/yyyy
+  String get createdAtFormatted {
+    if (createdAt == null) return '';
+    final d = createdAt!;
+    String day = d.day.toString().padLeft(2, '0');
+    String month = d.month.toString().padLeft(2, '0');
+    String year = d.year.toString();
+    return '$day/$month/$year';
   }
 }
 

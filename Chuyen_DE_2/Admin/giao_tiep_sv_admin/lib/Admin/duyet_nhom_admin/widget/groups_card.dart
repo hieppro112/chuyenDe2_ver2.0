@@ -66,18 +66,99 @@ class GroupCard extends StatelessWidget {
                           fontSize: 18,
                         ),
                       ),
+
                       SizedBox(height: 4),
-                      Text(
-                        'Thành viên: ${_formatMembers(group.members)}',
-                        style: TextStyle(color: Colors.grey[600], fontSize: 14),
+
+                      // Người tạo
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.person_outline,
+                            size: 16,
+                            color: Colors.grey,
+                          ),
+                          SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              'Người tạo: ${group.creator}',
+                              style: TextStyle(
+                                color: Colors.grey[600],
+                                fontSize: 14,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
                       ),
-                      Text(
-                        'Khoa: ${group.facultyName}',
-                        style: TextStyle(color: Colors.grey[600], fontSize: 14),
+
+                      SizedBox(height: 2),
+
+                      // Thành viên
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.group_outlined,
+                            size: 16,
+                            color: Colors.grey,
+                          ),
+                          SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              'Thành viên: ${_formatMembers(group.members)}',
+                              style: TextStyle(
+                                color: Colors.grey[600],
+                                fontSize: 14,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
                       ),
-                      Text(
-                        'Chế độ duyệt: ${group.approvalMode ? "Có" : "Không"}',
-                        style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                      SizedBox(height: 2),
+                      // Khoa
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.school_outlined,
+                            size: 16,
+                            color: Colors.grey,
+                          ),
+                          SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              'Khoa: ${group.facultyName}',
+                              style: TextStyle(
+                                color: Colors.grey[600],
+                                fontSize: 14,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      SizedBox(height: 2),
+
+                      // Thời gian tạo
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.calendar_today_outlined,
+                            size: 16,
+                            color: Colors.grey,
+                          ),
+                          SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              'Thời gian tạo: ${group.createdAtFormatted}',
+                              style: TextStyle(
+                                color: Colors.grey[600],
+                                fontSize: 14,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
