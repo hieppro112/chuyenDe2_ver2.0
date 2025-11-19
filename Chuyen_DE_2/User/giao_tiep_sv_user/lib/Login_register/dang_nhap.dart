@@ -28,8 +28,8 @@ class _DangNhapState extends State<DangNhap> {
 
     // TỰ ĐỘNG ĐIỀN KHI DEBUG (dành cho test)
     // if (kDebugMode) {
-    //   _emailController.text = "23211TT9999@mail.tdc.edu.vn"; // User mẫu
-    //   _passwordController.text = "123456";
+    //   _emailController.text = "23211TT9999@mail.tdc.edu.vn"; // User mẫu
+    //   _passwordController.text = "123456";
     // }
   }
 
@@ -93,8 +93,22 @@ class _DangNhapState extends State<DangNhap> {
       final data = doc.data() as Map<String, dynamic>;
       String name = data['fullname'] ?? "Người dùng";
       int role = data['role'] ?? 0;
+      bool isLocked = data['is_locked'] ?? false; // <<< LẤY TRẠNG THÁI KHÓA
 
-      print("THÔNG TIN USER: $name, Role: $role");
+      print("THÔNG TIN USER: $name, Role: $role, Locked: $isLocked");
+
+      // --- KIỂM TRA TRẠNG THÁI KHÓA ---
+      if (isLocked == true) {
+        await FirebaseAuth.instance.signOut(); // Đăng xuất ngay lập tức
+        _showOverlayMessage(
+          context,
+          "Tài khoản bạn bị vi phạm cộng đồng nên đã bị KHÓA!",
+          isError: true,
+        );
+        setState(() => _isLoading = false);
+        return;
+      }
+      // ---------------------------------------------
 
       // KIỂM TRA ROLE: CHỈ CHO PHÉP role = 0
       if (role == 1) {
@@ -342,7 +356,7 @@ class _DangNhapState extends State<DangNhap> {
             borderRadius: BorderRadius.circular(25),
           ),
         ),
-        onPressed: () => _dangNhap(context),
+        onPressed: _isLoading ? null : () => _dangNhap(context),
         child: const Text(
           "Đăng nhập",
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),

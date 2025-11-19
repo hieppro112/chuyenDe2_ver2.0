@@ -124,6 +124,7 @@ class _DangKiState extends State<DangKi> {
             "https://cellphones.com.vn/sforum/wp-content/uploads/2023/10/avatar-trang-4.jpg", // ảnh mặc định
         "role": 0,
         "faculty_id": ma,
+        "is_locked": false,
       });
 
       _showSnackBar(
