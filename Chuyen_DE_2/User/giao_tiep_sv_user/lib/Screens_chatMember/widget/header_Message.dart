@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:giao_tiep_sv_user/Data/room_chat.dart';
 import 'package:giao_tiep_sv_user/Screens_chatMember/data/dataRoomChat.dart';
+import 'package:giao_tiep_sv_user/Screens_chatMember/view/Member_Chat.dart';
+import 'package:giao_tiep_sv_user/Screens_chatMember/widget/featchMemberChat.dart';
 
 class HeaderMessage extends StatelessWidget {
   final ChatRoom myInfo;
@@ -49,7 +51,7 @@ class HeaderMessage extends StatelessWidget {
 
         InkWell(
           onTap: () {
-            print("avatar");
+            Navigator.push(context, MaterialPageRoute(builder: (context) => ShowMemberChat(idRoom: dataroomchat.id),));
           },
           child: ClipOval(
             child: Image.network((myInfo.typeId==1)?myInfo.avatarUrl:dataroomchat.avt,fit: BoxFit.cover,width: 45,height: 45,),
