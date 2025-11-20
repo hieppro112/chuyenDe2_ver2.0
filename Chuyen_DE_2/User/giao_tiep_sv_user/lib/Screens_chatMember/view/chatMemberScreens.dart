@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 import 'package:giao_tiep_sv_user/Data/Users.dart';
 import 'package:giao_tiep_sv_user/Data/room_chat.dart';
 import 'package:giao_tiep_sv_user/FireBase_Service/UserServices.dart';
@@ -9,6 +10,7 @@ import 'package:giao_tiep_sv_user/Screens_chatMember/data/dataRoomChat.dart';
 import 'package:giao_tiep_sv_user/Screens_chatMember/view/CreateRoomChat.dart';
 import 'package:giao_tiep_sv_user/Screens_chatMember/view/chatMessage.dart';
 import 'package:giao_tiep_sv_user/Screens_chatMember/widget/custom_chat_member.dart';
+import 'package:giao_tiep_sv_user/Screens_chatMember/widget/pickedMemberChatSingle.dart';
 import 'package:giao_tiep_sv_user/ThongBao/ManHinhThongBao.dart';
 import 'package:giao_tiep_sv_user/Widget/MyButton.dart';
 import 'package:giao_tiep_sv_user/Widget/headerWidget.dart';
@@ -75,25 +77,58 @@ class _ChatMemberScreenState extends State<ChatMemberScreen> {
           ],
         ),
       ),
-      floatingActionButton: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border.all(color: Colors.black, width: 1),
-          borderRadius: BorderRadius.circular(30),
-        ),
-        padding: EdgeInsets.all(0),
-        child: IconButton(
-          onPressed: () {
+      floatingActionButton:
+      SpeedDial(
+        icon: Icons.message,
+        activeIcon: Icons.close,
+        backgroundColor: Colors.blue,
+        foregroundColor: Colors.white,
+        activeBackgroundColor: Colors.red,
+        children: [
+          SpeedDialChild(
+            child: Icon(Icons.person),
+            label: "Gửi tin nhắn người dùng khác",
+            onTap: () {
+              print("nhan cho nguoi dung khac");
+              Navigator.push(context, MaterialPageRoute(builder: (context) => PickedmemberchatSingle(myID: Uid),));
+            },
+          ),
+
+          SpeedDialChild(
+            child: Icon(Icons.group),
+            label: "Tạo tin nhắn nhóm",
+            onTap: () {
             Navigator.push(
               context,
               MaterialPageRoute(
                 builder: (context) => CreateRoomChat(myId: Uid),
               ),
             );
-          },
-          icon: Icon(Icons.message, size: 24),
-        ),
-      ),
+            },
+          )
+        ],
+      )
+      //  Container(
+      //   decoration: BoxDecoration(
+      //     color: Colors.white,
+      //     border: Border.all(color: Colors.black, width: 1),
+      //     borderRadius: BorderRadius.circular(30),
+      //   ),
+      //   padding: EdgeInsets.all(0),
+      //   child: IconButton(
+      //     onPressed: () {
+      //       Navigator.push(
+      //         context,
+      //         MaterialPageRoute(
+      //           builder: (context) => CreateRoomChat(myId: Uid),
+      //         ),
+      //       );
+      //     },
+      //     icon: Icon(Icons.message, size: 24),
+      //   ),
+      // ),
+   
+   
     );
     // );
   }

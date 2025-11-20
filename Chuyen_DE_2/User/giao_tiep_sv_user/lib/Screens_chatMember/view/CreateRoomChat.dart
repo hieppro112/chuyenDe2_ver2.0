@@ -36,6 +36,12 @@ class _CreateRoomChatState extends State<CreateRoomChat> {
     getIDUser();
   }
 
+  @override void dispose() {
+    // TODO: implement dispose
+    super.dispose();
+  }
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -262,8 +268,6 @@ class _CreateRoomChatState extends State<CreateRoomChat> {
              typeId: (listIDUser.length>2)?1:0,
              createdBy: widget.myId.toUpperCase(), 
              createdAt: DateTime.now());
-
-
           messService.createChatRooms(newChatRoom);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(

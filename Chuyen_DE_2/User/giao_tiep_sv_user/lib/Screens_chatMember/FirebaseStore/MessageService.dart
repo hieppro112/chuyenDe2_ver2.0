@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/rendering.dart';
 import 'dart:io';
 import 'package:giao_tiep_sv_user/Data/message.dart';
 import 'package:giao_tiep_sv_user/Data/room_chat.dart';
@@ -189,4 +190,22 @@ class MessageService {
       print("loi khi tao nhom: $e");
     }
   }
+
+  //lay danh sách các user của nhóm
+  Stream<List<String>> getListIdUser(String idGroup){
+    print("hiep: $idGroup");
+    return messDB.collection("ChatRooms").doc(idGroup).snapshots().map((event) {
+      if(event.exists){
+        final data = event.data() as Map<String,dynamic>;
+        // Kiểm tra và lấy mảng users
+          if (data.containsKey('users') && data['users'] != null) {
+            // Ép kiểu an toàn từ List<dynamic> sang List<String>
+            return List<String>.from(data['users']);
+          }
+      }
+      print("khong co du lieu danh sacsh user");
+      return [];
+    },);
+  }
+
 }

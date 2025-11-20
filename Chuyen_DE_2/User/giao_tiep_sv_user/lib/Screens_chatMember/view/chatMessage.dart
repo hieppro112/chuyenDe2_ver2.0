@@ -15,13 +15,15 @@ class ScreenMessage extends StatefulWidget {
   final String avtChat;
   final ChatRoom sender_to;
   final String idRoom;
-
   final Dataroomchat dataroomchat;
   const ScreenMessage({
-    super.key, 
+    super.key,
     required this.sender_to,
     required this.idRoom,
-    required this.myId, required this.nameChat, required this.avtChat, required this.dataroomchat,
+    required this.myId,
+    required this.nameChat,
+    required this.avtChat,
+    required this.dataroomchat,
   });
 
   @override
@@ -36,7 +38,6 @@ class ScreenMessageState extends State<ScreenMessage> {
   //khai bao dl
   Users? myus;
   List<Message> listMessage = [];
-  
 
   //chuyen dong man hinh xuong ben duoi
   final ScrollController _scrollController = ScrollController();
@@ -53,17 +54,16 @@ class ScreenMessageState extends State<ScreenMessage> {
   }
 
   @override
-  void initState(){
+  void initState() {
     // TODO: implement initState
     super.initState();
-    try{
-        loadInfoUser(widget.myId);
-    //print("name: ${myus!.fullname.toString()}");
-
-    }catch(e){ 
+    try {
+      loadInfoUser(widget.myId);
+      //print("name: ${myus!.fullname.toString()}");
+    } catch (e) {
       print("loi init: $e");
     }
-        _scrollToBottom();
+    _scrollToBottom();
   }
 
   @override
@@ -84,26 +84,24 @@ class ScreenMessageState extends State<ScreenMessage> {
   }
 
   //lay thong tin User
-  Future<void> loadInfoUser(String id)async{
-    try{
+  Future<void> loadInfoUser(String id) async {
+    try {
       print("My id: $id");
       Users? result = await userService.getUserForID(id);
-    if(!mounted){
-      return;
-    }
-    else{
-      setState(() {
-        myus = result;
-      });
-    }
+      if (!mounted) {
+        return;
+      } else {
+        setState(() {
+          myus = result;
+        });
+      }
 
-    if(myus!=null){
-      print("lay du lieu thanh cong");
-    }
-    else{
-      print("lay dl that bai");
-    }
-    }catch(e){
+      if (myus != null) {
+        print("lay du lieu thanh cong");
+      } else {
+        print("lay dl that bai");
+      }
+    } catch (e) {
       print("da co loix $e");
     }
   }
@@ -112,16 +110,16 @@ class ScreenMessageState extends State<ScreenMessage> {
   Widget create(String myId) {
     return SafeArea(
       child: CustomSenderMessage(
-        onSelectedImage: (value) async{
-          //gui hinh anh 
+        onSelectedImage: (value) async {
+          //gui hinh anh
           if (value != null) {
-             await messageService.sendImageMessage(
-            roomId: widget.idRoom,            // id phòng chat
-            senderId: myId,                   // id người gửi
-            senderName: myus!.fullname, // tên người gửi
-            senderAvatar:myus!.url_avt,
-            imageFile: value,                 // ảnh đã chọn
-          );
+            await messageService.sendImageMessage(
+              roomId: widget.idRoom, // id phòng chat
+              senderId: myId, // id người gửi
+              senderName: myus!.fullname, // tên người gửi
+              senderAvatar: myus!.url_avt,
+              imageFile: value, // ảnh đã chọn
+            );
           }
         },
 
@@ -136,7 +134,7 @@ class ScreenMessageState extends State<ScreenMessage> {
             content: value,
           );
           listMessage.add(newValue!);
-            _scrollToBottom();
+          _scrollToBottom();
         },
       ),
     );
@@ -168,8 +166,8 @@ class ScreenMessageState extends State<ScreenMessage> {
             return Custommessage(
               dateSend: value.create_at,
               forme_sender: (value.sender_id == widget.myId),
-              nameSender:value.sender_name,//ten nguoi gui
-              url_avt: value.sender_avatar,//avt nguoi gui
+              nameSender: value.sender_name, //ten nguoi gui
+              url_avt: value.sender_avatar, //avt nguoi gui
               content: value.content ?? "",
               Url_media: value.media_url ?? "",
             );
@@ -180,6 +178,9 @@ class ScreenMessageState extends State<ScreenMessage> {
   }
 
   Widget Header() {
-    return HeaderMessage(myInfo: widget.sender_to,dataroomchat: widget.dataroomchat,);
+    return HeaderMessage(
+      myInfo: widget.sender_to,
+      dataroomchat: widget.dataroomchat,
+    );
   }
 }
