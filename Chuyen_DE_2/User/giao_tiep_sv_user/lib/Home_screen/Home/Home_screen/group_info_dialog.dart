@@ -89,7 +89,7 @@ class GroupInfoDialog extends StatelessWidget {
         } else if (text == "Thành viên") {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => ManegerMemberGroupScreen()),
+            MaterialPageRoute(builder: (context) => ManegerMemberGroupScreen(idGroup: groupId,)),
           );
           return;
         }

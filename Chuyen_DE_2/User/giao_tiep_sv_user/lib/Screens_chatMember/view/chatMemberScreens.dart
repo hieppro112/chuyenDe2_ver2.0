@@ -65,12 +65,13 @@ class _ChatMemberScreenState extends State<ChatMemberScreen> {
             //search Message
             SizedBox(height: 8),
             createSearchMessage(),
+            //2 button bạn bè và nhóm
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               child: createButtonMessage(),
             ),
 
-            //2 button bạn bè và nhóm
+            
 
             //danh sach tin nhắn
             Expanded(child: createListMessage()),
@@ -108,29 +109,9 @@ class _ChatMemberScreenState extends State<ChatMemberScreen> {
           )
         ],
       )
-      //  Container(
-      //   decoration: BoxDecoration(
-      //     color: Colors.white,
-      //     border: Border.all(color: Colors.black, width: 1),
-      //     borderRadius: BorderRadius.circular(30),
-      //   ),
-      //   padding: EdgeInsets.all(0),
-      //   child: IconButton(
-      //     onPressed: () {
-      //       Navigator.push(
-      //         context,
-      //         MaterialPageRoute(
-      //           builder: (context) => CreateRoomChat(myId: Uid),
-      //         ),
-      //       );
-      //     },
-      //     icon: Icon(Icons.message, size: 24),
-      //   ),
-      // ),
    
    
     );
-    // );
   }
 
   //get user tu id
