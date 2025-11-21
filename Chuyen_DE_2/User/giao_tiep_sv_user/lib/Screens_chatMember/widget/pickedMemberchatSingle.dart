@@ -211,7 +211,8 @@ class _PickedmemberchatSingle extends State<PickedmemberchatSingle> {
     }).toList();
 
     setState(() {
-      dsKhoa = data;
+      dsKhoa.add(Faculty(faculty_id: "all", name_faculty: "Tất cả"));
+      dsKhoa.addAll(data);
     });
   }
 

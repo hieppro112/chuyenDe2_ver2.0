@@ -28,7 +28,7 @@ class _CustomMemberGroupManeger extends State<CustomMemberGroupManeger> {
             children: [
               //create img avatar
               ClipOval(
-                child: Image.asset(
+                child: Image.network(
                   widget.url,
                   fit: BoxFit.fill,
                   height: 40,

@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:giao_tiep_sv_user/Screen_member_group/data/DataPicked.dart';
 
 class CustommemberWidget extends StatefulWidget {
   final String id;
   final String url;
   final String fullname;
-  final ValueChanged<bool?>? ontap;
+  final ValueChanged<Datapicked?>? ontap;
   const CustommemberWidget({
     super.key,
     required this.id,
@@ -25,6 +26,7 @@ class _CustommemberWidgetState extends State<CustommemberWidget> {
       onTap: () {
         setState(() {
           ischecked = !ischecked;
+          widget.ontap?.call(Datapicked(idUser: widget.id, picked: ischecked));
         });
       },
       child: Padding(
@@ -36,7 +38,7 @@ class _CustommemberWidgetState extends State<CustommemberWidget> {
               children: [
                 //create img avatar
                 ClipOval(
-                  child: Image.asset(
+                  child: Image.network(
                     widget.url,
                     fit: BoxFit.fill,
                     height: 40,
@@ -46,7 +48,7 @@ class _CustommemberWidgetState extends State<CustommemberWidget> {
                 SizedBox(width: 15),
                 //name
                 Text(
-                  widget.fullname,
+                  "${widget.fullname}",
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
               ],
@@ -58,7 +60,7 @@ class _CustommemberWidgetState extends State<CustommemberWidget> {
               onChanged: (value) {
                 setState(() {
                   ischecked = value!;
-                  widget.ontap;
+                            widget.ontap?.call(Datapicked(idUser: widget.id, picked: ischecked));
                 });
               },
             ),

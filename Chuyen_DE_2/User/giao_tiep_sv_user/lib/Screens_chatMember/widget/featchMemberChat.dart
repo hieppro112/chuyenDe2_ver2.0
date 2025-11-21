@@ -49,48 +49,6 @@ class _FeatchmemberchatState extends State<Featchmemberchat> {
     return await userService.getUserForID(idUser);
   }
 
-  
-
-  // Widget customMember(Users member){
-  //   //Users user = await userService.getUserForID(idUser);
-    
-  //   return InkWell(
-  //     onTap: () {
-     
-  //     },
-  //     child: Padding(
-  //       padding: EdgeInsets.all(10),
-  //       child: Row(
-  //         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-  //         children: [
-  //           Row(
-  //             children: [
-  //               //create img avatar
-  //               ClipOval(
-  //                 child: Image.network(
-  //                   member.url_avt,
-  //                   fit: BoxFit.fill,
-  //                   height: 40,
-  //                   width: 40,
-  //                 ),
-  //               ),
-  //               SizedBox(width: 15),
-  //               //name
-  //               Text(
-  //                 member.fullname,
-  //                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-  //               ),
-  //             ],
-  //           ),
-
-            
-            
-  //         ],
-  //       ),
-  //     ),
-  //   );
-  // }
-
 
 
 Widget customMember(String idUser) {

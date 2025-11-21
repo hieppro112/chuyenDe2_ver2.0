@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 class Mybutton extends StatelessWidget {
   final String url_icon;
   final String nameButton;
@@ -8,10 +9,9 @@ class Mybutton extends StatelessWidget {
     super.key,
     required this.url_icon,
     required this.nameButton,
-    this.ontap, required this.Mycolor, 
+    this.ontap,
+    required this.Mycolor,
   });
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -19,16 +19,16 @@ class Mybutton extends StatelessWidget {
   }
 
   Widget createButton() {
+    return InkWell(
+      onTap: () => ontap?.call(),
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 25),
+        decoration: BoxDecoration(
+          color: Mycolor,
+          border: Border.all(color: Colors.black),
+          borderRadius: BorderRadius.circular(12),
+        ),
 
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 25,),
-      decoration: BoxDecoration(
-        color: Mycolor,
-        border: Border.all(color: Colors.black),
-        borderRadius: BorderRadius.circular(12)
-      ),
-      child: GestureDetector(
-        onTap: () => ontap?.call(),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
