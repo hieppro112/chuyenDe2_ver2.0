@@ -3,6 +3,7 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:giao_tiep_sv_user/FireBase_Service/create_group_service.dart';
 import 'package:giao_tiep_sv_user/FireBase_Service/faculty_service.dart';
+import 'package:flutter/services.dart'; // Thêm thư viện này cho InputFormatter
 import '../../../../Data/global_state.dart';
 
 class TaoNhomPage extends StatefulWidget {
@@ -89,9 +90,7 @@ class _TaoNhomPageState extends State<TaoNhomPage> {
     });
 
     // 2. Tải động tên khoa từ Faculty Service
-    final facultyIdMap = await _facultyService.fetchFacultyIdMap(
-      facultyCode,
-    ); // 👈 GỌI SERVICE MỚI
+    final facultyIdMap = await _facultyService.fetchFacultyIdMap(facultyCode);
 
     if (facultyIdMap == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -150,7 +149,14 @@ class _TaoNhomPageState extends State<TaoNhomPage> {
     required String labelText,
     String? hintText,
     int maxLines = 1,
+    int? maxLength, // Thêm tham số maxLength
   }) {
+    // Thêm InputFormatter để giới hạn ký tự
+    final List<TextInputFormatter> formatters = [];
+    if (maxLength != null) {
+      formatters.add(LengthLimitingTextInputFormatter(maxLength));
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -166,10 +172,14 @@ class _TaoNhomPageState extends State<TaoNhomPage> {
         TextField(
           controller: controller,
           maxLines: maxLines,
+          maxLength: maxLength, // Hiển thị bộ đếm ký tự
+          inputFormatters: formatters, // Áp dụng giới hạn ký tự
           decoration: InputDecoration(
             hintText: hintText,
             filled: true,
             fillColor: Colors.white,
+            // Xóa khoảng trống của counterText khi không cần thiết
+            counterText: maxLength != null ? null : '',
             contentPadding: const EdgeInsets.symmetric(
               vertical: 15,
               horizontal: 15,
@@ -307,6 +317,7 @@ class _TaoNhomPageState extends State<TaoNhomPage> {
                 controller: _tenNhomController,
                 labelText: "Tên nhóm:",
                 hintText: "Nhập tên nhóm...",
+                maxLength: 100, // Giới hạn tên nhóm 100 ký tự
               ),
               const SizedBox(height: 25),
               _buildTextField(
@@ -314,6 +325,7 @@ class _TaoNhomPageState extends State<TaoNhomPage> {
                 labelText: "Mô tả nhóm:",
                 hintText: "Mô tả ngắn về mục đích của nhóm...",
                 maxLines: 4,
+                maxLength: 250, // **GIỚI HẠN 250 KÝ TỰ**
               ),
               const SizedBox(height: 50),
               _buildCreateButton(),

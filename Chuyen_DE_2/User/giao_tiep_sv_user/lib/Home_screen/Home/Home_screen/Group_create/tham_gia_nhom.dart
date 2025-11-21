@@ -17,13 +17,38 @@ class _ThamGiaNhomPageState extends State<ThamGiaNhomPage> {
   // Khởi tạo Service
   final GroupService _groupService = GroupService();
 
+  // Khai báo Future này để FutureBuilder có thể sử dụng
   late Future<List<DocumentSnapshot>> _groupsFuture;
+
+  // 1. Biến trạng thái và Controller cho Tìm kiếm
+  final TextEditingController _searchController = TextEditingController();
+  String _searchText = '';
 
   @override
   void initState() {
     super.initState();
-    // Gọi hàm từ Service để tải dữ liệu ban đầu
+    // Gọi hàm từ Service để tải DỮ LIỆU BAN ĐẦU
     _groupsFuture = _groupService.fetchGroupsToJoin();
+
+    // Lắng nghe thay đổi của thanh tìm kiếm
+    _searchController.addListener(_onSearchChanged);
+  }
+
+  @override
+  void dispose() {
+    _searchController.removeListener(_onSearchChanged);
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  // --- HÀM XỬ LÝ TÌM KIẾM---
+  void _onSearchChanged() {
+    final newSearchText = _searchController.text.toLowerCase().trim();
+    if (newSearchText != _searchText) {
+      setState(() {
+        _searchText = newSearchText;
+      });
+    }
   }
 
   void toggleMenu() {
@@ -32,10 +57,9 @@ class _ThamGiaNhomPageState extends State<ThamGiaNhomPage> {
     });
   }
 
-  // --- HÀM GỬI YÊU CẦU THAM GIA NHÓM ---
+  // --- HÀM GỬI YÊU CẦU THAM GIA NHÓM---
   void _requestJoinGroup(String groupId, String groupName) async {
     try {
-      // Gọi hàm từ Service để xử lý Firestore (status_id = 0)
       await _groupService.requestJoinGroup(groupId);
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -48,7 +72,6 @@ class _ThamGiaNhomPageState extends State<ThamGiaNhomPage> {
       );
 
       // Làm mới danh sách sau khi gửi yêu cầu thành công
-      // Nhóm này sẽ biến mất khỏi danh sách vì giờ đã có status_id = 0 trong Groups_members
       setState(() {
         _groupsFuture = _groupService.fetchGroupsToJoin();
       });
@@ -64,7 +87,6 @@ class _ThamGiaNhomPageState extends State<ThamGiaNhomPage> {
 
   // --- HÀM XÂY DỰNG ITEM NHÓM ---
   Widget _buildGroupListItem(Map<String, dynamic> group, String groupId) {
-    // Lấy link ảnh từ trường 'avt'
     final String imageUrl = group['avt'] ?? "https://via.placeholder.com/60";
 
     return Container(
@@ -105,9 +127,33 @@ class _ThamGiaNhomPageState extends State<ThamGiaNhomPage> {
                       color: Colors.black,
                     ),
                   ),
-                  Text(
-                    'Khoa: ${group["faculty_id"]}',
-                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  // Hiển thị phần 'Mô tả:' nổi bật hơn bằng Text.rich
+                  Text.rich(
+                    TextSpan(
+                      children: [
+                        const TextSpan(
+                          text: 'Mô tả: ',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        TextSpan(
+                          text:
+                              (group["description"] ?? '')
+                                  .toString()
+                                  .trim()
+                                  .isEmpty
+                              ? 'Không có mô tả'
+                              : group["description"].toString(),
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey[700],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 8),
                   ElevatedButton.icon(
@@ -135,6 +181,40 @@ class _ThamGiaNhomPageState extends State<ThamGiaNhomPage> {
     );
   }
 
+  // --- HÀM XÂY DỰNG THANH TÌM KIẾM ---
+  Widget _buildSearchBar() {
+    return Container(
+      // Loại bỏ padding ngang ở đây để thêm vào Column bên dưới
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+      color: Colors.white, // Màu nền cho thanh tìm kiếm
+      child: TextField(
+        controller: _searchController,
+        decoration: InputDecoration(
+          hintText: 'Tìm kiếm tên nhóm...',
+          prefixIcon: const Icon(Icons.search, color: Colors.grey),
+          suffixIcon: _searchController.text.isNotEmpty
+              ? IconButton(
+                  icon: const Icon(Icons.clear, color: Colors.grey),
+                  onPressed: () {
+                    _searchController.clear();
+                  },
+                )
+              : null,
+          contentPadding: const EdgeInsets.symmetric(
+            vertical: 10,
+            horizontal: 10,
+          ),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(25.0),
+            borderSide: BorderSide.none,
+          ),
+          filled: true,
+          fillColor: Colors.grey[200],
+        ),
+      ),
+    );
+  }
+
   // --- WIDGET BUILD CHÍNH ---
   @override
   Widget build(BuildContext context) {
@@ -146,6 +226,7 @@ class _ThamGiaNhomPageState extends State<ThamGiaNhomPage> {
           SafeArea(
             child: Column(
               children: [
+                // 🔹 AppBar (Không còn nút Tìm kiếm)
                 AppBar(
                   backgroundColor: Colors.white,
                   elevation: 0.5,
@@ -153,32 +234,28 @@ class _ThamGiaNhomPageState extends State<ThamGiaNhomPage> {
                     icon: const Icon(Icons.menu, color: Colors.black),
                     onPressed: toggleMenu,
                   ),
-                  title: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text(
-                        "Tham Gia Nhóm",
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      IconButton(
-                        icon: const Icon(Icons.group, color: Colors.black),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const NhomCuaToi(),
-                            ),
-                          );
-                        },
-                      ),
-                    ],
+                  title: const Text(
+                    "Tham Gia Nhóm",
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   centerTitle: true,
                   actions: [
+                    // Nút Nhóm của tôi
+                    IconButton(
+                      icon: const Icon(Icons.group, color: Colors.black),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const NhomCuaToi(),
+                          ),
+                        );
+                      },
+                    ),
+                    // Nút Tạo nhóm
                     IconButton(
                       icon: const Icon(Icons.add, color: Colors.black),
                       onPressed: () {
@@ -192,6 +269,10 @@ class _ThamGiaNhomPageState extends State<ThamGiaNhomPage> {
                     ),
                   ],
                 ),
+
+                // 🔹 THANH TÌM KIẾM (Luôn hiển thị ở đây)
+                // Đặt màu nền trắng cho thanh tìm kiếm để phân biệt với nền xám của body
+                Container(color: Colors.white, child: _buildSearchBar()),
 
                 // 🔹 Danh sách nhóm - Sử dụng FutureBuilder
                 Expanded(
@@ -213,24 +294,41 @@ class _ThamGiaNhomPageState extends State<ThamGiaNhomPage> {
                           );
                         }
 
-                        final List<DocumentSnapshot> groups =
+                        final List<DocumentSnapshot> allGroups =
                             snapshot.data ?? [];
 
-                        if (groups.isEmpty) {
-                          return const Center(
+                        // Lọc dữ liệu trên Client dựa trên _searchText
+                        final List<DocumentSnapshot> filteredGroups = allGroups
+                            .where((groupDoc) {
+                              final groupData =
+                                  groupDoc.data() as Map<String, dynamic>;
+                              final groupName =
+                                  (groupData['name'] as String?)
+                                      ?.toLowerCase() ??
+                                  '';
+
+                              // So sánh tên nhóm với chuỗi tìm kiếm
+                              return groupName.contains(_searchText);
+                            })
+                            .toList();
+
+                        if (filteredGroups.isEmpty) {
+                          return Center(
                             child: Text(
-                              "Không tìm thấy nhóm nào phù hợp để tham gia.",
+                              _searchText.isEmpty
+                                  ? "Không tìm thấy nhóm nào phù hợp để tham gia."
+                                  : "Không tìm thấy nhóm nào khớp với '$_searchText'.",
                               textAlign: TextAlign.center,
-                              style: TextStyle(color: Colors.grey),
+                              style: const TextStyle(color: Colors.grey),
                             ),
                           );
                         }
 
                         // Hiển thị danh sách nhóm đã lọc
                         return ListView.builder(
-                          itemCount: groups.length,
+                          itemCount: filteredGroups.length,
                           itemBuilder: (context, index) {
-                            final groupDoc = groups[index];
+                            final groupDoc = filteredGroups[index];
                             final groupData =
                                 groupDoc.data() as Map<String, dynamic>;
                             final groupId = groupDoc.id;
