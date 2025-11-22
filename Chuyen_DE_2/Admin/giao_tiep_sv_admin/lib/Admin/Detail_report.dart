@@ -346,7 +346,10 @@ class DetailScreen extends StatelessWidget {
                       ? '✅ Đã gửi cảnh báo và đánh dấu báo cáo.'
                       : '❌ Lỗi khi gửi cảnh báo.';
                 } else if (action == 'Khóa tài khoản' && recipientId != null) {
-                  success = await service.lockUserAccount(recipientId);
+                  success = await service.lockUserAccount(
+                    recipientId,
+                    reportDocId ?? '',
+                  );
                   message = success
                       ? '✅ Đã khóa tài khoản thành công.'
                       : '❌ Lỗi khi khóa tài khoản.';
