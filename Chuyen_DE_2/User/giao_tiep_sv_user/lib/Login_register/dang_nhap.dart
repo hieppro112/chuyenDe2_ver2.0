@@ -26,10 +26,10 @@ class _DangNhapState extends State<DangNhap> {
   void initState() {
     super.initState();
 
-    // TỰ ĐỘNG ĐIỀN KHI DEBUG (dành cho test)
+    // TỰ ĐỘNG ĐIỀN KHI DEBUG
     // if (kDebugMode) {
-    //   _emailController.text = "23211TT9999@mail.tdc.edu.vn"; // User mẫu
-    //   _passwordController.text = "123456";
+    //   _emailController.text = "23211TT1371@mail.tdc.edu.vn";
+    //   _passwordController.text = "123456";
     // }
   }
 
@@ -50,10 +50,18 @@ class _DangNhapState extends State<DangNhap> {
       return;
     }
 
-    if (!email.endsWith("@mail.tdc.edu.vn")) {
-      _showOverlayMessage(context, "Email phải thuộc TDC!");
+    // KIỂM TRA EMAIL ĐÚNG ĐỊNH DẠNG 
+   
+    final regex = RegExp(r'^[0-9]{5}[A-Z]{2}[0-9]+@mail\.tdc\.edu\.vn$');
+
+    if (!regex.hasMatch(email)) {
+      _showOverlayMessage(
+        context,
+        "Email sai định dạng hoặc không thuộc trường TDC!",
+      );
       return;
     }
+    // ========================================================================
 
     setState(() => _isLoading = true);
 
@@ -93,13 +101,13 @@ class _DangNhapState extends State<DangNhap> {
       final data = doc.data() as Map<String, dynamic>;
       String name = data['fullname'] ?? "Người dùng";
       int role = data['role'] ?? 0;
-      bool isLocked = data['is_locked'] ?? false; // <<< LẤY TRẠNG THÁI KHÓA
+      bool isLocked = data['is_locked'] ?? false;
 
       print("THÔNG TIN USER: $name, Role: $role, Locked: $isLocked");
 
-      // --- KIỂM TRA TRẠNG THÁI KHÓA ---
+      // KIỂM TRA TRẠNG THÁI KHÓA
       if (isLocked == true) {
-        await FirebaseAuth.instance.signOut(); // Đăng xuất ngay lập tức
+        await FirebaseAuth.instance.signOut();
         _showOverlayMessage(
           context,
           "Tài khoản bạn bị vi phạm cộng đồng nên đã bị KHÓA!",
@@ -108,16 +116,15 @@ class _DangNhapState extends State<DangNhap> {
         setState(() => _isLoading = false);
         return;
       }
-      // ---------------------------------------------
 
-      // KIỂM TRA ROLE: CHỈ CHO PHÉP role = 0
+      // KHÔNG CHO ADMIN ĐĂNG NHẬP
       if (role == 1) {
         _showOverlayMessage(
           context,
           "Tài khoản Admin không được dùng app này!\nVui lòng dùng app Admin riêng.",
           isError: true,
         );
-        await FirebaseAuth.instance.signOut(); // Đăng xuất ngay
+        await FirebaseAuth.instance.signOut();
         setState(() => _isLoading = false);
         return;
       }
@@ -129,14 +136,14 @@ class _DangNhapState extends State<DangNhap> {
         return;
       }
 
-      // 4. LƯU THÔNG TIN TOÀN CỤC
+      // LƯU GLOBAL STATE
       _profileService.setUserId(id_user);
       GlobalState.currentUserId = id_user;
       GlobalState.currentFullname = name;
 
       _showOverlayMessage(context, "Xin chào $name!", isError: false);
 
-      // 5. CHUYỂN SANG TRANG CHỦ
+      // CHUYỂN TRANG
       if (mounted) {
         Navigator.pushReplacement(
           context,
@@ -164,7 +171,7 @@ class _DangNhapState extends State<DangNhap> {
     }
   }
 
-  // HIỂN THỊ THÔNG BÁO TRÊN MÀN HÌNH
+  // HIỂN THỊ THÔNG BÁO
   void _showOverlayMessage(
     BuildContext context,
     String message, {
@@ -258,7 +265,6 @@ class _DangNhapState extends State<DangNhap> {
           ),
         ),
 
-        // Loading overlay
         if (_isLoading)
           Container(
             color: Colors.black45,

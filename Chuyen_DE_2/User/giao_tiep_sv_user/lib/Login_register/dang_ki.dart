@@ -79,7 +79,7 @@ class _DangKiState extends State<DangKi> {
     }
 
     final RegExp pattern = RegExp(
-      r'^[0-9]{5}([A-Za-z]{2})[0-9]{4}@mail\.tdc\.edu\.vn$',
+      r'^[0-9]{5}([A-Z]{2})[0-9]{4}@mail\.tdc\.edu\.vn$',
       caseSensitive: false,
     );
 

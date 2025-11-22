@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:giao_tiep_sv_user/Data/global_state.dart'; 
+import 'package:giao_tiep_sv_user/Data/global_state.dart';
 import 'package:giao_tiep_sv_user/Home_screen/home.dart';
+import 'package:giao_tiep_sv_user/duyet_Nguoi_Dung/member_post_screen.dart';
 import '../left_panel.dart';
 import 'package:giao_tiep_sv_user/FireBase_Service/myGroup_service.dart';
 
@@ -15,13 +16,14 @@ class NhomCuaToi extends StatefulWidget {
 class _NhomCuaToiState extends State<NhomCuaToi> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
-  // ✅ Gọi từ service thay vì trực tiếp Firestore
-final Stream<List<DocumentSnapshot>> _groupsStream = MygroupService.getMyGroupsStream();
+  //  Gọi từ service thay vì trực tiếp Firestore
+  final Stream<List<DocumentSnapshot>> _groupsStream =
+      MygroupService.getMyGroupsStream();
 
   @override
   Widget build(BuildContext context) {
-    print(">>> Current User ID: ${GlobalState.currentUserId}"); 
-    
+    print(">>> Current User ID: ${GlobalState.currentUserId}");
+
     return Scaffold(
       key: _scaffoldKey,
       backgroundColor: Colors.white,
@@ -77,14 +79,16 @@ final Stream<List<DocumentSnapshot>> _groupsStream = MygroupService.getMyGroupsS
   Widget _buildGroupList() {
     // Cập nhật kiểu dữ liệu của StreamBuilder
     return StreamBuilder<List<DocumentSnapshot>>(
-      stream: _groupsStream, 
+      stream: _groupsStream,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
 
         if (snapshot.hasError) {
-          return Center(child: Text('Đã xảy ra lỗi khi tải dữ liệu: ${snapshot.error}'));
+          return Center(
+            child: Text('Đã xảy ra lỗi khi tải dữ liệu: ${snapshot.error}'),
+          );
         }
 
         // Lấy dữ liệu là List<DocumentSnapshot>
@@ -92,7 +96,9 @@ final Stream<List<DocumentSnapshot>> _groupsStream = MygroupService.getMyGroupsS
 
         if (groupsDocs.isEmpty) {
           if (GlobalState.currentUserId.isEmpty) {
-            return const Center(child: Text('Lỗi: ID người dùng chưa được thiết lập.'));
+            return const Center(
+              child: Text('Lỗi: ID người dùng chưa được thiết lập.'),
+            );
           }
           return const Center(child: Text('Bạn chưa tạo nhóm nào.'));
         }
@@ -102,11 +108,12 @@ final Stream<List<DocumentSnapshot>> _groupsStream = MygroupService.getMyGroupsS
           itemBuilder: (context, index) {
             final groupDoc = groupsDocs[index];
             final groupData = groupDoc.data() as Map<String, dynamic>;
-            
+
             final group = {
               "id": groupDoc.id,
               "name": groupData["name"] ?? "Nhóm không tên",
-              "image": groupData.containsKey("avt") && groupData["avt"] is String
+              "image":
+                  groupData.containsKey("avt") && groupData["avt"] is String
                   ? groupData["avt"]
                   : "assets/images/database.png",
             };
@@ -139,23 +146,28 @@ final Stream<List<DocumentSnapshot>> _groupsStream = MygroupService.getMyGroupsS
   }
 
   Widget _buildGroupImage(String imagePath) {
-    final bool isNetworkImage = imagePath.startsWith('http') || imagePath.startsWith('https');
+    final bool isNetworkImage =
+        imagePath.startsWith('http') || imagePath.startsWith('https');
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(12),
       child: SizedBox(
-        width: 60, 
+        width: 60,
         height: 60,
-        child: isNetworkImage 
+        child: isNetworkImage
             ? Image.network(
                 imagePath,
                 fit: BoxFit.cover,
                 loadingBuilder: (context, child, loadingProgress) {
                   if (loadingProgress == null) return child;
-                  return const Center(child: CircularProgressIndicator(strokeWidth: 2));
+                  return const Center(
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  );
                 },
-                errorBuilder: (context, error, stackTrace) => 
-                  Image.asset("assets/images/database.png", fit: BoxFit.cover),
+                errorBuilder: (context, error, stackTrace) => Image.asset(
+                  "assets/images/database.png",
+                  fit: BoxFit.cover,
+                ),
               )
             : Image.asset(imagePath, fit: BoxFit.cover),
       ),
@@ -193,7 +205,7 @@ final Stream<List<DocumentSnapshot>> _groupsStream = MygroupService.getMyGroupsS
       child: const Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text("Truy cập", style: TextStyle(color: Colors.blueAccent)),
+          Text("Quản lý", style: TextStyle(color: Colors.blueAccent)),
           SizedBox(width: 6),
           Icon(Icons.arrow_forward, color: Colors.blueAccent, size: 18),
         ],
@@ -203,15 +215,17 @@ final Stream<List<DocumentSnapshot>> _groupsStream = MygroupService.getMyGroupsS
 
   void _handleAccessGroup(String groupId, String groupName) {
     print(">>> Đang chuyển hướng và chọn nhóm: ID=$groupId | Tên=$groupName");
-    
+
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (context) => const Home()),
+      MaterialPageRoute(
+        builder: (context) => MemberPostScreen(groupId: groupId),
+      ),
     );
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Đang truy cập nhóm "$groupName" (ID: $groupId)'),
+        content: Text('Đang truy cập quản lý nhóm "$groupName" '),
         duration: const Duration(seconds: 2),
       ),
     );
