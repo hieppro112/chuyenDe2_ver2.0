@@ -1,29 +1,21 @@
-// group_service.dart
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../Data/global_state.dart';
 
 class GroupService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // --- HÀM TRÍCH XUẤT MÃ KHOA ---
+  // 1. TÁCH MÃ KHOA TỪ USER_ID
   String _extractFacultyCode(String userId) {
     if (userId.isEmpty) return '';
 
-    // Regex tìm cụm chữ cái in hoa (A-Z) liên tiếp
+    // Lấy cụm ký tự in hoa liên tiếp
     final RegExp facultyRegex = RegExp(r'[A-Z]+');
-    final Iterable<RegExpMatch> matches = facultyRegex.allMatches(userId);
+    final match = facultyRegex.firstMatch(userId);
 
-    if (matches.isNotEmpty) {
-      return matches.first.group(0)!;
-    } else {
-      return '';
-    }
+    return match?.group(0) ?? '';
   }
 
-  // --- HÀM TRUY VẤN VÀ LỌC NHÓM ĐỂ THAM GIA ---
-  // Điều kiện lọc: Cùng Khoa, Nhóm đã được duyệt (id_status=1 & approval_mode=true),
-  // và Người dùng chưa có bản ghi (status_id=0 hoặc 1) trong Groups_members.
+  // 2. LẤY DANH SÁCH NHÓM MÀ NGƯỜI DÙNG ĐƯỢC HIỂN THỊ
   Future<List<DocumentSnapshot>> fetchGroupsToJoin() async {
     final String currentUserId = GlobalState.currentUserId;
     final String facultyCode = _extractFacultyCode(currentUserId);
@@ -32,46 +24,63 @@ class GroupService {
       return [];
     }
 
-    // 1. Lấy tất cả các bản ghi của người dùng trong Groups_members
+    // B1: Lấy nhóm mà user đang là thành viên hoặc đã gửi yêu cầu
     final QuerySnapshot memberGroupsSnapshot = await _firestore
         .collection('Groups_members')
         .where('user_id', isEqualTo: currentUserId)
         .get();
 
-    // 2. Lọc ra các Group ID mà người dùng ĐANG CHỜ DUYỆT (0) HOẶC ĐÃ ĐƯỢC CHẤP NHẬN (1)
     final Set<String> groupIdsToExclude = memberGroupsSnapshot.docs
         .where((doc) {
           final status = doc.get('status_id') as int?;
-          // Loại trừ nhóm nếu user ĐÃ CHẤP NHẬN (1) HOẶC ĐANG CHỜ DUYỆT (0)
-          return status == 1 || status == 0;
+          return status == 1 || status == 0; // 1 = đã vào, 0 = đang chờ duyệt
         })
         .map((doc) => doc['group_id'] as String)
         .toSet();
-
-    // 3. Truy vấn danh sách tất cả các nhóm theo điều kiện
+    // B2: Lấy tất cả nhóm đã được duyệt
     final QuerySnapshot allGroupsSnapshot = await _firestore
         .collection('Groups')
-        .where('faculty_id', isEqualTo: facultyCode)
-        .where('id_status', isEqualTo: 1) // Nhóm đã được duyệt (Status ID)
+        .where('id_status', isEqualTo: 1) // nhóm active
         .get();
+    // B3: Lọc nhóm theo KEY của faculty_id
+    final List<DocumentSnapshot> filteredGroups = allGroupsSnapshot.docs.where((
+      groupDoc,
+    ) {
+      final dynamic rawFaculty = groupDoc.get('faculty_id');
 
-    // 4. Lọc bỏ các nhóm mà người dùng đã có mặt trong groupIdsToExclude
-    final List<DocumentSnapshot> filteredGroups = allGroupsSnapshot.docs
-        .where((groupDoc) => !groupIdsToExclude.contains(groupDoc.id))
-        .toList();
+      Map<String, dynamic> facultyMap = {};
+
+      // Trường hợp faculty_id là Map (định dạng chuẩn)
+      if (rawFaculty is Map<String, dynamic>) {
+        facultyMap = rawFaculty;
+      }
+      // Trường hợp faculty_id chỉ là chuỗi (VD: "KT")
+      else if (rawFaculty is String) {
+        facultyMap = {rawFaculty: rawFaculty};
+      } else {
+        return false;
+      }
+
+      // Lấy tất cả key trừ "id"
+      final facultyKeys = facultyMap.keys.where((key) => key != "id").toList();
+
+      final matchesFaculty = facultyKeys.contains(facultyCode);
+
+      return matchesFaculty && !groupIdsToExclude.contains(groupDoc.id);
+    }).toList();
 
     return filteredGroups;
   }
 
-  // --- HÀM GỬI YÊU CẦU THAM GIA NHÓM ---
+  // 3. GỬI YÊU CẦU THAM GIA NHÓM
   Future<void> requestJoinGroup(String groupId) async {
     final String currentUserId = GlobalState.currentUserId;
 
     await _firestore.collection('Groups_members').add({
       'group_id': groupId,
       'user_id': currentUserId,
-      'role': 1, // Thành viên thường
-      'status_id': 0, // Đang chờ duyệt
+      'role': 0, // thành viên thường
+      'status_id': 0, // chờ duyệt
       'joined_at': FieldValue.serverTimestamp(),
     });
   }
