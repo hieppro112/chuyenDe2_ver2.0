@@ -54,10 +54,8 @@ class SavedPostsService {
 
                 if (userDoc.exists) {
                   final userData = userDoc.data()!;
-                  // SỬ DỤNG 'fullname' THAY VÌ 'name'
                   data['user_name'] =
                       userData['fullname'] as String? ?? 'Ẩn danh';
-                  // SỬ DỤNG 'faculty_id' THAY VÌ 'faculty'
                   data['user_faculty'] =
                       userData['faculty_id'] as String? ?? 'Chưa cập nhật';
                 } else {
