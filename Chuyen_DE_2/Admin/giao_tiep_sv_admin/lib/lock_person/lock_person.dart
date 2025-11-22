@@ -57,7 +57,7 @@ class _LockPersonState extends State<LockPerson> {
     }
   }
 
-  // 💡 HÀM ĐỂ MỞ KHÓA TÀI KHOẢN
+  //  HÀM ĐỂ MỞ KHÓA TÀI KHOẢN
   Future<void> _unlockUser(String userId, String facultyId) async {
     if (userId.isEmpty) return;
     try {

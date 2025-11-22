@@ -3,6 +3,7 @@ import 'package:giao_tiep_sv_admin/Admin/duyet_nhom_admin/duyet_nhom_admin.dart'
 import 'package:giao_tiep_sv_admin/Gui_Thong_bao/view/Notifycation_Sceen.dart';
 import 'package:giao_tiep_sv_admin/Tao_nhom_cong_Dong/view/Create_group_community.dart';
 import 'package:giao_tiep_sv_admin/Truy_Xuat_TK_Screens/truy_xuat_tai_Khoan.dart';
+import 'package:giao_tiep_sv_admin/lock_person/lock_person.dart';
 import 'bao_cao_vi_pham.dart';
 
 class AdminScreen extends StatelessWidget {
@@ -60,7 +61,7 @@ class AdminScreen extends StatelessWidget {
               _buildAdminButton(
                 context,
                 icon: Icons.people_alt, // Icon người dùng
-                text: 'Truy xuất tài khoản người dùng.',
+                text: 'Truy xuất tài khoản',
                 color: const Color(0xFFE8F5E9), // Màu xanh lá nhạt
                 iconColor: Colors.blue, // Màu icon xanh dương
                 onPressed: () {
@@ -68,6 +69,22 @@ class AdminScreen extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(builder: (context) => TruyXuatTaiKhoan()),
+                  );
+                },
+              ),
+              const SizedBox(height: 15),
+
+              _buildAdminButton(
+                context,
+                icon: Icons.lock_person, // Icon người dùng
+                text: 'Tài khoản bị khóa',
+                color: const Color.fromARGB(255, 222, 126, 71),
+                iconColor: Colors.blue, // Màu icon xanh dương
+                onPressed: () {
+                  // Xử lý khi nhấn nút
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => LockPerson()),
                   );
                 },
               ),
