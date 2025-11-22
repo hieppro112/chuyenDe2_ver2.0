@@ -1,53 +1,45 @@
 // GroupMemberApprovalService.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:giao_tiep_sv_user/duyet_Nguoi_Dung/models/MemberApprovalModel.dart';
+import 'package:rxdart/rxdart.dart';
 
 class MemberApprovalService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final String _collection = 'Groups_members';
-
-  // [SỬA - 15/11/2025 02:30] Giữ lại để tương thích
-  Stream<QuerySnapshot> getPendingMembers({
-    int limit = 100,
-    DocumentSnapshot? startAfter,
-    required String groupId,
-  }) {
-    Query query = _firestore
-        .collection(_collection)
-        .where('group_id', isEqualTo: groupId)
-        .where('status_id', isEqualTo: 0) // Chỉ pending
-        .orderBy('joined_at', descending: true)
-        .limit(limit);
-
-    if (startAfter != null) {
-      query = query.startAfterDocument(startAfter);
-    }
-
-    return query.snapshots();
-  }
-
-  // [SỬA - 15/11/2025 02:30] MỚI: Lấy thành viên theo trạng thái
+  // Lấy thành viên theo trạng thái
   Stream<QuerySnapshot> getMembersByStatus({
     required String groupId,
     int limit = 100,
     DocumentSnapshot? startAfter,
-    int statusId = -1, // -1: tất cả
+    int statusId = -1,
+    bool orderDescending = true,
   }) {
-    Query query = _firestore
-        .collection(_collection)
-        .where('group_id', isEqualTo: groupId)
-        .orderBy('joined_at', descending: true)
-        .limit(limit);
+    // Trước tiên kiểm tra nhóm có bật duyệt không
+    return _firestore
+        .collection('Groups')
+        .doc(groupId)
+        .snapshots()
+        .where((groupSnapshot) {
+          final data = groupSnapshot.data();
+          return data != null && (data['id_status'] as num?)?.toInt() == 1;
+        })
+        .switchMap((_) {
+          // Chỉ khi id_status == 1 mới query members
+          Query query = _firestore
+              .collection(_collection)
+              .where('group_id', isEqualTo: groupId)
+              .orderBy('joined_at', descending: orderDescending)
+              .limit(limit);
 
-    if (statusId >= 0) {
-      query = query.where('status_id', isEqualTo: statusId);
-    }
+          if (statusId >= 0) {
+            query = query.where('status_id', isEqualTo: statusId);
+          }
+          if (startAfter != null) {
+            query = query.startAfterDocument(startAfter);
+          }
 
-    if (startAfter != null) {
-      query = query.startAfterDocument(startAfter);
-    }
-
-    return query.snapshots();
+          return query.snapshots();
+        });
   }
 
   Future<MemberApprovalModel> docToMemberModel(

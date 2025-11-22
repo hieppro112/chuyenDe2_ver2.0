@@ -29,6 +29,8 @@ class _MemberPostScreenState extends State<MemberPostScreen> {
 
   String _postFilter = 'Chờ duyệt';
   String _memberFilter = 'Chờ duyệt';
+  String _searchQuery = '';
+  bool _sortDescending = true;
 
   final PostApprovalService _approvalService = PostApprovalService();
   final MemberApprovalService _memberService = MemberApprovalService();
@@ -48,22 +50,39 @@ class _MemberPostScreenState extends State<MemberPostScreen> {
 
   List<UserPostApprovalModel> _posts = [];
   List<MemberApprovalModel> _members = [];
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _loadPosts(isRefresh: true);
     _loadMembers(isRefresh: true);
+    // Lắng nghe thay đổi ô tìm kiếm
+    _searchController.addListener(() {
+      setState(() {
+        _searchQuery = _searchController.text.toLowerCase();
+      });
+    });
   }
 
   @override
   void dispose() {
     _memberStreamSubscription?.cancel();
     _postStreamSubscription?.cancel();
+    _searchController.dispose();
     super.dispose();
   }
 
-  // [SỬA - 15/11/2025 02:30] Dùng getMembersByStatus, hỗ trợ filter
+  // Hàm toggle sắp xếp (dùng chung cho cả 2 tab)
+  void _toggleSort() {
+    setState(() => _sortDescending = !_sortDescending);
+    if (_selectedTabIndex == 0) {
+      _loadPosts(isRefresh: true);
+    } else {
+      _loadMembers(isRefresh: true);
+    }
+  }
+
   void _loadMembers({bool isRefresh = false}) {
     _memberStreamSubscription?.cancel();
 
@@ -90,6 +109,7 @@ class _MemberPostScreenState extends State<MemberPostScreen> {
           limit: _memberLimit,
           startAfter: isRefresh ? null : _lastMemberDocument,
           statusId: statusId,
+          orderDescending: _sortDescending,
         )
         .listen(
           (snapshot) async {
@@ -155,6 +175,8 @@ class _MemberPostScreenState extends State<MemberPostScreen> {
           limit: _postLimit,
           startAfter: _lastPostDocument,
           statusId: statusId,
+          groupId: widget.groupId,
+          orderDescending: _sortDescending,
         )
         .listen((snapshot) async {
           if (!mounted) return;
@@ -232,19 +254,36 @@ class _MemberPostScreenState extends State<MemberPostScreen> {
   }
 
   List<UserPostApprovalModel> get _filteredPosts {
-    if (_postFilter == 'Tất cả') return _posts;
-    return _posts.where((post) {
-      switch (_postFilter) {
-        case 'Chờ duyệt':
-          return post.status == 'pending';
-        case 'Đã duyệt':
-          return post.status == 'approved';
-        case 'Từ chối':
-          return post.status == 'rejected';
-        default:
-          return true;
-      }
-    }).toList();
+    var list = _posts;
+
+    // Lọc theo trạng thái (giữ nguyên code cũ của bạn)
+    if (_postFilter != 'Tất cả') {
+      list = list.where((post) {
+        switch (_postFilter) {
+          case 'Chờ duyệt':
+            return post.status == 'pending';
+          case 'Đã duyệt':
+            return post.status == 'approved';
+          case 'Từ chối':
+            return post.status == 'rejected';
+          default:
+            return true;
+        }
+      }).toList();
+    }
+
+    // THÊM ĐOẠN NÀY ĐỂ TÌM KIẾM THEO NỘI DUNG + TÊN NGƯỜI ĐĂNG
+    if (_searchQuery.isNotEmpty) {
+      list = list
+          .where(
+            (post) =>
+                post.content.toLowerCase().contains(_searchQuery) ||
+                post.authorName.toLowerCase().contains(_searchQuery),
+          )
+          .toList();
+    }
+
+    return list;
   }
 
   List<MemberApprovalModel> get _filteredMembers {
@@ -261,6 +300,62 @@ class _MemberPostScreenState extends State<MemberPostScreen> {
           return true;
       }
     }).toList();
+  }
+
+  // === XÓA BÀI VIẾT ===
+  Future<void> _deletePost(UserPostApprovalModel post) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Xóa bài viết'),
+        content: const Text('Bài viết sẽ bị xóa vĩnh viễn. Bạn có chắc chắn?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Hủy'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Xóa', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      await _approvalService.deletePost(post.id);
+      setState(() {
+        _posts.removeWhere((p) => p.id == post.id);
+      });
+      _showSnackBar('Đã xóa bài viết');
+    } catch (e) {
+      _showSnackBar('Lỗi khi xóa bài viết');
+    }
+  }
+
+  // === UI thanh tìm kiếm (chỉ hiện ở tab Bài viết) ===
+  Widget _buildSearchBar() {
+    if (_selectedTabIndex != 0) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      child: TextField(
+        controller: _searchController,
+        decoration: InputDecoration(
+          hintText: 'Tìm kiếm bài viết...',
+          prefixIcon: const Icon(Icons.search),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
+          filled: true,
+          fillColor: Colors.grey[200],
+          contentPadding: const EdgeInsets.symmetric(vertical: 0),
+        ),
+      ),
+    );
   }
 
   Widget _buildFilterSection() {
@@ -281,62 +376,132 @@ class _MemberPostScreenState extends State<MemberPostScreen> {
       'Từ chối': Colors.red,
     };
 
-    return Row(
+    // Chỉ hiện thanh tìm kiếm ở tab Bài viết (index == 0)
+    final bool showSearchBar = _selectedTabIndex == 0;
+
+    return Column(
       children: [
-        SizedBox(
-          width: 200,
-          child: Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.grey.shade300),
-                color: Colors.grey.shade100,
-              ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  value: currentFilter,
-                  isExpanded: true,
-                  icon: const Icon(Icons.arrow_drop_down),
-                  items: options.map((opt) {
-                    final icon = icons[opt]!;
-                    final color = colors[opt]!;
-                    return DropdownMenuItem(
-                      value: opt,
-                      child: Row(
-                        children: [
-                          Icon(icon, color: color, size: 20),
-                          const SizedBox(width: 8),
-                          Text(
-                            opt,
-                            style: TextStyle(
-                              color: Colors.black87,
-                              fontWeight: FontWeight.w500,
-                            ),
+        // Dòng 1: Filter dropdown + Nút sắp xếp
+        Container(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+          child: Row(
+            children: [
+              // Dropdown filter
+              SizedBox(
+                width: 200,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: Colors.grey.shade300),
+                    color: Colors.grey.shade100,
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: currentFilter,
+                      isExpanded: true,
+                      icon: const Icon(Icons.arrow_drop_down),
+                      items: options.map((opt) {
+                        return DropdownMenuItem(
+                          value: opt,
+                          child: Row(
+                            children: [
+                              Icon(icons[opt]!, color: colors[opt]!, size: 20),
+                              const SizedBox(width: 8),
+                              Text(
+                                opt,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      if (_selectedTabIndex == 0) {
-                        _postFilter = value!;
-                        _loadPosts(isRefresh: true);
-                      } else {
-                        _memberFilter = value!;
-                        _loadMembers(
-                          isRefresh: true,
-                        ); // [SỬA - 15/11/2025 02:30]
-                      }
-                    });
-                  },
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          if (_selectedTabIndex == 0) {
+                            _postFilter = value!;
+                            _loadPosts(isRefresh: true);
+                          } else {
+                            _memberFilter = value!;
+                            _loadMembers(isRefresh: true);
+                          }
+                        });
+                      },
+                    ),
+                  ),
                 ),
               ),
-            ),
+
+              const Spacer(),
+
+              // Nút sắp xếp
+              OutlinedButton.icon(
+                onPressed: _toggleSort,
+                icon: Icon(
+                  _sortDescending ? Icons.trending_up : Icons.trending_down,
+                  size: 20,
+                ),
+                label: Text(
+                  _sortDescending ? "Mới nhất" : "Cũ nhất",
+                  style: const TextStyle(fontSize: 14),
+                ),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: _sortDescending
+                      ? Colors.deepPurple
+                      : Colors.amber[800],
+                  side: BorderSide(
+                    color: _sortDescending
+                        ? Colors.deepPurple
+                        : Colors.amber[800]!,
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
+
+        // Dòng 2: Thanh tìm kiếm (chỉ hiện ở tab Bài viết)
+        if (showSearchBar)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'Tìm kiếm theo nội dung bài viết...',
+                prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                suffixIcon: _searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear, color: Colors.grey),
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() => _searchQuery = '');
+                        },
+                      )
+                    : null,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                filled: true,
+                fillColor: Colors.grey[200],
+                contentPadding: const EdgeInsets.symmetric(vertical: 14),
+              ),
+              onChanged: (value) {
+                setState(() {
+                  _searchQuery = value.toLowerCase().trim();
+                });
+              },
+            ),
+          ),
       ],
     );
   }
@@ -366,6 +531,7 @@ class _MemberPostScreenState extends State<MemberPostScreen> {
           post: post,
           onApprove: () => _approvePost(post),
           onReject: () => _rejectPost(post),
+          onDelete: () => _deletePost(post),
         );
       },
     );

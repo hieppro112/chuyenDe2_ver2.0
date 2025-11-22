@@ -5,16 +5,20 @@ class UserPostApproval extends StatelessWidget {
   final UserPostApprovalModel post;
   final VoidCallback onApprove;
   final VoidCallback onReject;
+  final VoidCallback? onDelete; // THÊM: callback xóa bài
 
   const UserPostApproval({
     Key? key,
     required this.post,
     required this.onApprove,
     required this.onReject,
+    this.onDelete, // NHẬN CALLBACK XÓA
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    final bool isPending = post.status == 'pending';
+
     return Card(
       margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Padding(
@@ -22,82 +26,120 @@ class UserPostApproval extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header với tên tác giả và trạng thái
+            // Header: Avatar + Tên + Trạng thái + Nút 3 chấm (nếu không pending)
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: [
-                    CircleAvatar(
-                      backgroundImage: NetworkImage(
-                        "https://i.pinimg.com/736x/d4/38/25/d43825dd483d634e59838d919c3cf393.jpg",
-                      ),
-                    ),
-                    SizedBox(width: 8),
-                    Text(
-                      post.authorName,
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ],
+                CircleAvatar(
+                  radius: 20,
+                  backgroundImage: NetworkImage(
+                    "https://i.pinimg.com/736x/d4/38/25/d43825dd483d634e59838d919c3cf393.jpg",
+                  ),
                 ),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        post.authorName,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                      Text(
+                        'Ngày ${_formatDate(post.date)}',
+                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Trạng thái
                 _buildStatusBadge(post.status),
+
+                // Nút 3 chấm: chỉ hiện khi KHÔNG còn chờ duyệt
+                if (!isPending)
+                  PopupMenuButton<String>(
+                    icon: Icon(Icons.more_vert, color: Colors.grey[600]),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    itemBuilder: (context) => [
+                      PopupMenuItem(
+                        value: 'delete',
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.delete_outline,
+                              color: Colors.red,
+                              size: 20,
+                            ),
+                            SizedBox(width: 10),
+                            Text(
+                              'Xóa bài viết',
+                              style: TextStyle(color: Colors.red),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                    onSelected: (value) {
+                      if (value == 'delete') {
+                        onDelete?.call(); // Gọi hàm xóa
+                      }
+                    },
+                  ),
               ],
             ),
 
-            SizedBox(height: 8),
+            SizedBox(height: 12),
+
             // Nội dung bài viết
-            Text(post.content, style: TextStyle(fontSize: 14)),
-            SizedBox(height: 8),
+            Text(post.content, style: TextStyle(fontSize: 14, height: 1.5)),
 
-            // Ngày đăng
-            Text(
-              'Ngày ${_formatDate(post.date)}',
-              style: TextStyle(fontSize: 12, color: Colors.grey),
-            ),
-            SizedBox(height: 8),
+            SizedBox(height: 12),
 
-            // ảnh duyệt bài
-            if (post.image.isNotEmpty) ...[
+            // Ảnh (nếu có)
+            if (post.image.isNotEmpty)
               ClipRRect(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(12),
                 child: Image.network(
                   post.image,
                   width: double.infinity,
-                  height: 180,
+                  height: 200,
                   fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      height: 180,
-                      color: Colors.grey[200],
-                      child: const Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.error_outline, color: Colors.grey),
-                          SizedBox(height: 8),
-                          Text('Không thể tải ảnh'),
-                        ],
-                      ),
-                    );
-                  },
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    height: 200,
+                    color: Colors.grey[200],
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.image_not_supported, color: Colors.grey),
+                        Text(
+                          'Không tải được ảnh',
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
-              SizedBox(height: 8),
-            ],
 
-            // Nút hành động (chỉ hiện khi chờ duyệt)
-            if (post.status == 'pending') ...[
+            if (post.image.isNotEmpty) SizedBox(height: 12),
+
+            // Nút Duyệt / Từ chối: chỉ hiện khi đang chờ duyệt
+            if (isPending)
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  _buildActionButton('Duyệt', Colors.green, onApprove),
-                  SizedBox(width: 50),
                   _buildActionButton('Từ chối', Colors.red, onReject),
+                  SizedBox(width: 32),
+                  _buildActionButton('Duyệt', Colors.green, onApprove),
                 ],
               ),
-            ],
+
+            // Nếu đã duyệt/từ chối → không hiện nút gì thêm (chỉ có 3 chấm ở trên)
           ],
         ),
       ),
@@ -107,35 +149,46 @@ class UserPostApproval extends StatelessWidget {
   Widget _buildStatusBadge(String status) {
     Color color;
     String text;
+    IconData icon;
 
     switch (status) {
       case 'approved':
         color = Colors.green;
         text = 'Đã duyệt';
+        icon = Icons.check_circle_outline;
         break;
       case 'rejected':
         color = Colors.red;
-        text = 'Từ chối';
+        text = 'Bị từ chối';
+        icon = Icons.cancel_outlined;
         break;
       default:
         color = Colors.orange;
         text = 'Chờ duyệt';
+        icon = Icons.hourglass_empty;
     }
 
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: color),
       ),
-      child: Text(
-        text,
-        style: TextStyle(
-          color: color,
-          fontSize: 10,
-          fontWeight: FontWeight.bold,
-        ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: color),
+          SizedBox(width: 4),
+          Text(
+            text,
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.bold,
+              fontSize: 11,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -144,18 +197,18 @@ class UserPostApproval extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: EdgeInsets.symmetric(horizontal: 24, vertical: 10),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(6),
+          color: color.withOpacity(0.15),
+          borderRadius: BorderRadius.circular(8),
           border: Border.all(color: color),
         ),
         child: Text(
           text,
           style: TextStyle(
             color: color,
-            fontSize: 14,
             fontWeight: FontWeight.bold,
+            fontSize: 15,
           ),
         ),
       ),
@@ -163,6 +216,17 @@ class UserPostApproval extends StatelessWidget {
   }
 
   String _formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year}';
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final yesterday = today.subtract(Duration(days: 1));
+    final postDate = DateTime(date.year, date.month, date.day);
+
+    if (postDate == today) {
+      return 'Hôm nay';
+    } else if (postDate == yesterday) {
+      return 'Hôm qua';
+    } else {
+      return '${date.day}/${date.month}/${date.year}';
+    }
   }
 }

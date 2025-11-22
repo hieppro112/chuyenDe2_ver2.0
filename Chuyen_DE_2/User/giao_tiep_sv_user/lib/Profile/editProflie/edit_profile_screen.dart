@@ -212,18 +212,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       return;
     }
 
-    // Kiểm tra trường địa chỉ
-    if (address.length < 10) {
-      _showErrorSnackBar('Địa chỉ phải có ít nhất 10 ký tự!');
-      return;
-    } else if (address.length > 70) {
+    // Kiểm tra địa chỉ nếu có nhập vào
+    if (address.isNotEmpty && address.length > 70) {
       _showErrorSnackBar('Địa chỉ không được vượt quá 70 ký tự!');
       return;
     }
 
-    // Kiểm tra trường số điện thoại
-    if (phone.length != 10 || !RegExp(r'^[0-9]+$').hasMatch(phone)) {
-      _showErrorSnackBar('Số điện thoại phải có 10 chữ số!');
+    // Kiểm tra số điện thoại nếu có nhập vào
+    final isPhoneInvalid =
+        phone.isNotEmpty &&
+        (phone.length != 10 || !RegExp(r'^\d{10}$').hasMatch(phone));
+
+    if (isPhoneInvalid) {
+      _showErrorSnackBar('Số điện thoại phải gồm đúng 10 chữ số!');
       return;
     }
 

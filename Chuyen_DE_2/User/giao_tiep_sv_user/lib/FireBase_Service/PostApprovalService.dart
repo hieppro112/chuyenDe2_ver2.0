@@ -5,35 +5,17 @@ import 'package:giao_tiep_sv_user/duyet_Nguoi_Dung/models/User_post_approval_mod
 class PostApprovalService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // [SỬA - 14/11/2025 23:59] Tối ưu: Lấy tất cả user info 1 lần
-  // [SỬA - 15/11/2025 01:00] Giữ lại method cũ để tương thích nếu cần
-  Stream<QuerySnapshot> getPendingPosts({
-    int limit = 10,
-    DocumentSnapshot? startAfter,
-  }) {
-    Query query = _firestore
-        .collection('Post')
-        .where('status_id', isEqualTo: 0)
-        .orderBy('date_created', descending: true)
-        .limit(limit);
-
-    if (startAfter != null) {
-      query = query.startAfterDocument(startAfter);
-    }
-
-    return query.snapshots(); // Realtime!
-  }
-
-  // [SỬA - 15/11/2025 01:00] MỚI: Lấy bài viết theo trạng thái
-  // statusId = -1 → Tất cả, 0 → pending, 1 → approved, 2 → rejected
   Stream<QuerySnapshot> getPostsByStatus({
+    required String groupId,
     int limit = 20,
     DocumentSnapshot? startAfter,
     int statusId = -1,
+    bool orderDescending = true,
   }) {
     Query query = _firestore
         .collection('Post')
-        .orderBy('date_created', descending: true)
+        .where('group_id', isEqualTo: groupId)
+        .orderBy('date_created', descending: orderDescending)
         .limit(limit);
 
     if (statusId >= 0) {
@@ -44,10 +26,10 @@ class PostApprovalService {
       query = query.startAfterDocument(startAfter);
     }
 
-    return query.snapshots(); // Realtime cho mọi trạng thái
+    return query.snapshots();
   }
 
-  // [SỬA - 14/11/2025 23:59] Tối ưu: Lấy nhiều user cùng lúc
+  //Lấy nhiều user cùng lúc
   Future<Map<String, Map<String, String>>> _getUsersInfo(
     List<String> userIds,
   ) async {
@@ -75,8 +57,6 @@ class PostApprovalService {
     }
   }
 
-  // [SỬA - 14/11/2025 23:59] Dùng batch
-  // [SỬA - 15/11/2025 01:00] Sửa: Dùng status_id thực tế từ Firestore
   Future<List<UserPostApprovalModel>> docsToPostModels(
     List<QueryDocumentSnapshot> docs,
   ) async {
@@ -132,7 +112,6 @@ class PostApprovalService {
     return posts;
   }
 
-  // [SỬA - 15/11/2025 01:00] Helper: Chuyển status_id → string
   String _statusIdToString(int id) {
     switch (id) {
       case 0:
@@ -152,5 +131,15 @@ class PostApprovalService {
 
   Future<void> rejectPost(String postId) async {
     await _firestore.collection('Post').doc(postId).update({'status_id': 2});
+  }
+
+  Future<void> deletePost(String postId) async {
+    try {
+      await _firestore.collection('Post').doc(postId).delete();
+      print('Đã xóa bài viết $postId');
+    } catch (e) {
+      print('Lỗi xóa bài viết: $e');
+      rethrow;
+    }
   }
 }
