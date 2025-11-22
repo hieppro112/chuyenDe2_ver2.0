@@ -245,7 +245,6 @@ class _DuyetNhomAdminScreenState extends State<DuyetNhomAdminScreen> {
                     ),
                   ),
                 ),
-                //SizedBox(height: 8),
                 // Dòng hiển thị tổng số nhóm và nút sắp xếp
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,

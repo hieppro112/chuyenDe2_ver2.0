@@ -88,11 +88,6 @@ class DuyetNhomAdminModel {
     return value.toString();
   }
 
-  List<String> get members {
-    if (createdBy.isEmpty) return [];
-    return createdBy.values.map((e) => e.toString()).toList();
-  }
-
   GroupStatus get status {
     switch (statusId) {
       case 1:

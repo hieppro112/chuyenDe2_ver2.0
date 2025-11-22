@@ -92,29 +92,6 @@ class GroupCard extends StatelessWidget {
                       ),
 
                       SizedBox(height: 2),
-
-                      // Thành viên
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.group_outlined,
-                            size: 16,
-                            color: Colors.grey,
-                          ),
-                          SizedBox(width: 6),
-                          Expanded(
-                            child: Text(
-                              'Thành viên: ${_formatMembers(group.members)}',
-                              style: TextStyle(
-                                color: Colors.grey[600],
-                                fontSize: 14,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 2),
                       // Khoa
                       Row(
                         children: [
