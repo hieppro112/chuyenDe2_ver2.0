@@ -65,14 +65,6 @@ class PostCard extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        "Khoa: ${post["group_name"] ?? "Không rõ"}",
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey,
-                        ),
-                      ),
-
-                      Text(
                         _formatDate(post["date"]),
                         style: const TextStyle(
                           fontSize: 12,

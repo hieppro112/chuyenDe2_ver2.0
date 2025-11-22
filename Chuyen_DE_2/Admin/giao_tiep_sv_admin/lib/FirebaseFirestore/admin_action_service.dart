@@ -54,11 +54,9 @@ class AdminActionService {
       await _firestore.collection('Notifycations').add(notificationData);
 
       // 2. Cập nhật trạng thái bản ghi báo cáo vi phạm
-      // 🎯 SỬA LỖI: CẬP NHẬT COLLECTION BÁO CÁO VI PHẠM (Giả định là ViolationReports)
-      await _firestore.collection('ViolationReports').doc(reportDocId).update({
+      //  CẬP NHẬT COLLECTION BÁO CÁO VI PHẠM
+      await _firestore.collection('Notifycations').doc(reportDocId).update({
         'id_status': 1, // Đánh dấu là đã xử lý/giải quyết
-        'resolved_at': FieldValue.serverTimestamp(),
-        'admin_action': 'Cảnh báo',
       });
 
       return true;
@@ -69,24 +67,27 @@ class AdminActionService {
   }
 
   /// --- HÀM 4: XỬ LÝ KHÓA TÀI KHOẢN ---
-  /// Cập nhật trường 'is_locked' = true trong document Users
-  Future<bool> lockUserAccount(String userId) async {
-    if (userId.isEmpty) return false;
+  Future<bool> lockUserAccount(String userId, String reportDocId) async {
+    if (userId.isEmpty || reportDocId.isEmpty) return false;
 
     try {
-      // 1. Truy cập document Users bằng userId
       await _firestore.collection('Users').doc(userId).update({
-        'is_locked': true, // CẬP NHẬT TRẠNG THÁI KHÓA
+        'is_locked': true,
+      });
+
+      await _firestore.collection('Notifycations').doc(reportDocId).update({
+        'id_status': 1,
       });
 
       print('✅ Đã khóa tài khoản thành công cho User ID: $userId');
+      print('✅ Đã cập nhật trạng thái báo cáo $reportDocId thành Đã xử lý (1)');
       return true;
     } on FirebaseException catch (e) {
       // Xử lý trường hợp document không tồn tại hoặc lỗi khác
-      print('🔥 LỖI KHÓA TÀI KHOẢN Firestore: ${e.message}');
+      print('LỖI KHÓA TÀI KHOẢN Firestore: ${e.message}');
       return false;
     } catch (e) {
-      print('🔥 LỖI KHÔNG XÁC ĐỊNH khi khóa tài khoản: $e');
+      print('LỖI KHÔNG XÁC ĐỊNH khi khóa tài khoản: $e');
       return false;
     }
   }
