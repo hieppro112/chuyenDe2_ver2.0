@@ -201,7 +201,7 @@ class PostCard extends StatelessWidget {
     );
   }
 
-  ///  Xử lý ảnh — URL hoặc local
+  //  Xử lý ảnh — URL hoặc local
   Widget _buildImage(String path) {
     if (path.startsWith("http")) {
       return Image.network(
