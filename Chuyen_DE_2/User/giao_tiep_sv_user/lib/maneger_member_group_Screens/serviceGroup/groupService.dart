@@ -21,25 +21,41 @@ class GroupserviceManeger {
       print("loi khi them thanh vien vao nhom: $e");
     }
   }
-  // lay created at của nhóm 
-  Future<String?> getCreateAtID(String idGroup)async{
+  // lay created by của nhóm 
+  Future<List<String>?> getCreateAtID(String idGroup, bool type)async{
     try{
       List<String> listResult =[];
-      final querySnap = await groupDb.collection("Groups").doc(idGroup).get();
-      if(querySnap.exists){
-        Map<String,dynamic> data = querySnap.data() as Map<String,dynamic>;
+     final ref = groupDb.collection("Groups_members");
 
-        String? createBy = data["created_by"] as String?;
-        
-        if(createBy!=null){
-          listResult.add(createBy);
-          return createBy;
+     try{
+        if(type==false){
+          QuerySnapshot query = await ref.where("group_id", isEqualTo: idGroup).where("role", isEqualTo: 1).get();
+        for(var doc in query.docs){
+          Map<String,dynamic> data = doc.data() as Map<String,dynamic>;
+
+          if(data.containsKey("user_id")){
+            var item = data["user_id"] as String;
+            listResult.add(item);
+          }
+        }
+        return listResult;
         }
         else{
-          print("du lieu khong ton tai");
-          return null;
+          QuerySnapshot query = await ref.where("group_id", isEqualTo: idGroup).get();
+        for(var doc in query.docs){
+          Map<String,dynamic> data = doc.data() as Map<String,dynamic>;
+
+          if(data.containsKey("user_id")){
+            var item = data["user_id"] as String;
+            listResult.add(item);
+          }
         }
-      }
+        return listResult;
+        }
+     }
+     catch(e){
+      print("loi khi lay du lieu create by: $e");
+     }
     }catch(e){
       print("loi khi lay create At: $e");
       return null;

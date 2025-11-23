@@ -24,14 +24,14 @@ class _ManegerMemberGroupScreenState extends State<ManegerMemberGroupScreen> {
 
   bool isload = false;
   bool selecAll = true;
-  String? idAdminGroups;
+  List<String>? idAdminGroups;
 
   @override
   void initState() {
     // TODO: implement initState
     super.initState();
     getMemberGroup(widget.idGroup);
-    getAdminGroup(widget.idGroup);
+    getAdminGroup(widget.idGroup,true);
     Listsearch = ListMember;
   }
 
@@ -70,7 +70,12 @@ class _ManegerMemberGroupScreenState extends State<ManegerMemberGroupScreen> {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => AddMemberScreen(groupID: widget.idGroup , listMemberGroup: ListMember,)),
+                  MaterialPageRoute(
+                    builder: (context) => AddMemberScreen(
+                      groupID: widget.idGroup,
+                      listMemberGroup: ListMember,
+                    ),
+                  ),
                 );
               },
               child: Row(
@@ -107,11 +112,9 @@ class _ManegerMemberGroupScreenState extends State<ManegerMemberGroupScreen> {
                   url_icon: "assets/icons/ic_tabAll.png",
                   nameButton: "Tất cả",
                   ontap: () {
-                    print("tat ca ");
-
                     setState(() {
                       selecAll = true;
-
+                      getAdminGroup(widget.idGroup,selecAll);
                       if (selecAll == true) {
                         Listsearch = ListMember;
                       }
@@ -128,10 +131,13 @@ class _ManegerMemberGroupScreenState extends State<ManegerMemberGroupScreen> {
                   ontap: () {
                     setState(() {
                       selecAll = false;
+                      getAdminGroup(widget.idGroup,selecAll);
                       if (selecAll == false) {
                         Listsearch = ListMember.where((element) {
-                          // return element!.id_user.contains(idAdminGroups!.trim());
-                          return element!.id_user.trim() == idAdminGroups!;
+                          return idAdminGroups!.any((valueItem) {
+                            return element!.id_user.toLowerCase().trim() ==
+                                valueItem.toLowerCase().trim();
+                          });
                         }).toList();
                       }
                     });
@@ -151,7 +157,6 @@ class _ManegerMemberGroupScreenState extends State<ManegerMemberGroupScreen> {
                         value.toLowerCase(),
                       );
                     }).toList();
-
                   } else {
                     Listsearch = ListMember.where((element) {
                       return element!.fullname.toLowerCase().contains(
@@ -172,47 +177,50 @@ class _ManegerMemberGroupScreenState extends State<ManegerMemberGroupScreen> {
     );
   }
 
-
-//list cac member
+  //list cac member
   Widget createListMember() {
-    return (isload)?Center(child: CircularProgressIndicator(color: Colors.blueAccent,),)
-    : ListView.builder(
-      // physics: NeverScrollableScrollPhysics(),
-      shrinkWrap: true,
-      itemCount: Listsearch.length,
-      itemBuilder: (context, index) {
-        var value = Listsearch[index];
-        return CustomMemberGroupManeger(
-          url: value!.url_avt,
-          fullname: value!.fullname,
-        );
-      },
-    );
+    return (isload)
+        ? Center(child: CircularProgressIndicator(color: Colors.blueAccent))
+        : ListView.builder(
+            // physics: NeverScrollableScrollPhysics(),
+            shrinkWrap: true,
+            itemCount: Listsearch.length,
+            itemBuilder: (context, index) {
+              var value = Listsearch[index];
+              return CustomMemberGroupManeger(
+                url: value!.url_avt,
+                fullname: value!.fullname,
+              );
+            },
+          );
   }
+
   //lay danh sach thanh vien trong nhom
-  Future<void> getMemberGroup(String idRoom)async{
-    isload =true;
+  Future<void> getMemberGroup(String idRoom) async {
+    isload = true;
     ListMember.clear();
     var listData = await manegerDB.listChat(idRoom);
-    for(var item in listData){
+    for (var item in listData) {
       var newValue = await userDB.getUserForID(item!);
       ListMember.add(newValue);
     }
-    print("list member: ${ListMember.length}");
 
-    if(mounted){
+    if (mounted) {
       setState(() {
-      isload =false;
-    });
+        isload = false;
+      });
     }
   }
+
   //lay danh sach admin
-  Future<void> getAdminGroup(String idRoom) async{
-    isload =true;
-    idAdminGroups = await manegerDB.getCreateAtID(idRoom);
+  Future<void> getAdminGroup(String idRoom,bool type) async {
+    isload = true;
+    List<String>? listTemp=[]; 
+    listTemp = await manegerDB.getCreateAtID(idRoom,type);
     setState(() {
-      isload =false;
+      idAdminGroups = listTemp;
+      print("length: ${listTemp!.length}");
+      isload = false;
     });
   }
-
 }
