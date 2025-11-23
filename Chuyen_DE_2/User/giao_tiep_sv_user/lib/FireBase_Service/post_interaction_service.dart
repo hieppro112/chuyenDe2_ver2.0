@@ -100,4 +100,48 @@ class PostInteractionService {
       return [];
     }
   }
+
+  // Lấy số lượng Likes và Comments
+  Future<Map<String, int>> getPostInteractionCounts(String postId) async {
+    try {
+      // Đếm Likes
+      final likesSnapshot = await _firestore
+          .collection('Post_like')
+          .where('id_post', isEqualTo: postId)
+          .count()
+          .get();
+
+      // Đếm Comments
+      final commentsSnapshot = await _firestore
+          .collection('Post_comment')
+          .where('id_post', isEqualTo: postId)
+          .count()
+          .get();
+
+      return {
+        "likes": ?likesSnapshot.count,
+        "comments": ?commentsSnapshot.count,
+      };
+    } catch (e) {
+      print("Lỗi lấy số liệu tương tác: $e");
+      return {"likes": 0, "comments": 0};
+    }
+  }
+
+  // Kiểm tra xem người dùng hiện tại đã like bài viết chưa
+  Future<bool> isPostLikedByUser(String postId, String currentUserId) async {
+    try {
+      final snapshot = await _firestore
+          .collection('Post_like')
+          .where('id_post', isEqualTo: postId)
+          .where('id_user', isEqualTo: currentUserId)
+          .limit(1)
+          .get();
+
+      return snapshot.docs.isNotEmpty; // Trả về true nếu tìm thấy like của user
+    } catch (e) {
+      print("Lỗi kiểm tra trạng thái like: $e");
+      return false;
+    }
+  }
 }

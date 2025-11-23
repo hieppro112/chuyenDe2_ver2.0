@@ -4,6 +4,8 @@ import 'package:giao_tiep_sv_user/FireBase_Service/get_joined_groups.dart';
 import 'package:giao_tiep_sv_user/FireBase_Service/search_service.dart';
 import 'package:giao_tiep_sv_user/Home_screen/Home/Home_screen/port_card.dart';
 import 'package:giao_tiep_sv_user/Home_screen/Home/Home_screen/wiget/user_card.dart';
+import '../Home_screen/wiget/comment_sheet_content.dart';
+import '../../../FireBase_Service/post_interaction_service.dart';
 
 class SearchPage extends StatefulWidget {
   const SearchPage({super.key});
@@ -17,6 +19,15 @@ class _SearchPageState extends State<SearchPage> {
   final SearchService _searchService = SearchService();
   final GetJoinedGroupsService _groupsService = GetJoinedGroupsService();
 
+  final PostInteractionService _postInteractionService = PostInteractionService(
+    userId: GlobalState.currentUserId.isNotEmpty
+        ? GlobalState.currentUserId
+        : "23211TT4679",
+    userFullname: GlobalState.currentFullname.isNotEmpty
+        ? GlobalState.currentFullname
+        : "Người dùng ẩn danh",
+  );
+
   String selectedCategory = 'Người dùng';
   final List<String> categories = ['Người dùng', 'Bài viết'];
   List<Map<String, dynamic>> _searchResults = [];
@@ -25,7 +36,7 @@ class _SearchPageState extends State<SearchPage> {
   final String _currentUserId = GlobalState.currentUserId;
 
   List<String> _currentUserGroupIds = [];
-  Map<String, String> _groupIdToName = {}; // Lưu mapping id -> name
+  Map<String, String> _groupIdToName = {};
   bool _isGroupsLoading = true;
 
   @override
@@ -62,7 +73,6 @@ class _SearchPageState extends State<SearchPage> {
     setState(() {
       _currentUserGroupIds = groupIds;
 
-      // Tạo Map id -> name
       _groupIdToName = {
         for (var g in groups)
           if (g["id"] != "ALL") g["id"]: g["name"] as String,
@@ -84,6 +94,35 @@ class _SearchPageState extends State<SearchPage> {
     }
   }
 
+  Future<List<Map<String, dynamic>>> _enrichPostsWithInteractions(
+    List<Map<String, dynamic>> posts,
+  ) async {
+    final String currentUserId = _currentUserId;
+
+    final futures = posts.map((post) async {
+      final postId = post["id"] as String?;
+      if (postId == null) return post;
+
+      final counts = await _postInteractionService.getPostInteractionCounts(
+        postId,
+      );
+
+      final isLiked = await _postInteractionService.isPostLikedByUser(
+        postId,
+        currentUserId,
+      );
+
+      return {
+        ...post,
+        "likes": counts["likes"] ?? 0,
+        "comments": counts["comments"] ?? 0,
+        "isLiked": isLiked,
+      };
+    }).toList();
+
+    return await Future.wait(futures);
+  }
+
   Future<void> _performSearch(String query) async {
     if (_isLoading || _isGroupsLoading) return;
 
@@ -93,24 +132,88 @@ class _SearchPageState extends State<SearchPage> {
     });
 
     List<Map<String, dynamic>> results;
+
     if (selectedCategory == 'Người dùng') {
       results = await _searchService.searchUsers(query);
     } else {
       results = await _searchService.searchPosts(query, _currentUserGroupIds);
 
-      // Chuyển group_id -> group_name
       results = results.map((post) {
         return {
           ...post,
           "group_name": _groupIdToName[post["group"]] ?? "Không rõ",
         };
       }).toList();
+
+      results = await _enrichPostsWithInteractions(results);
     }
 
     setState(() {
       _searchResults = results;
       _isLoading = false;
     });
+  }
+
+  // HÀM MỚI: Xử lý sự kiện Like/Unlike
+  void _toggleLike(Map<String, dynamic> post) async {
+    final int postIndex = _searchResults.indexOf(post);
+    if (postIndex == -1) return;
+
+    final bool currentlyLiked = post["isLiked"] ?? false;
+    final String postId = post["id"] as String;
+
+    setState(() {
+      post["isLiked"] = !currentlyLiked;
+      post["likes"] = (post["likes"] ?? 0) + (currentlyLiked ? -1 : 1);
+      if (post["likes"]! < 0) post["likes"] = 0;
+    });
+
+    try {
+      final success = await _postInteractionService.toggleLike(
+        postId,
+        currentlyLiked,
+      );
+      if (!success) throw Exception("Cập nhật Firestore thất bại.");
+    } catch (e) {
+      print("Lỗi tương tác Like: $e");
+
+      if (mounted) {
+        setState(() {
+          post["isLiked"] = currentlyLiked;
+          post["likes"] = (post["likes"] ?? 0) + (currentlyLiked ? 1 : -1);
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Lỗi cập nhật lượt thích!')),
+        );
+      }
+    }
+  }
+
+  void _showCommentSheet(Map<String, dynamic> post) {
+    final int postIndex = _searchResults.indexOf(post);
+    if (postIndex == -1) return;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return CommentSheetContent(
+          postId: post["id"] as String,
+          post: post,
+          interactionService: _postInteractionService,
+          getGroupNameFromId: (groupId) =>
+              _groupIdToName[groupId] ?? "Không rõ",
+          onCommentsCountUpdate: (count) {
+            if (mounted) {
+              setState(() {
+                _searchResults[postIndex]["comments"] = count;
+              });
+            }
+          },
+        );
+      },
+    );
   }
 
   Widget _buildResultList() {
@@ -124,7 +227,9 @@ class _SearchPageState extends State<SearchPage> {
       );
     }
 
-    if (_isLoading) return const Center(child: CircularProgressIndicator());
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
     if (_searchResults.isEmpty) {
       return Center(
@@ -152,8 +257,8 @@ class _SearchPageState extends State<SearchPage> {
         } else {
           return PostCard(
             post: item,
-            onCommentPressed: () {},
-            onLikePressed: () {},
+            onCommentPressed: () => _showCommentSheet(item),
+            onLikePressed: () => _toggleLike(item),
           );
         }
       },
