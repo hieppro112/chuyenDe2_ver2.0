@@ -124,29 +124,63 @@ class _CommentSheetContentState extends State<CommentSheetContent> {
             ),
           ),
           const Divider(height: 1),
-          ListTile(
-            leading: CircleAvatar(
-              radius: 20,
-              backgroundImage: NetworkImage(
-                widget.post["avatar"] ??
-                    "https://cellphones.com.vn/sforum/wp-content/uploads/2023/10/avatar-trang-4.jpg",
-              ),
-            ),
-            title: Text(
-              widget.post["fullname"] ?? "Ẩn danh",
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            subtitle: Text(
-              widget.post["title"] ?? "Không có nội dung",
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 14),
-            ),
-            trailing: Text(
-              "trong ${widget.getGroupNameFromId(widget.post["group_id"])}",
-              style: const TextStyle(color: Colors.grey, fontSize: 12),
+          // BẮT ĐẦU CẤU TRÚC THÔNG TIN BÀI VIẾT MỚI (THAY THẾ LISTTILE)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 1. Avatar
+                CircleAvatar(
+                  radius: 20,
+                  backgroundImage: NetworkImage(
+                    widget.post["avatar"] ??
+                        "https://cellphones.com.vn/sforum/wp-content/uploads/2023/10/avatar-trang-4.jpg",
+                  ),
+                ),
+                const SizedBox(width: 10),
+                // 2. Khu vực nội dung bài viết (Đã được bọc bằng Expanded)
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Hàng 1: Tên người đăng
+                      Text(
+                        widget.post["fullname"] ?? "Ẩn danh",
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                        ),
+                        maxLines: 1, // Giới hạn 1 dòng
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      // Hàng 2: Tiêu đề bài viết
+                      Text(
+                        "Tiêu đề: ${widget.post["title"] ?? "Không có tiêu đề"}",
+                        maxLines: 1, // Giới hạn 1 dòng
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      // Hàng 3: Tên nhóm
+                      Text(
+                        "Nhóm: ${widget.getGroupNameFromId(widget.post["group_id"])}",
+                        style: const TextStyle(
+                          color: Colors.grey,
+                          fontSize: 12,
+                        ),
+                        maxLines: 1, // Giới hạn 1 dòng
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
+
           const Divider(height: 1),
           Expanded(
             child: _isLoadingComments
