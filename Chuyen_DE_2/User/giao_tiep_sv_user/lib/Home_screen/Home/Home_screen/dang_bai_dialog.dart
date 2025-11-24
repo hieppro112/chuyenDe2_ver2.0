@@ -40,8 +40,18 @@ class _DangBaiDialogState extends State<DangBaiDialog> {
 
     if (widget.availableGroupsData != null &&
         widget.availableGroupsData!.isNotEmpty) {
-      availableGroups = widget.availableGroupsData!;
-      selectedGroupId = availableGroups.first['id'] as String;
+      // Lọc nhóm
+      availableGroups = widget.availableGroupsData!.where((group) {
+        final name = (group['name'] as String?)?.toLowerCase() ?? '';
+        final id = (group['id'] as String?)?.toUpperCase() ?? '';
+        return id != 'ALL' && name != 'tất cả' && name != 'all';
+      }).toList();
+
+      if (availableGroups.isNotEmpty) {
+        selectedGroupId = availableGroups.first['id'] as String;
+      } else {
+        _loadGroupsFallback();
+      }
     } else {
       _loadGroupsFallback();
     }
@@ -64,10 +74,18 @@ class _DangBaiDialogState extends State<DangBaiDialog> {
         return {'id': doc.id, 'name': data['name'] ?? 'Nhóm không tên'};
       }).toList();
 
+      final filteredGroups = groups.where((group) {
+        final name = (group['name'] as String?)?.toLowerCase() ?? '';
+        final id = (group['id'] as String?)?.toUpperCase() ?? '';
+        return id != 'ALL' && name != 'tất cả' && name != 'all';
+      }).toList();
+
       setState(() {
-        availableGroups = groups;
+        availableGroups = filteredGroups;
         if (availableGroups.isNotEmpty) {
           selectedGroupId = availableGroups.first['id'] as String;
+        } else {
+          selectedGroupId = null;
         }
       });
     } catch (e) {
@@ -222,7 +240,6 @@ class _DangBaiDialogState extends State<DangBaiDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Tiêu đề
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -238,7 +255,6 @@ class _DangBaiDialogState extends State<DangBaiDialog> {
               ),
               const Divider(),
 
-              // Ô nhập nội dung
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
@@ -257,12 +273,12 @@ class _DangBaiDialogState extends State<DangBaiDialog> {
               ),
               const SizedBox(height: 16),
 
-              // Đính kèm
               const Text(
                 'Đính kèm:',
                 style: TextStyle(fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 8),
+
               Row(
                 children: [
                   IconButton(
@@ -287,7 +303,6 @@ class _DangBaiDialogState extends State<DangBaiDialog> {
                 ],
               ),
 
-              // Danh sách ảnh hoặc file
               if (selectedImages.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(top: 12),
@@ -348,35 +363,50 @@ class _DangBaiDialogState extends State<DangBaiDialog> {
 
               const SizedBox(height: 20),
 
-              // Chọn nhóm
               const Text(
                 'Chọn nhóm:',
                 style: TextStyle(fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 8),
-              DropdownButtonFormField<String>(
-                value: selectedGroupId,
-                items: availableGroups.map((g) {
-                  return DropdownMenuItem<String>(
-                    value: g['id'] as String,
-                    child: Text(g['name'] as String),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  return DropdownButtonFormField<String>(
+                    value: selectedGroupId,
+                    isExpanded: true, // bắt dropdown full width
+                    items: availableGroups.map((g) {
+                      return DropdownMenuItem<String>(
+                        value: g['id'] as String,
+                        child: SizedBox(
+                          width:
+                              constraints.maxWidth, // dùng đúng chiều rộng cha
+                          child: Text(
+                            g['name'] as String,
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      setState(() => selectedGroupId = value);
+                    },
                   );
-                }).toList(),
-                onChanged: (v) => setState(() => selectedGroupId = v),
-                decoration: const InputDecoration(
-                  labelText: "Chọn nhóm đăng bài",
-                  border: OutlineInputBorder(),
-                ),
+                },
               ),
 
               const SizedBox(height: 30),
 
-              // Nút đăng bài
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   OutlinedButton(
                     onPressed: () => Navigator.pop(context),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 14,
+                      ),
+                    ),
                     child: const Text('Hủy'),
                   ),
                   const SizedBox(width: 16),
@@ -385,7 +415,7 @@ class _DangBaiDialogState extends State<DangBaiDialog> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: primaryColor,
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 32,
+                        horizontal: 24,
                         vertical: 14,
                       ),
                     ),

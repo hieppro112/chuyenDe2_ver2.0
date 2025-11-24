@@ -511,9 +511,25 @@ class TrangChuState extends State<TrangChu> {
   }
 
   void _openDangBaiDialog() async {
+    // TẠO DANH SÁCH NHÓM ĐÃ LỌC:
+    // Loại bỏ mục có ID là 'ALL'
+    final List<Map<String, dynamic>> filteredGroupsForPost = _joinedGroupsData
+        .where((group) => group['id'] != 'ALL')
+        .toList();
+
+    // Loại bỏ mục có tên là "Tất cả"
+    final List<Map<String, dynamic>> finalFilteredGroups = filteredGroupsForPost
+        .where(
+          (group) =>
+              (group['name'] as String?)?.toLowerCase() != 'tất cả' &&
+              (group['name'] as String?)?.toLowerCase() != 'all',
+        )
+        .toList();
+
     final isSuccess = await showDialog<bool>(
       context: context,
-      builder: (_) => DangBaiDialog(availableGroupsData: _joinedGroupsData),
+      // TRUYỀN DANH SÁCH ĐÃ LỌC SANG DangBaiDialog
+      builder: (_) => DangBaiDialog(availableGroupsData: finalFilteredGroups),
     );
 
     if (isSuccess == true) {
