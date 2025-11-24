@@ -2,10 +2,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:giao_tiep_sv_user/Profile/saveItemsProfile/models/saved_item_model.dart';
-import 'package:giao_tiep_sv_user/Profile/saveItemsProfile/widgets/filter_dropdown_widget.dart';
 import 'package:giao_tiep_sv_user/Profile/saveItemsProfile/widgets/saved_item_card_widget.dart';
-import 'package:giao_tiep_sv_user/FireBase_Service/SavedPostsService.dart'; // Import service
-import 'package:giao_tiep_sv_user/Data/global_state.dart'; // Lấy userId
+import 'package:giao_tiep_sv_user/FireBase_Service/SavedPostsService.dart';
 
 class SavedItemsProfileScreen extends StatefulWidget {
   const SavedItemsProfileScreen({super.key});
@@ -17,20 +15,19 @@ class SavedItemsProfileScreen extends StatefulWidget {
 
 class _SavedItemsProfileScreenState extends State<SavedItemsProfileScreen> {
   final SavedPostsService _savedService = SavedPostsService();
-  String selectedFilter = "Tất cả";
+  bool _sortDescending = true; // true = Mới nhất trước
 
   @override
   Widget build(BuildContext context) {
-    // ---- LẤY studentId ----
     final String studentId = _getCurrentStudentId();
 
-    print("StudentId dùng để query: '$studentId'"); // ← DEBUG
     if (studentId.isEmpty) {
       return Scaffold(
         appBar: AppBar(title: const Text('Mục đã lưu')),
         body: const Center(child: Text('Vui lòng đăng nhập')),
       );
     }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text("Mục đã lưu", style: TextStyle(color: Colors.black)),
@@ -43,20 +40,59 @@ class _SavedItemsProfileScreenState extends State<SavedItemsProfileScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Dropdown filter
-            FilterDropdownWidget(
-              selectedValue: selectedFilter,
-              items: const ["Tất cả", "Bài viết", "Video"],
-              onChanged: (newFilter) {
-                setState(() => selectedFilter = newFilter);
-              },
+            // Nút sắp xếp
+            Container(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    setState(() {
+                      _sortDescending = !_sortDescending;
+                    });
+                  },
+                  icon: Icon(
+                    _sortDescending ? Icons.trending_up : Icons.trending_down,
+                    size: 22,
+                  ),
+                  label: Text(
+                    _sortDescending ? "Mới nhất" : "Cũ nhất",
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: _sortDescending
+                        ? Colors.deepPurple
+                        : Colors.amber[800],
+                    side: BorderSide(
+                      width: 1.8,
+                      color: _sortDescending
+                          ? Colors.deepPurple
+                          : Colors.amber[800]!,
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 12,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                  ),
+                ),
+              ),
             ),
-            const SizedBox(height: 10),
 
-            // StreamBuilder để lấy dữ liệu realtime
+            const SizedBox(height: 8),
+
+            // StreamBuilder lấy dữ liệu đã lưu
             Expanded(
               child: StreamBuilder<List<Map<String, dynamic>>>(
-                stream: _savedService.streamSavedPosts(studentId),
+                stream: _savedService.streamSavedPosts(
+                  studentId,
+                  sortDescending: _sortDescending, // Truyền tham số sắp xếp
+                ),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
@@ -67,15 +103,11 @@ class _SavedItemsProfileScreenState extends State<SavedItemsProfileScreen> {
                   }
 
                   final List<Map<String, dynamic>> posts = snapshot.data ?? [];
-                  // Chuyển đổi sang SavedItemModel
                   final List<SavedItemModel> savedItems = posts.map((post) {
                     return SavedItemModel.fromMap(post);
                   }).toList();
 
-                  // Lọc theo filter
-                  final filteredItems = _filterItems(savedItems);
-
-                  if (filteredItems.isEmpty) {
+                  if (savedItems.isEmpty) {
                     return const Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -101,7 +133,7 @@ class _SavedItemsProfileScreenState extends State<SavedItemsProfileScreen> {
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 8.0),
                         child: Text(
-                          '${filteredItems.length} mục đã lưu',
+                          '${savedItems.length} mục đã lưu',
                           style: const TextStyle(
                             color: Colors.grey,
                             fontSize: 14,
@@ -111,20 +143,14 @@ class _SavedItemsProfileScreenState extends State<SavedItemsProfileScreen> {
                       const SizedBox(height: 10),
                       Expanded(
                         child: ListView.builder(
-                          itemCount: filteredItems.length,
+                          itemCount: savedItems.length,
                           itemBuilder: (context, index) {
-                            final item = filteredItems[index];
+                            final item = savedItems[index];
                             return SavedItemCardWidget(
                               item: item,
                               index: index,
                               onDelete: (postId) {
                                 _savedService.unsavePost(studentId, postId);
-                              },
-                              onTap: () {
-                                print(
-                                  "Tap on post: ${item.id}, group: ${item.group}",
-                                );
-                                _navigateToPost(item.id, item.group);
                               },
                             );
                           },
@@ -141,30 +167,13 @@ class _SavedItemsProfileScreenState extends State<SavedItemsProfileScreen> {
     );
   }
 
-  void _navigateToPost(String postId, String group) {
-    Navigator.pop(context, {'postId': postId, 'group': group});
-  }
-
   String _getCurrentStudentId() {
     final user = FirebaseAuth.instance.currentUser;
     if (user?.email == null) return '';
-
-    // Chuẩn hóa: viết hoa + loại bỏ ký tự lạ
     return user!.email!
         .split('@')
         .first
         .toUpperCase()
         .replaceAll(RegExp(r'[^A-Z0-9]'), '');
-  }
-
-  List<SavedItemModel> _filterItems(List<SavedItemModel> items) {
-    if (selectedFilter == "Tất cả") return items;
-    if (selectedFilter == "Bài viết") {
-      return items.where((i) => i.type == 'post').toList();
-    }
-    if (selectedFilter == "Video") {
-      return items.where((i) => i.type == 'video').toList();
-    }
-    return items;
   }
 }

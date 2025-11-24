@@ -5,13 +5,9 @@ class PersonalPostModel {
   final String userId;
   final String groupId;
   final String title;
-  final List<String> imageUrls; // ĐỔI TỪ String → List<String>
+  final List<String> imageUrls;
   final DateTime createdAt;
-  final int likesCount;
-  final int commentsCount;
-  final bool isLiked;
 
-  // UI-only
   String? userName;
   String? groupName;
 
@@ -20,11 +16,8 @@ class PersonalPostModel {
     required this.userId,
     required this.groupId,
     required this.title,
-    required this.imageUrls, // <-- List
+    required this.imageUrls,
     required this.createdAt,
-    this.likesCount = 0,
-    this.commentsCount = 0,
-    this.isLiked = false,
     this.userName,
     this.groupName,
   });
@@ -34,11 +27,8 @@ class PersonalPostModel {
     String? userId,
     String? groupId,
     String? title,
-    List<String>? imageUrls, // <-- List
+    List<String>? imageUrls,
     DateTime? createdAt,
-    int? likesCount,
-    int? commentsCount,
-    bool? isLiked,
     String? userName,
     String? groupName,
   }) {
@@ -49,15 +39,11 @@ class PersonalPostModel {
       title: title ?? this.title,
       imageUrls: imageUrls ?? this.imageUrls,
       createdAt: createdAt ?? this.createdAt,
-      likesCount: likesCount ?? this.likesCount,
-      commentsCount: commentsCount ?? this.commentsCount,
-      isLiked: isLiked ?? this.isLiked,
       userName: userName ?? this.userName,
       groupName: groupName ?? this.groupName,
     );
   }
 
-  // THÊM: fromMap để convert từ Firestore
   factory PersonalPostModel.fromMap(Map<String, dynamic> map, String id) {
     final rawImages = map['image_urls'] ?? [];
     final List<String> imageUrls = rawImages is List
@@ -72,9 +58,20 @@ class PersonalPostModel {
       groupId: map['group_id'] ?? '',
       title: map['content'] ?? '',
       imageUrls: imageUrls,
-      createdAt: (map['date_created'] as Timestamp).toDate(),
-      likesCount: map['likes'] ?? 0,
-      commentsCount: map['comments'] ?? 0,
+      createdAt:
+          (map['date_created'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      // BỎ HOÀN TOÀN likes, comments, isLiked ở đây
     );
+  }
+
+  // Optional: toMap nếu cần update
+  Map<String, dynamic> toMap() {
+    return {
+      'userId': userId,
+      'group_id': groupId,
+      'content': title,
+      'image_urls': imageUrls,
+      'date_created': Timestamp.fromDate(createdAt),
+    };
   }
 }

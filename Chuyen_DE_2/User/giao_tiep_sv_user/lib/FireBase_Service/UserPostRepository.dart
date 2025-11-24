@@ -28,16 +28,6 @@ class PostRepository {
     return name;
   }
 
-  // Đếm like/comment (subcollection)
-  Future<int> _countSubcollection(String postId, String sub) async {
-    final snap = await _firestore
-        .collection('Post')
-        .doc(postId)
-        .collection(sub)
-        .get();
-    return snap.size;
-  }
-
   // Thay .asyncMap bằng .map + Future.wait để xử lý song song
   Stream<List<PersonalPostModel>> personalPostsStream(String currentUserId) {
     return _firestore
@@ -53,17 +43,6 @@ class PostRepository {
             final userName = await _getUserName(post.user_id);
             final groupName = await _getGroupName(post.group_id);
 
-            final likesCount = await _countSubcollection(doc.id, 'likes');
-            final commentsCount = await _countSubcollection(doc.id, 'comments');
-
-            final isLiked = await _firestore
-                .collection('Post')
-                .doc(doc.id)
-                .collection('likes')
-                .doc(currentUserId)
-                .get()
-                .then((doc) => doc.exists);
-
             final imageUrls = _ImageUrls(data);
 
             return PersonalPostModel(
@@ -73,9 +52,6 @@ class PostRepository {
               title: post.content,
               imageUrls: imageUrls,
               createdAt: post.date_created,
-              likesCount: likesCount,
-              commentsCount: commentsCount,
-              isLiked: isLiked,
               userName: userName,
               groupName: groupName,
             );
