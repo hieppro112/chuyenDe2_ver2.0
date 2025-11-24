@@ -7,10 +7,8 @@ class Userservices {
   Future<Users?> getUserForID(String myID)async{
     try{
       final snap = await userDB.collection("Users").doc(myID.trim().toUpperCase()).get();
-      print("my ${snap}");
 
       if(!snap.exists){
-        print("khong co gia tri");
           return null;
       }
       // print("my ${Users.fromMap(snap.data()!)}");

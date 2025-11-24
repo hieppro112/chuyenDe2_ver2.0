@@ -73,7 +73,6 @@ class _ManegerMemberGroupScreenState extends State<ManegerMemberGroupScreen> {
                   MaterialPageRoute(
                     builder: (context) => AddMemberScreen(
                       groupID: widget.idGroup,
-                      listMemberGroup: ListMember,
                     ),
                   ),
                 );
@@ -164,10 +163,7 @@ class _ManegerMemberGroupScreenState extends State<ManegerMemberGroupScreen> {
                       );
                     }).toList();
                   }
-                  print(checkSearchMail);
                 });
-                print("length : ${Listsearch.length}");
-                print("$value");
               },
             ),
             Expanded(child: createListMember()),
