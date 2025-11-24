@@ -139,7 +139,7 @@ class _CommentSheetContentState extends State<CommentSheetContent> {
                   ),
                 ),
                 const SizedBox(width: 10),
-                // 2. Khu vực nội dung bài viết (Đã được bọc bằng Expanded)
+                // 2. Khu vực nội dung bài viết
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -166,7 +166,7 @@ class _CommentSheetContentState extends State<CommentSheetContent> {
                       ),
                       // Hàng 3: Tên nhóm
                       Text(
-                        "Nhóm: ${widget.getGroupNameFromId(widget.post["group_id"])}",
+                        "Nhóm: ${widget.getGroupNameFromId(widget.post["group_id"] as String? ?? 'UNKNOWN')}",
                         style: const TextStyle(
                           color: Colors.grey,
                           fontSize: 12,
