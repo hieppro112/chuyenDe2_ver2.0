@@ -2,15 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:giao_tiep_sv_user/Data/Users.dart';
 import 'package:giao_tiep_sv_user/Data/groups_members.dart';
 import 'package:giao_tiep_sv_user/FireBase_Service/UserServices.dart';
-import 'package:giao_tiep_sv_user/FireBase_Service/group_service.dart';
 import 'package:giao_tiep_sv_user/Screen_member_group/widget/customMember.dart';
 import 'package:giao_tiep_sv_user/Screen_member_group/widget/customSearch.dart';
 import 'package:giao_tiep_sv_user/maneger_member_group_Screens/serviceGroup/groupService.dart';
 
 class AddMemberScreen extends StatefulWidget {
   final String groupID;
-  final List<Users?> listMemberGroup;
-  const AddMemberScreen({super.key, required this.listMemberGroup, required this.groupID});
+  const AddMemberScreen({super.key, required this.groupID});
 
   @override
   State<AddMemberScreen> createState() => _AddMemberScreenState();
@@ -24,7 +22,7 @@ class _AddMemberScreenState extends State<AddMemberScreen> {
   
   List<Users> Listsearch = [];
   List<Users> ListMember = [];
-
+  List<String> ListID= [];
   //danh sach duoc chon
   List<String> listSelected =[];
 
@@ -32,7 +30,7 @@ class _AddMemberScreenState extends State<AddMemberScreen> {
   void initState() {
     // TODO: implement initState
     super.initState();
-    loadUsers();
+    initData();
   }
 
   @override
@@ -164,18 +162,22 @@ class _AddMemberScreenState extends State<AddMemberScreen> {
   }
 
   Future<void> loadUsers()async{
-    isload =true;
+    isload = true;
      userDB.streamBuilder().listen((event) {
+      //even la toan bo danh sách nguoi dùng app 
+      //widget.listMemberGroup danh sách cac nguoi dung bên trong nhom x 
+      print("x: ${widget.groupID}");
+      
       List<Users> listTemp =[];
       for(var item in event){
-        var check =false;
-        for(var x in widget.listMemberGroup){
-          if(item.id_user == x!.id_user){
+        var check = false;
+        for(var x in ListMember){
+          if(item.id_user.toLowerCase().trim().contains(x!.id_user.trim().toLowerCase())){
             check = true;
             break;
           }
         }
-        if(!check){
+        if(check==false){
           listTemp.add(item);
         }
         check = false;
@@ -184,7 +186,30 @@ class _AddMemberScreenState extends State<AddMemberScreen> {
         ListMember = listTemp;
         Listsearch = listTemp;
         isload =false;
+        
       });
     },);
+  }
+
+  Future<void> getAllMemberforGroup(String id) async{
+    isload = true;
+      ListID =await groupService.streamGetAllmember(id).first; 
+
+    //  print("lengmember: ${}")
+
+    for(var i in ListID){
+      Users? user = await userDB.getUserForID(i);
+      if(user!=null){
+        ListMember.add(user);
+      }
+    }
+    setState(() {
+      isload=false;
+    });
+  }
+  
+  Future<void> initData() async{
+    await getAllMemberforGroup(widget.groupID);
+    await loadUsers();
   }
 }

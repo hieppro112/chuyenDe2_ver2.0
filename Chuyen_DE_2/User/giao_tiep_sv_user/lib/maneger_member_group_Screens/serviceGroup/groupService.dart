@@ -5,69 +5,75 @@ class GroupserviceManeger {
   final FirebaseFirestore groupDb = FirebaseFirestore.instance;
 
   //them vao membergroup
-  Future<void> addDataGroupMember( GroupMember grMember)async{
-    try{
+  Future<void> addDataGroupMember(GroupMember grMember) async {
+    try {
       final querySnap = groupDb.collection("Groups_members");
       await querySnap.add({
         'group_id': grMember.group_id,
         'user_id': grMember.user_id,
-        'role': 1, 
-        'status_id': grMember.status_id, 
-        'joined_at': FieldValue.serverTimestamp(), 
+        'role': 1,
+        'status_id': grMember.status_id,
+        'joined_at': FieldValue.serverTimestamp(),
       });
 
-    print("them thanh vien thanh cong");
-    }catch(e){
+      print("them thanh vien thanh cong");
+    } catch (e) {
       print("loi khi them thanh vien vao nhom: $e");
     }
   }
-  // lay created by của nhóm 
-  Future<List<String>?> getCreateAtID(String idGroup, bool type)async{
-    try{
-      List<String> listResult =[];
-     final ref = groupDb.collection("Groups_members");
 
-     try{
-        if(type==false){
-          QuerySnapshot query = await ref.where("group_id", isEqualTo: idGroup).where("role", isEqualTo: 1).get();
-        for(var doc in query.docs){
-          Map<String,dynamic> data = doc.data() as Map<String,dynamic>;
+  // lay created by của nhóm
+  Future<List<String>?> getCreateAtID(String idGroup, bool type) async {
+    try {
+      List<String> listResult = [];
+      final ref = groupDb.collection("Groups_members");
 
-          if(data.containsKey("user_id")){
-            var item = data["user_id"] as String;
-            listResult.add(item);
+      try {
+        if (type == false) {
+          QuerySnapshot query = await ref
+              .where("group_id", isEqualTo: idGroup)
+              .where("role", isEqualTo: 1)
+              .get();
+          for (var doc in query.docs) {
+            Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+
+            if (data.containsKey("user_id")) {
+              var item = data["user_id"] as String;
+              listResult.add(item);
+            }
           }
-        }
-        return listResult;
-        }
-        else{
-          QuerySnapshot query = await ref.where("group_id", isEqualTo: idGroup).get();
-        for(var doc in query.docs){
-          Map<String,dynamic> data = doc.data() as Map<String,dynamic>;
+          return listResult;
+        } else {
+          QuerySnapshot query = await ref
+              .where("group_id", isEqualTo: idGroup)
+              .where("role", isEqualTo: 1)
+              .get();
+          for (var doc in query.docs) {
+            Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
 
-          if(data.containsKey("user_id")){
-            var item = data["user_id"] as String;
-            listResult.add(item);
+            if (data.containsKey("user_id")) {
+              var item = data["user_id"] as String;
+              listResult.add(item);
+            }
           }
+          return listResult;
         }
-        return listResult;
-        }
-     }
-     catch(e){
-      print("loi khi lay du lieu create by: $e");
-     }
-    }catch(e){
+      } catch (e) {
+        print("loi khi lay du lieu create by: $e");
+      }
+    } catch (e) {
       print("loi khi lay create At: $e");
       return null;
     }
   }
+
   //tim cac thanh vien ben trong nhom
   Future<List<String?>> listChat(String idRoom) async {
     try {
       final querySnap = await groupDb
           .collection("Groups_members")
           .where("group_id", isEqualTo: idRoom)
-          .where("status_id",isEqualTo: 1)
+          .where("status_id", isEqualTo: 1)
           .get();
 
       if (querySnap.docs.isEmpty) {
@@ -84,6 +90,26 @@ class GroupserviceManeger {
     } catch (e) {
       print("loi khi lay du lieu thanh vien cua nhom: $e");
       return [];
+    }
+  }
+
+  //lay danh sach toan bo thanh vien trong nhom x
+  Stream<List<String>> streamGetAllmember(String x) {
+    try {
+      Query query = FirebaseFirestore.instance
+          .collection("Groups_members")
+          .where("group_id", isEqualTo: x);
+      return query.snapshots().map((event) {
+        return event.docs.map((e) {
+          Map<String, dynamic> data = e.data() as Map<String, dynamic>;
+        print("lay du lieu thanh cong");
+          return data['user_id'] as String;
+        }).toList();
+      });
+      
+    } catch (e) {
+      print("Loi lay thanh vien cua nhom: $e");
+      return Stream.empty();
     }
   }
 }
