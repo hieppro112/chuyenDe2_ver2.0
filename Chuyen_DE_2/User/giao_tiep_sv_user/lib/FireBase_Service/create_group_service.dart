@@ -35,7 +35,7 @@ class CreateGroupService {
         "id": newGroupRef.id,
         "name": name,
         "description": description,
-        "type_group": 0,
+        "type_group": 1,
         "avt": imageUrl,
         "created_by": {creatorUserId: creatorFullname},
         "id_status": 0,
