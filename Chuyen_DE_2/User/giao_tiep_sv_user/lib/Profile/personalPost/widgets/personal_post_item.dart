@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:giao_tiep_sv_user/Profile/Widget/avatarWidget.dart';
+import 'package:giao_tiep_sv_user/Widget/post_image_gallery.dart';
 import '../models/personal_post_model.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:shimmer/shimmer.dart';
@@ -75,9 +76,15 @@ class _PersonalPostItemWidgetState extends State<PersonalPostItemWidget> {
   @override
   Widget build(BuildContext context) {
     return Card(
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      elevation: 2,
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: const BorderSide(
+          color: Colors.grey, // màu viền
+          width: 0.3,
+        ),
+      ),
+      elevation: 1,
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
@@ -103,7 +110,7 @@ class _PersonalPostItemWidgetState extends State<PersonalPostItemWidget> {
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                         Text(
-                          "Khoa: ${widget.post.groupId}",
+                          "Nhóm: ${widget.post.groupName}",
                           style: const TextStyle(
                             fontSize: 12,
                             color: Colors.grey,
@@ -148,7 +155,6 @@ class _PersonalPostItemWidgetState extends State<PersonalPostItemWidget> {
             ),
 
             const SizedBox(height: 12),
-
             // Tiêu đề bài viết
             Text(
               widget.post.title,
@@ -156,104 +162,13 @@ class _PersonalPostItemWidgetState extends State<PersonalPostItemWidget> {
             ),
 
             const SizedBox(height: 12),
-
-            // Ảnh minh họa
-            if (widget.post.imageUrls.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              // 1 ảnh: full width và >2 ảnh: cuộn ngang
-              widget.post.imageUrls.length == 1
-                  ? _buildSingleImage(widget.post.imageUrls[0])
-                  : _buildMultipleImages(widget.post.imageUrls),
-              const SizedBox(height: 12),
-            ],
-            // Thống kê và hành động
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                // Thống kê
-                Row(
-                  children: [
-                    Text(
-                      '${widget.post.likesCount} lượt thích',
-                      style: const TextStyle(fontSize: 12, color: Colors.grey),
-                    ),
-                    const SizedBox(width: 16),
-                    Text(
-                      '${widget.post.commentsCount} bình luận',
-                      style: const TextStyle(fontSize: 12, color: Colors.grey),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+            if (widget.post.imageUrls.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: PostImageGallery(imageUrls: widget.post.imageUrls),
+              ),
           ],
         ),
-      ),
-    );
-  }
-
-  // 1 ảnh: full width, bo góc, chiều cao cố định
-  Widget _buildSingleImage(String url) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
-      child: CachedNetworkImage(
-        imageUrl: url,
-        width: double.infinity,
-        height: 240,
-        fit: BoxFit.cover,
-        memCacheWidth: 1000,
-        memCacheHeight: 1000,
-        placeholder: (_, __) => Shimmer.fromColors(
-          baseColor: Colors.grey[300]!,
-          highlightColor: Colors.grey[100]!,
-          child: Container(color: Colors.white),
-        ),
-        errorWidget: (_, __, ___) => Container(
-          height: 240,
-          color: Colors.grey[200],
-          child: const Center(
-            child: Icon(Icons.error_outline, color: Colors.red, size: 40),
-          ),
-        ),
-      ),
-    );
-  }
-
-  // Nhiều ảnh: cuộn ngang
-  Widget _buildMultipleImages(List<String> urls) {
-    return SizedBox(
-      height: 200,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        itemCount: urls.length,
-        itemBuilder: (context, index) {
-          final url = urls[index];
-          return Padding(
-            padding: EdgeInsets.only(right: index < urls.length - 1 ? 8 : 0),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: CachedNetworkImage(
-                imageUrl: url,
-                width: 200,
-                height: 200,
-                fit: BoxFit.cover,
-                memCacheWidth: 600,
-                memCacheHeight: 600,
-                placeholder: (_, __) => Shimmer.fromColors(
-                  baseColor: Colors.grey[300]!,
-                  highlightColor: Colors.grey[100]!,
-                  child: Container(color: Colors.white),
-                ),
-                errorWidget: (_, __, ___) => Container(
-                  width: 200,
-                  height: 200,
-                  color: Colors.grey[200],
-                  child: const Icon(Icons.error, color: Colors.red),
-                ),
-              ),
-            ),
-          );
-        },
       ),
     );
   }

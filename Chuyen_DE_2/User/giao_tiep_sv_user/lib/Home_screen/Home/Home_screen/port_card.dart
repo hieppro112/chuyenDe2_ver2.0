@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:io';
 
+import 'package:giao_tiep_sv_user/Widget/post_image_gallery.dart';
+
 class PostCard extends StatelessWidget {
   final Map<String, dynamic> post;
   final VoidCallback onCommentPressed;
@@ -124,7 +126,11 @@ class PostCard extends StatelessWidget {
           const SizedBox(height: 8),
 
           //  Hiển thị ảnh
-          if (images.isNotEmpty) _buildImageSection(images),
+          if (images.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: PostImageGallery(imageUrls: images),
+            ),
           if (post["files"] != null && post["files"].isNotEmpty)
             _buildFileSection(List<Map<String, String>>.from(post["files"])),
 

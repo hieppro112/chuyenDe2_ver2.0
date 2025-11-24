@@ -1,76 +1,110 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:collection/collection.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
 class SavedPostsService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  Stream<List<Map<String, dynamic>>> streamSavedPosts(String studentId) {
-    if (studentId.isEmpty) return Stream.value([]);
-
-    print("BẮT ĐẦU streamSavedPosts với studentId: '$studentId'");
+  Stream<List<Map<String, dynamic>>> streamSavedPosts(
+    String studentId, {
+    bool sortDescending = true,
+  }) {
+    if (studentId.isEmpty) {
+      return Stream.value([]);
+    }
 
     return _firestore
         .collection('Post_save')
         .where('user_id', isEqualTo: studentId)
-        .orderBy('create_at', descending: true)
+        .orderBy('create_at', descending: sortDescending)
         .snapshots()
         .asyncMap((saveSnapshot) async {
-          print("Post_save snapshot: ${saveSnapshot.docs.length} documents");
-
           final postIds = saveSnapshot.docs
               .map((d) => d['post_id'] as String)
               .toList();
-          print("postIds tìm được: $postIds");
 
           if (postIds.isEmpty) return [];
 
           final List<Map<String, dynamic>> results = [];
 
-          for (final postId in postIds) {
-            print("Lấy bài viết: $postId");
-            try {
-              final postDoc = await _firestore
-                  .collection('Post')
-                  .doc(postId)
-                  .get();
+          await Future.wait(
+            postIds.map((postId) async {
+              try {
+                final postDoc = await _firestore
+                    .collection('Post')
+                    .doc(postId)
+                    .get();
 
-              if (postDoc.exists) {
+                // Nếu bài viết đã bị xóa → xóa luôn bản ghi lưu
+                if (!postDoc.exists) {
+                  print("Post đã bị xóa: $postId → Xóa bản ghi lưu");
+
+                  final saveDocToDelete = saveSnapshot.docs.firstWhereOrNull(
+                    (d) => d['post_id'] == postId,
+                  );
+                  if (saveDocToDelete != null) {
+                    await saveDocToDelete.reference.delete();
+                  }
+                  return; // Không thêm vào danh sách
+                }
+
                 final data = postDoc.data()!;
                 data['id'] = postDoc.id;
 
-                final saveDoc = saveSnapshot.docs.firstWhere(
+                // Thời gian lưu bài
+                final saveDoc = saveSnapshot.docs.firstWhereOrNull(
                   (d) => d['post_id'] == postId,
                 );
-                data['saved_at'] = (saveDoc['create_at'] as Timestamp?)
+                data['saved_at'] = (saveDoc?['create_at'] as Timestamp?)
                     ?.toDate();
 
-                // LẤY THÔNG TIN USER TỪ COLLECTION Users
-                final String postUserId = data['user_id'] as String;
-                final userDoc = await _firestore
-                    .collection('Users')
-                    .doc(postUserId)
-                    .get();
-
-                if (userDoc.exists) {
-                  final userData = userDoc.data()!;
-                  data['user_name'] =
-                      userData['fullname'] as String? ?? 'Ẩn danh';
-                  data['user_faculty'] =
-                      userData['faculty_id'] as String? ?? 'Chưa cập nhật';
+                // === LẤY TÊN NGƯỜI ĐĂNG ===
+                final String? postUserId = data['user_id'] as String?;
+                if (postUserId != null) {
+                  final userDoc = await _firestore
+                      .collection('Users')
+                      .doc(postUserId)
+                      .get();
+                  if (userDoc.exists) {
+                    final userData = userDoc.data()!;
+                    data['user_name'] =
+                        userData['fullname'] as String? ?? 'Ẩn danh';
+                  } else {
+                    data['user_name'] = 'Ẩn danh';
+                  }
                 } else {
                   data['user_name'] = 'Ẩn danh';
-                  data['user_faculty'] = 'Chưa cập nhật';
+                }
+
+                // === LẤY TÊN NHÓM (field 'name' trong collection Groups) ===
+                final String? groupId = data['group_id'] as String?;
+                if (groupId != null && groupId.isNotEmpty) {
+                  try {
+                    final groupDoc = await _firestore
+                        .collection('Groups')
+                        .doc(groupId)
+                        .get();
+
+                    if (groupDoc.exists) {
+                      final groupData = groupDoc.data()!;
+                      data['group_name'] =
+                          groupData['name'] as String? ?? 'Nhóm không tên';
+                    } else {
+                      data['group_name'] = 'Nhóm đã bị xóa';
+                    }
+                  } catch (e) {
+                    data['group_name'] = 'Lỗi tải nhóm';
+                  }
+                } else {
+                  data['group_name'] = 'Không có nhóm';
                 }
 
                 results.add(data);
-              } else {
-                print("KHÔNG TÌM THẤY Post: $postId");
+              } catch (e) {
+                print("LỖI khi xử lý post $postId: $e");
               }
-            } catch (e) {
-              print("LỖI lấy post $postId: $e");
-            }
-          }
+            }),
+          );
+
           return results;
         });
   }
@@ -92,7 +126,7 @@ class SavedPostsService {
     await batch.commit();
   }
 
-  /// Lưu bài (khi bấm "Lưu")
+  /// Lưu bài viết
   Future<void> savePost(String studentId, String postId) async {
     if (studentId.isEmpty) return;
 
@@ -110,13 +144,5 @@ class SavedPostsService {
       'post_id': postId,
       'create_at': FieldValue.serverTimestamp(),
     });
-  }
-
-  // -----------------------------------------------------------------
-  List<List<T>> _chunk<T>(List<T> list, int size) {
-    return [
-      for (var i = 0; i < list.length; i += size)
-        list.sublist(i, i + size > list.length ? list.length : i + size),
-    ];
   }
 }
