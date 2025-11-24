@@ -111,6 +111,10 @@ class _ManHinhThongBaoState extends State<ManHinhThongBao> {
                 child: StreamBuilder<List<Notifycation>>(
                   // Stream đã được sắp xếp bởi server (trong notifycationFirebase)
                   stream: widget.notifyService.getAllNotifycation(),
+                  // stream: widget.notifyService.getNotifycationForUser(
+                  //    widget.currentUser.id_user.toUpperCase()
+                    
+                  //   ),
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return const Center(child: CircularProgressIndicator());
@@ -134,9 +138,15 @@ class _ManHinhThongBaoState extends State<ManHinhThongBao> {
                     final facultyId = widget.currentUser.faculty_id;
 
                     // Lọc thông báo cho user hiện tại
+                  print('userId = "$userId"');
+print('facultyId = "$facultyId"');
+print('allNotify.length = ${allNotify.length}');
+allNotify.forEach((n) => print('recipients keys: ${n.user_recipient_ID.keys}'));
+
+
                     final notifyForUser = allNotify.where((tb) {
                       final recipients = tb.user_recipient_ID.keys.toSet();
-                      final matchUser = recipients.contains(userId);
+                      final matchUser = recipients.contains(userId.toUpperCase());
                       final matchFaculty = facultyId != null && recipients.contains(facultyId);
                       return matchUser || matchFaculty;
                     }).toList();
