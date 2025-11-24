@@ -268,6 +268,7 @@ class TrangChuState extends State<TrangChu> {
   @override
   Widget build(BuildContext context) {
     final groupAvatarUrl = _getCurrentGroupAvatar();
+    final myIdLogin = _currentUserId;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -293,7 +294,7 @@ class TrangChuState extends State<TrangChu> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => const SearchPage(),
+                                  builder: (context) =>  SearchPage(myID:myIdLogin),
                                 ),
                               );
                             },

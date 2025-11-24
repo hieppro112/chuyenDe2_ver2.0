@@ -115,7 +115,7 @@ class ScreenMessageState extends State<ScreenMessage> {
           if (value != null) {
             await messageService.sendImageMessage(
               roomId: widget.idRoom, // id phòng chat
-              senderId: myId, // id người gửi
+              senderId: myId.toUpperCase(), // id người gửi
               senderName: myus!.fullname, // tên người gửi
               senderAvatar: myus!.url_avt,
               imageFile: value, // ảnh đã chọn
@@ -130,7 +130,7 @@ class ScreenMessageState extends State<ScreenMessage> {
             avt_sender: myus!.url_avt,
             name_sender: myus!.fullname,
             roomId: widget.idRoom,
-            senderID: widget.myId,
+            senderID: widget.myId.toUpperCase(),
             content: value,
           );
           listMessage.add(newValue!);
