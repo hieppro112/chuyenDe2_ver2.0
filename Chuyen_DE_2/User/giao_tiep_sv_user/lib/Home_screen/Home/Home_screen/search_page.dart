@@ -1,14 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:giao_tiep_sv_user/Data/Users.dart';
 import 'package:giao_tiep_sv_user/Data/global_state.dart';
+import 'package:giao_tiep_sv_user/Data/room_chat.dart';
+import 'package:giao_tiep_sv_user/FireBase_Service/UserServices.dart';
 import 'package:giao_tiep_sv_user/FireBase_Service/get_joined_groups.dart';
 import 'package:giao_tiep_sv_user/FireBase_Service/search_service.dart';
 import 'package:giao_tiep_sv_user/Home_screen/Home/Home_screen/port_card.dart';
 import 'package:giao_tiep_sv_user/Home_screen/Home/Home_screen/wiget/user_card.dart';
+import 'package:giao_tiep_sv_user/Screens_chatMember/FirebaseStore/MessageService.dart';
+import 'package:giao_tiep_sv_user/Screens_chatMember/data/dataRoomChat.dart';
+import 'package:giao_tiep_sv_user/Screens_chatMember/view/chatMessage.dart';
+import 'package:uuid/uuid.dart';
 import '../Home_screen/wiget/comment_sheet_content.dart';
 import '../../../FireBase_Service/post_interaction_service.dart';
 
 class SearchPage extends StatefulWidget {
-  const SearchPage({super.key});
+  final String myID;
+  const SearchPage({super.key, required this.myID});
 
   @override
   State<SearchPage> createState() => _SearchPageState();
@@ -17,7 +25,10 @@ class SearchPage extends StatefulWidget {
 class _SearchPageState extends State<SearchPage> {
   final TextEditingController _searchController = TextEditingController();
   final SearchService _searchService = SearchService();
+  final userservices = Userservices();
   final GetJoinedGroupsService _groupsService = GetJoinedGroupsService();
+  final mesService = MessageService();
+  Users? memberChat;
 
   final PostInteractionService _postInteractionService = PostInteractionService(
     userId: GlobalState.currentUserId.isNotEmpty
@@ -44,6 +55,7 @@ class _SearchPageState extends State<SearchPage> {
     super.initState();
     _fetchGroups();
     _searchController.addListener(_onSearchChanged);
+    
   }
 
   @override
@@ -51,6 +63,11 @@ class _SearchPageState extends State<SearchPage> {
     _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
     super.dispose();
+  }
+
+  Future<void> GetmememberChat(String id) async{
+    memberChat = await userservices.getUserForID(id.toUpperCase());
+    print("name: ${memberChat!.fullname}");
   }
 
   Future<void> _fetchGroups() async {
@@ -250,8 +267,37 @@ class _SearchPageState extends State<SearchPage> {
           return UserCard(
             user: item,
             onTap: () {},
-            onMessagePressed: (user) {
-              print('Nhắn tin với: ${user["fullname"]} (ID: ${user["id"]})');
+            onMessagePressed: (user)async {
+              String idMember = user["id"];
+              await GetmememberChat(idMember);
+              // print("member chat ${memberChat}");
+              // print('Nhắn tin với: ${user["fullname"]} (ID: ${user["id"]})');
+              
+              String idRoom = Uuid().v4();  
+            ChatRoom chatRoom = ChatRoom(roomId: idRoom, lastMessage: "", lastSender: "", lastTime: DateTime.now(), users: [widget.myID.toUpperCase(),idMember!], name: "", avatarUrl: "", typeId: 0, createdBy: widget.myID, createdAt: DateTime.now());
+            mesService.createChatRooms(chatRoom);
+            Navigator.push(context, MaterialPageRoute(builder: (context) {
+              return ScreenMessage(
+                          myId: widget.myID,
+                          sender_to: ChatRoom(
+                            roomId: "",
+                            lastMessage: "",
+                            lastSender: "",
+                            lastTime: DateTime.now(),
+                            users: [],
+                            name: "",
+                            createdAt: DateTime.now(),
+                            avatarUrl: "",
+                            createdBy: widget.myID,
+                            typeId: 0,
+                          ),
+                          idRoom: idRoom,
+                          avtChat: "",
+                          nameChat: "",
+                          dataroomchat: Dataroomchat(id: widget.myID, name: memberChat!.fullname, avt: memberChat!.url_avt),
+                        );
+            },));
+            // Navigator.pop(context);
             },
           );
         } else {

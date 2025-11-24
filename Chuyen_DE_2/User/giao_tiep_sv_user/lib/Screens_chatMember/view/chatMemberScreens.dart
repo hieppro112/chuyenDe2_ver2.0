@@ -41,7 +41,7 @@ class _ChatMemberScreenState extends State<ChatMemberScreen> {
     super.initState();
     final user = FirebaseAuth.instance.currentUser;
     if (user != null && user.email != null) {
-      Uid = user.email!.split("@")[0];
+      Uid = user.email!.split("@")[0].toUpperCase();
       print("My UID: $Uid");
 
       // Sau khi có UID thì gọi hàm lấy dữ liệu
@@ -218,7 +218,6 @@ class _ChatMemberScreenState extends State<ChatMemberScreen> {
                             avatarUrl: value.avatarUrl,
                             createdBy: value.createdBy,
                             typeId: (value.users.length <= 2) ? 0 : 1,
-                            
                           ),
                           idRoom: valueOnTap.id,
                           avtChat: valueOnTap.avt,

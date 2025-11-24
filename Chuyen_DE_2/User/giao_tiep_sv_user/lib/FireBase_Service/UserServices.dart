@@ -12,6 +12,7 @@ class Userservices {
           return null;
       }
       // print("my ${Users.fromMap(snap.data()!)}");
+      print("lay usser theo id thanh cong");
       return  Users.fromMap(snap.data()!);
     }catch(e){
         print("loi dl: $e");
