@@ -16,22 +16,4 @@ class Notifycationfirebase {
       }).toList();
     });
   }
-
-  /// 📩 Lấy thông báo dành riêng cho người dùng có id cụ thể
-  Stream<List<Notifycation>> getNotifycationForUser(String userId) {
-    return _firestore
-        .collection('Notifycations')
-        .orderBy('created_at', descending: true)
-        .snapshots()
-        .map((snapshot) {
-      return snapshot.docs.map((doc) {
-        final notify = Notifycation.fromFirestore(doc);
-        // chỉ lấy thông báo mà user_recipient_ID có chứa userId
-        if (notify.user_recipient_ID.containsKey(userId)) {
-          return notify;
-        }
-        return null;
-      }).whereType<Notifycation>().toList();
-    });
-  }
 }
