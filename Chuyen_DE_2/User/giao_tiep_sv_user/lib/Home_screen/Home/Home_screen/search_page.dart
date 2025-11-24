@@ -142,13 +142,18 @@ class _SearchPageState extends State<SearchPage> {
         final item = _searchResults[index];
 
         if (selectedCategory == 'Người dùng') {
-          return UserCard(user: item, onTap: () {});
+          return UserCard(
+            user: item,
+            onTap: () {},
+            onMessagePressed: (user) {
+              print('Nhắn tin với: ${user["fullname"]} (ID: ${user["id"]})');
+            },
+          );
         } else {
           return PostCard(
             post: item,
             onCommentPressed: () {},
             onLikePressed: () {},
-            // Trong PostCard, hiển thị post["group_name"] thay vì group_id
           );
         }
       },
