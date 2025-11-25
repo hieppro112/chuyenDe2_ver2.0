@@ -221,9 +221,6 @@ class _CreateRoomChatState extends State<CreateRoomChat> {
                   setState(() {
                     listSelected_uyquyen = value;
                     getIDUser();
-                    print(
-                      "list id: ${listSelected_uyquyen.length} - ${listIDUser.length}",
-                    );
                   });
                 },
               ),
