@@ -16,7 +16,6 @@ class CreatePostService {
         "content": content,
         "group_id": groupId,
         "date_created": FieldValue.serverTimestamp(),
-        "file_url": fileUrl,
         "image_urls": imageUrls ?? [],
         "status_id": 0, // ✅ BÀI VIẾT MỚI ĐƯỢC ĐẶT LÀ CHỜ DUYỆT (0)
         "likes": 0,
