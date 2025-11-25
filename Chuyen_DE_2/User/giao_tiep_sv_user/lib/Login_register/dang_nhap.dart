@@ -28,8 +28,8 @@ class _DangNhapState extends State<DangNhap> {
 
     // TỰ ĐỘNG ĐIỀN KHI DEBUG
     // if (kDebugMode) {
-    //   _emailController.text = "23211TT1371@mail.tdc.edu.vn";
-    //   _passwordController.text = "123456";
+    //   _emailController.text = "23211TT1371@mail.tdc.edu.vn";
+    //   _passwordController.text = "123456";
     // }
   }
 
@@ -51,7 +51,6 @@ class _DangNhapState extends State<DangNhap> {
     }
 
     // KIỂM TRA EMAIL ĐÚNG ĐỊNH DẠNG 
-   
     final regex = RegExp(r'^[0-9]{5}[A-Z]{2}[0-9]+@mail\.tdc\.edu\.vn$');
 
     if (!regex.hasMatch(email)) {
@@ -61,7 +60,7 @@ class _DangNhapState extends State<DangNhap> {
       );
       return;
     }
-    // ========================================================================
+   
 
     setState(() => _isLoading = true);
 
@@ -78,6 +77,24 @@ class _DangNhapState extends State<DangNhap> {
         setState(() => _isLoading = false);
         return;
       }
+      
+      // KIỂM TRA XÁC THỰC EMAIL
+      // Tải lại thông tin user để đảm bảo lấy trạng thái emailVerified mới nhất
+      await user.reload(); 
+      user = FirebaseAuth.instance.currentUser;
+      
+      if (user!.emailVerified == false) {
+        await FirebaseAuth.instance.signOut(); // Bắt buộc đăng xuất
+        _showOverlayMessage(
+          context,
+          "Vui lòng kiểm tra email và xác nhận tài khoản trước khi đăng nhập!",
+          isError: true,
+        );
+        setState(() => _isLoading = false);
+        return;
+      }
+     
+
 
       // 2. LẤY ID TỪ EMAIL
       final id_user = email
