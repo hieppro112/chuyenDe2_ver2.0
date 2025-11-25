@@ -105,39 +105,154 @@ class GroupserviceManeger {
       return query.snapshots().map((event) {
         return event.docs.map((e) {
           Map<String, dynamic> data = e.data() as Map<String, dynamic>;
-        print("lay du lieu thanh cong");
+          print("lay du lieu thanh cong");
           return data['user_id'] as String;
         }).toList();
       });
-      
     } catch (e) {
       print("Loi lay thanh vien cua nhom: $e");
       return Stream.empty();
     }
   }
 
-  //load cac group theo ma 
+  //load cac group theo ma
   Future<List<String>> loadGroupsforId(String id) async {
-  try {
-    final snap = await FirebaseFirestore.instance.collection('Groups').get();
-    
-    final List<String> groupIds = snap.docs.where(
-      (element) {
-        final data = element.data();
-        int typeGroup = data["type_group"] ?? 2;
-        final facultyIdMap = data['faculty_id'];
-        if(facultyIdMap != null && facultyIdMap is Map && typeGroup == 0){
-          return facultyIdMap.containsKey(id);
-        }
-        return false;
-      },
-    ).map((e) {
-      return e.id;
-    },).toList();
-    return groupIds;
-  } catch (e) {
-    print('Lỗi khi lọc nhóm theo mã $id: $e');
+    try {
+      final snap = await FirebaseFirestore.instance.collection('Groups').get();
+
+      final List<String> groupIds = snap.docs
+          .where((element) {
+            final data = element.data();
+            int typeGroup = data["type_group"] ?? 2;
+            final facultyIdMap = data['faculty_id'];
+            if (facultyIdMap != null && facultyIdMap is Map && typeGroup == 0) {
+              return facultyIdMap.containsKey(id);
+            }
+            return false;
+          })
+          .map((e) {
+            return e.id;
+          })
+          .toList();
+      return groupIds;
+    } catch (e) {
+      print('Lỗi khi lọc nhóm theo mã $id: $e');
       return [];
+    }
   }
-}
+
+  // XÓA THÀNH VIÊN
+  Future<bool> removeMemberFromGroup({
+    required String groupId,
+    required String userIdToRemove,
+    required String currentUserId,
+  }) async {
+    try {
+      // Kiểm tra xem currentUser có phải chủ nhóm (role = 1) không
+      final ownerCheck = await FirebaseFirestore.instance
+          .collection("Groups_members")
+          .where("group_id", isEqualTo: groupId)
+          .where("user_id", isEqualTo: currentUserId)
+          .where("role", isEqualTo: 1)
+          .limit(1)
+          .get();
+
+      if (ownerCheck.docs.isEmpty) {
+        print("Không có quyền: Bạn không phải chủ nhóm (role=1)");
+        return false;
+      }
+      if (userIdToRemove == currentUserId) {
+        print("Không thể tự xóa chính mình khỏi nhóm");
+        return false;
+      }
+
+      // Tìm và xóa bản ghi thành viên
+      final memberDocs = await FirebaseFirestore.instance
+          .collection("Groups_members")
+          .where("group_id", isEqualTo: groupId)
+          .where("user_id", isEqualTo: userIdToRemove)
+          .get();
+
+      if (memberDocs.docs.isEmpty) {
+        print("Không tìm thấy thành viên để xóa");
+        return false;
+      }
+
+      for (var doc in memberDocs.docs) {
+        await doc.reference.delete();
+      }
+
+      print("Xóa thành viên thành công: $userIdToRemove");
+      return true;
+    } catch (e) {
+      print("Lỗi xóa thành viên: $e");
+      return false;
+    }
+  }
+
+  Future<List<String>> getAdminsInGroup(String groupId) async {
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection("Groups_members")
+          .where("group_id", isEqualTo: groupId)
+          .where("role", isEqualTo: 1)
+          .get();
+
+      final List<String> adminIds = snapshot.docs
+          .map((doc) => doc['user_id'] as String)
+          .toList();
+
+      print("Danh sách quản trị viên (role=1): $adminIds");
+      return adminIds;
+    } catch (e) {
+      print("Lỗi lấy danh sách admin: $e");
+      return [];
+    }
+  }
+
+  Future<String> makeMemberAdmin({
+    required String groupId,
+    required String userIdToPromote,
+    required String currentUserId,
+  }) async {
+    try {
+      print("Bắt đầu thêm quản trị viên: $userIdToPromote");
+
+      // Kiểm tra người thực hiện có phải chủ nhóm (role = 1) không
+      final ownerCheck = await FirebaseFirestore.instance
+          .collection("Groups_members")
+          .where("group_id", isEqualTo: groupId)
+          .where("user_id", isEqualTo: currentUserId)
+          .where("role", isEqualTo: 1)
+          .limit(1)
+          .get();
+
+      if (ownerCheck.docs.isEmpty) {
+        return "Không có quyền: Chỉ chủ nhóm mới được thêm quản trị viên";
+      }
+      // 2. Tìm thành viên cần thêm
+      final memberQuery = await FirebaseFirestore.instance
+          .collection("Groups_members")
+          .where("group_id", isEqualTo: groupId)
+          .where("user_id", isEqualTo: userIdToPromote)
+          .limit(2)
+          .get();
+
+      if (memberQuery.docs.isEmpty) {
+        return "Không tìm thấy thành viên trong nhóm";
+      }
+
+      final doc = memberQuery.docs.first;
+      final currentRole = doc['role'] as int?;
+      if (currentRole == 1) {
+        return "Người này đã là quản trị viên rồi!";
+      }
+      await doc.reference.update({'role': 1});
+      print("Đã thêm làm quản trị viên thành công: $userIdToPromote");
+      return "success";
+    } catch (e) {
+      print("Lỗi khi thêm quản trị viên: $e");
+      return "Đã xảy ra lỗi, vui lòng thử lại";
+    }
+  }
 }

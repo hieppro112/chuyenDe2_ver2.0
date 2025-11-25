@@ -185,6 +185,9 @@ class _PickedmemberchatSingle extends State<PickedmemberchatSingle> {
 
   //hiển thị toàn bộ người dùng
   Widget createListmember() {
+    Listsearch =  Listsearch.where((element) {
+      return !element.id_user.toLowerCase().trim().contains(widget.myID.toLowerCase().trim());
+    },).toList();
     return (isLoading == false)
         ? ListView.builder(
             shrinkWrap: true,

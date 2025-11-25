@@ -172,7 +172,7 @@ class _DangKiState extends State<DangKi> {
     print("leng memeber: ${listTemp.length}");
     listTemp.forEach((element) {
       print("id gr: $element");
-      Groupmember grMember = Groupmember(group_id:element , user_id: idUser, role: 1, status_id: 1, joined_at: DateTime.now());
+      Groupmember grMember = Groupmember(group_id:element , user_id: idUser, role: 0, status_id: 1, joined_at: DateTime.now());
       groupService.addDataGroupMember(grMember);
     },);
   }

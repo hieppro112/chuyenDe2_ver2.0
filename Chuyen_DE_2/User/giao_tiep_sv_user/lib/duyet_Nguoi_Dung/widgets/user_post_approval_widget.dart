@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:giao_tiep_sv_user/Widget/post_image_gallery.dart';
 import '../models/User_post_approval_model.dart';
 
 class UserPostApproval extends StatelessWidget {
@@ -18,6 +19,7 @@ class UserPostApproval extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bool isPending = post.status == 'pending';
+    final bool isRejected = post.status == 'rejected';
 
     return Card(
       margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -31,9 +33,12 @@ class UserPostApproval extends StatelessWidget {
               children: [
                 CircleAvatar(
                   radius: 20,
-                  backgroundImage: NetworkImage(
-                    "https://i.pinimg.com/736x/d4/38/25/d43825dd483d634e59838d919c3cf393.jpg",
-                  ),
+                  backgroundColor: Colors.transparent,
+                  backgroundImage: post.avatar.isNotEmpty
+                      ? NetworkImage(post.avatar)
+                      : NetworkImage(
+                          'https://ui-avatars.com/api/?name=${Uri.encodeComponent(post.authorName)}&background=random&color=fff&bold=true',
+                        ),
                 ),
                 SizedBox(width: 12),
                 Expanded(
@@ -59,7 +64,7 @@ class UserPostApproval extends StatelessWidget {
                 _buildStatusBadge(post.status),
 
                 // Nút 3 chấm: chỉ hiện khi KHÔNG còn chờ duyệt
-                if (!isPending)
+                if (!isPending && !isRejected)
                   PopupMenuButton<String>(
                     icon: Icon(Icons.more_vert, color: Colors.grey[600]),
                     shape: RoundedRectangleBorder(
@@ -101,32 +106,12 @@ class UserPostApproval extends StatelessWidget {
             SizedBox(height: 12),
 
             // Ảnh (nếu có)
-            if (post.image.isNotEmpty)
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Image.network(
-                  post.image,
-                  width: double.infinity,
-                  height: 200,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => Container(
-                    height: 200,
-                    color: Colors.grey[200],
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.image_not_supported, color: Colors.grey),
-                        Text(
-                          'Không tải được ảnh',
-                          style: TextStyle(color: Colors.grey),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+            if (post.imageUrls.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: PostImageGallery(imageUrls: post.imageUrls),
               ),
-
-            if (post.image.isNotEmpty) SizedBox(height: 12),
+            SizedBox(height: 12),
 
             // Nút Duyệt / Từ chối: chỉ hiện khi đang chờ duyệt
             if (isPending)

@@ -168,24 +168,125 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   // Thêm hàm xử lý thay đổi avatar
   Future<void> _handleChangeAvatar() async {
+    // Nếu đang loading thì không cho chọn ảnh
+    if (_isLoading) return;
+
+    // Hiển thị dialog chọn nguồn ảnh
+    final ImageSource? source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              margin: const EdgeInsets.only(top: 12),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              "Chọn ảnh đại diện",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                // Nút Camera
+                _buildImageSourceButton(
+                  icon: Icons.camera_alt,
+                  label: "Chụp ảnh",
+                  color: Colors.purple,
+                  source: ImageSource.camera,
+                ),
+                // Nút Thư viện
+                _buildImageSourceButton(
+                  icon: Icons.photo_library,
+                  label: "Thư viện",
+                  color: Colors.blue,
+                  source: ImageSource.gallery,
+                ),
+              ],
+            ),
+            const SizedBox(height: 30),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text(
+                "Hủy",
+                style: TextStyle(color: Colors.grey, fontSize: 16),
+              ),
+            ),
+            const SizedBox(height: 20),
+          ],
+        ),
+      ),
+    );
+
+    // Nếu người dùng chọn nguồn ảnh
+    if (source != null) {
+      await _pickImageFromSource(source);
+    }
+  }
+
+  // Widget con để tạo nút chọn ảnh đẹp
+  Widget _buildImageSourceButton({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required ImageSource source,
+  }) {
+    return GestureDetector(
+      onTap: () => Navigator.pop(context, source),
+      child: Column(
+        children: [
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              shape: BoxShape.circle,
+              border: Border.all(color: color, width: 2),
+            ),
+            child: Icon(icon, size: 40, color: color),
+          ),
+          const SizedBox(height: 12),
+          Text(label, style: TextStyle(fontSize: 15, color: Colors.grey[800])),
+        ],
+      ),
+    );
+  }
+
+  // Hàm thực tế lấy ảnh từ nguồn đã chọn
+  Future<void> _pickImageFromSource(ImageSource source) async {
     try {
-      final XFile? image = await _picker.pickImage(
-        source: ImageSource.gallery,
+      final XFile? pickedFile = await _picker.pickImage(
+        source: source,
         imageQuality: 85,
         maxWidth: 512,
         maxHeight: 512,
+        preferredCameraDevice:
+            CameraDevice.front, // Ưu tiên camera trước nếu là camera
       );
 
-      if (image != null) {
+      if (pickedFile != null) {
         setState(() {
-          _avatarImage = File(image.path);
+          _avatarImage = File(pickedFile.path);
           _hasChanges = true;
         });
-        _showSuccessSnackBar('Đã thay đổi ảnh đại diện! 📷');
+        _showSuccessSnackBar('Đã chọn ảnh đại diện mới! 📸');
       }
     } catch (e) {
       print('Lỗi khi chọn ảnh: $e');
-      _showErrorSnackBar('Lỗi khi chọn ảnh: $e');
+      _showErrorSnackBar('Không thể chọn ảnh. Vui lòng thử lại!');
     }
   }
 

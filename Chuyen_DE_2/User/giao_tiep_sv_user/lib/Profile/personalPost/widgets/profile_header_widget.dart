@@ -62,18 +62,27 @@ class ProfileHeaderWidget extends StatelessWidget {
                       ),
                       const SizedBox(width: 8),
                       // Ưu tiên giữ nguyên số bài viết, chỉ thu nhỏ font nếu cần
-                      Text(
-                        "• $postCount bài viết",
-                        style: TextStyle(
-                          color: Colors.blueAccent,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
                     ],
                   ),
+                  Text.rich(
+                    TextSpan(
+                      children: [
+                        const TextSpan(
+                          text: "Hiện có: ",
+                          style: TextStyle(color: Colors.black54, fontSize: 14),
+                        ),
+                        TextSpan(
+                          text: "$postCount bài viết",
+                          style: const TextStyle(
+                            color: Colors.green, // chỉ đoạn này màu xanh lá
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                   _buildInfoItem("Ngành học: ", major),
-                  const SizedBox(height: 4),
                   _buildInfoItem("Niên khóa: ", schoolYear),
                 ],
               ),

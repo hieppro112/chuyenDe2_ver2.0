@@ -258,6 +258,17 @@ class _SearchPageState extends State<SearchPage> {
       );
     }
 
+    _searchResults = _searchResults.where(
+      (element) {
+        var id= element["id"] as String;
+        return !id.trim().toLowerCase().contains(widget.myID.toLowerCase().trim());
+      },
+    ).toList();
+    // _searchResults.forEach(
+    //   (element) {
+    //     print("gtri map: ${element["id"]}");
+    //   },
+    // );
     return ListView.builder(
       itemCount: _searchResults.length,
       itemBuilder: (context, index) {
