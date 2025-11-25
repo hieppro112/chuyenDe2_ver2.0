@@ -74,7 +74,7 @@ class _GroupInfoDialogState extends State<GroupInfoDialog> {
                   _buildOption(
                     context,
                     Icons.check_circle,
-                    "Duyệt",
+                    "Quản lý",
                     Colors.green,
                     widget.currentGroupId,
                   ),
