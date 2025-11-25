@@ -110,6 +110,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _loadProfile();
   }
 
+  // Hàm cắt chuỗi nếu quá dài
+  String _truncateText(String text, int maxLength) {
+    if (text.length <= maxLength) return text;
+    return '${text.substring(0, maxLength)}...';
+  }
+
   // Hàm mở liên kết web
   Future<void> _launchWebsite() async {
     final Uri url = Uri.parse('https://tdc.edu.vn/');
@@ -143,7 +149,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       Row(
                         children: [
                           Text(
-                            _userName,
+                            _truncateText(_userName, 16),
                             style: const TextStyle(
                               fontSize: 21,
                               color: Colors.blue,
@@ -162,7 +168,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 style: TextStyle(color: Colors.black54),
                               ),
                               Text(
-                                _major,
+                                _truncateText(_major, 16),
                                 style: const TextStyle(
                                   fontWeight: FontWeight.w500,
                                 ),

@@ -381,18 +381,81 @@ class _MemberPostScreenState extends State<MemberPostScreen> {
 
     return Column(
       children: [
-        // Dòng 1: Filter dropdown + Nút sắp xếp
+        // Thanh tìm kiếm (chỉ hiện ở tab Bài viết)
+        if (showSearchBar)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
+            child: TextField(
+              controller: _searchController,
+              onChanged: (value) => setState(() {
+                _searchQuery = value.toLowerCase().trim();
+              }),
+              style: const TextStyle(fontSize: 13),
+              decoration: InputDecoration(
+                isDense: true, //
+                hintText: 'Tìm kiếm bài viết...',
+                hintStyle: const TextStyle(fontSize: 13),
+
+                prefixIcon: const Padding(
+                  padding: EdgeInsets.only(left: 8, right: 4),
+                  child: Icon(Icons.search, size: 16, color: Colors.grey),
+                ),
+
+                prefixIconConstraints: const BoxConstraints(
+                  minWidth: 30,
+                  minHeight: 20,
+                ),
+
+                suffixIcon: _searchQuery.isNotEmpty
+                    ? GestureDetector(
+                        onTap: () {
+                          _searchController.clear();
+                          setState(() => _searchQuery = '');
+                        },
+                        child: const Padding(
+                          padding: EdgeInsets.only(right: 8),
+                          child: Icon(
+                            Icons.close,
+                            size: 16,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      )
+                    : null,
+
+                suffixIconConstraints: const BoxConstraints(
+                  minWidth: 30,
+                  minHeight: 20,
+                ),
+
+                filled: true,
+                fillColor: Colors.grey[200],
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+
+                // Giảm chiều cao tối đa
+                contentPadding: const EdgeInsets.symmetric(
+                  vertical: 6,
+                  horizontal: 8,
+                ),
+              ),
+            ),
+          ),
+        // Filter dropdown + Nút sắp xếp
         Container(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
           child: Row(
             children: [
               // Dropdown filter
               SizedBox(
-                width: 200,
+                width: 160,
+                height: 40,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(30),
                     border: Border.all(color: Colors.grey.shade300),
                     color: Colors.grey.shade100,
                   ),
@@ -406,7 +469,7 @@ class _MemberPostScreenState extends State<MemberPostScreen> {
                           value: opt,
                           child: Row(
                             children: [
-                              Icon(icons[opt]!, color: colors[opt]!, size: 20),
+                              Icon(icons[opt]!, color: colors[opt]!, size: 16),
                               const SizedBox(width: 8),
                               Text(
                                 opt,
@@ -445,7 +508,7 @@ class _MemberPostScreenState extends State<MemberPostScreen> {
                 ),
                 label: Text(
                   _sortDescending ? "Mới nhất" : "Cũ nhất",
-                  style: const TextStyle(fontSize: 14),
+                  style: const TextStyle(fontSize: 13),
                 ),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: _sortDescending
@@ -457,8 +520,8 @@ class _MemberPostScreenState extends State<MemberPostScreen> {
                         : Colors.amber[800]!,
                   ),
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 10,
+                    horizontal: 12,
+                    vertical: 8,
                   ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(30),
@@ -468,40 +531,6 @@ class _MemberPostScreenState extends State<MemberPostScreen> {
             ],
           ),
         ),
-
-        // Dòng 2: Thanh tìm kiếm (chỉ hiện ở tab Bài viết)
-        if (showSearchBar)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Tìm kiếm theo nội dung bài viết...',
-                prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                suffixIcon: _searchQuery.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear, color: Colors.grey),
-                        onPressed: () {
-                          _searchController.clear();
-                          setState(() => _searchQuery = '');
-                        },
-                      )
-                    : null,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-                filled: true,
-                fillColor: Colors.grey[200],
-                contentPadding: const EdgeInsets.symmetric(vertical: 14),
-              ),
-              onChanged: (value) {
-                setState(() {
-                  _searchQuery = value.toLowerCase().trim();
-                });
-              },
-            ),
-          ),
       ],
     );
   }
@@ -685,6 +714,7 @@ class _MemberPostScreenState extends State<MemberPostScreen> {
               }
             },
           ),
+          SizedBox(height: 5),
           _buildFilterSection(),
           Expanded(
             child: _selectedTabIndex == 0

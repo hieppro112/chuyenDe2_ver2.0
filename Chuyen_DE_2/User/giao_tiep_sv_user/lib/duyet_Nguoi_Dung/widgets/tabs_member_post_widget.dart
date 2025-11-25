@@ -31,13 +31,12 @@ class Tabs_Member_Approval_Widget extends StatelessWidget {
           padding: EdgeInsets.symmetric(vertical: 12),
 
           decoration: BoxDecoration(
-            color:
-                isSelected
-                    ? Colors.blue.withOpacity(0.1)
-                    : Colors.grey.shade200,
+            color: isSelected
+                ? Colors.blue.withOpacity(0.1)
+                : Colors.grey.shade200,
             border: Border.all(
               color: isSelected ? Colors.blue : Colors.transparent,
-              width: 1.5,
+              width: 1,
             ),
             borderRadius: BorderRadius.circular(8),
           ),

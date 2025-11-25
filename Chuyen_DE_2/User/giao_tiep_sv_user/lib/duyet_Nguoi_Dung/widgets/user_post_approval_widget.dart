@@ -138,8 +138,6 @@ class UserPostApproval extends StatelessWidget {
                   _buildActionButton('Duyệt', Colors.green, onApprove),
                 ],
               ),
-
-            // Nếu đã duyệt/từ chối → không hiện nút gì thêm (chỉ có 3 chấm ở trên)
           ],
         ),
       ),
