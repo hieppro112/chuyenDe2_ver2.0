@@ -5,7 +5,8 @@ import 'package:giao_tiep_sv_user/Screens_chatMember/FirebaseStore/MessageServic
 
 class Featchmemberchat extends StatefulWidget {
   final String idRoomChat;
-  const Featchmemberchat({super.key, required this.idRoomChat});
+  final ValueChanged<List<String>>? onLoad;
+  const Featchmemberchat({super.key, required this.idRoomChat, this.onLoad,});
 
   @override
   State<Featchmemberchat> createState() => _FeatchmemberchatState();
@@ -15,7 +16,7 @@ class _FeatchmemberchatState extends State<Featchmemberchat> {
   final messService = MessageService();
   final userService = Userservices();
   int lengthList = 0;
-  List<Users?> users = [];
+  List<String> usersMember = [];
   @override
   Widget build(BuildContext context) {
     return listMember();
@@ -33,13 +34,16 @@ class _FeatchmemberchatState extends State<Featchmemberchat> {
         }
         List<String> listId = [];
         listId = snapshot.data??[];
+        widget.onLoad!.call(listId);
+
 
         return ListView.builder(
           itemCount: listId.length,
           itemBuilder: (context, index) {
-          // Users member = getMember(listId[index]);
           return customMember(listId[index]);
         },);
+
+        usersMember = listId;
 
       },
     );
