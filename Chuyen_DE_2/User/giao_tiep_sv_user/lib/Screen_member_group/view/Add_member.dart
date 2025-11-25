@@ -111,7 +111,7 @@ class _AddMemberScreenState extends State<AddMemberScreen> {
           await addMemberGroup(listSelected);
           ScaffoldMessenger.of(context).showSnackBar(
             await SnackBar(
-              content: Text('Đã thêm ${listSelected.length} thành viên vào nhóm !'),
+              content: Text('Đã thêm ${listSelected.length} thành viên vào nhóm , vui long doi duyet!'),
               duration: Duration(seconds: 3),
             ),
           );
@@ -126,7 +126,8 @@ class _AddMemberScreenState extends State<AddMemberScreen> {
   //them cac thanh vien duoc moi vao nhom
       Future<void> addMemberGroup(List<String> listUSAdd) async{
         for(var item in listUSAdd){
-          var newValue = Groupmember(group_id: widget.groupID, user_id: item, role: 1, status_id: 0, joined_at: DateTime.now());
+          var newValue = Groupmember(group_id: widget.groupID, user_id: item, role: 0, status_id: 0, joined_at: DateTime.now());
+          print("role  ${newValue.role}");
           await groupService.addDataGroupMember(newValue);
         }
       }

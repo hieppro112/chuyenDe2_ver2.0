@@ -14,7 +14,7 @@ class GroupserviceManeger {
       await querySnap.add({
         'group_id': grMember.group_id,
         'user_id': grMember.user_id,
-        'role': 1,
+        'role': grMember.role,
         'status_id': grMember.status_id,
         'joined_at': FieldValue.serverTimestamp(),
       });

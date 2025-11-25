@@ -214,7 +214,7 @@ class _ChatMemberScreenState extends State<ChatMemberScreen> {
                             createdAt: DateTime.now(),
                             avatarUrl: value.avatarUrl,
                             createdBy: value.createdBy,
-                            typeId: (value.users.length <= 2) ? 0 : 1,
+                            typeId: value.typeId,
                           ),
                           idRoom: valueOnTap.id,
                           avtChat: valueOnTap.avt,
