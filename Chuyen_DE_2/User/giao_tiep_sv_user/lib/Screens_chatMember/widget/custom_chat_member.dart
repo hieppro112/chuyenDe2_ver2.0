@@ -65,14 +65,14 @@ class _CustomChatMemberState extends State<CustomChatMember> {
         if (!item.trim().toLowerCase().contains(widget.myid)) {
           print("thang id ${widget.myid}");
           var user = await getInfoUser(item);
-          setState(() {
+          if(mounted){
+            setState(() {
             URl_avt =  user!.url_avt;
             name_chat =  user!.fullname;
           });
+          }
         }
       }
-
-      // print("get us: ${user!.fullname.toString()}");
     }
   }
 

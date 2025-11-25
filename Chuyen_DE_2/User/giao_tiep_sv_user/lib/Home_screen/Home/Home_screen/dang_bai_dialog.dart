@@ -285,10 +285,6 @@ class _DangBaiDialogState extends State<DangBaiDialog> {
                     icon: const Icon(Icons.image, color: primaryColor),
                     onPressed: _pickImages,
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.attach_file, color: primaryColor),
-                    onPressed: _pickFiles,
-                  ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
