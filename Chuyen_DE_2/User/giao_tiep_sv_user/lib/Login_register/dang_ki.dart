@@ -1,4 +1,10 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
+import 'package:giao_tiep_sv_user/Data/groups.dart';
+import 'package:giao_tiep_sv_user/Data/groups_members.dart';
+import 'package:giao_tiep_sv_user/maneger_member_group_Screens/serviceGroup/groupService.dart';
+import 'package:uuid/uuid.dart';
 import 'dang_nhap.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -11,6 +17,8 @@ class DangKi extends StatefulWidget {
 }
 
 class _DangKiState extends State<DangKi> {
+  final groupService = GroupserviceManeger();
+
   final TextEditingController emailController = TextEditingController();
   final TextEditingController nameController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
@@ -132,6 +140,8 @@ class _DangKiState extends State<DangKi> {
         isError: false,
       );
 
+      await loadGroup(ma.toUpperCase(),idUser);
+
       // Đăng xuất user chưa xác thực
       await FirebaseAuth.instance.signOut();
 
@@ -154,6 +164,17 @@ class _DangKiState extends State<DangKi> {
     } finally {
       setState(() => _isLoading = false);
     }
+  }
+  //dua member vao group cua khoa 
+  Future<void> loadGroup(String id,String idUser)async{
+    List<String> listTemp = [];
+    listTemp = await groupService.loadGroupsforId(id.toUpperCase());
+    print("leng memeber: ${listTemp.length}");
+    listTemp.forEach((element) {
+      print("id gr: $element");
+      Groupmember grMember = Groupmember(group_id:element , user_id: idUser, role: 1, status_id: 1, joined_at: DateTime.now());
+      groupService.addDataGroupMember(grMember);
+    },);
   }
 
   void _showSnackBar(String message, {bool isError = true}) {
@@ -199,6 +220,11 @@ class _DangKiState extends State<DangKi> {
   }
 
   // ==================== GIAO DIỆN ====================
+  @override void initState() {
+    // TODO: implement initState
+    super.initState();
+    // loadGroup("tt", "");
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(

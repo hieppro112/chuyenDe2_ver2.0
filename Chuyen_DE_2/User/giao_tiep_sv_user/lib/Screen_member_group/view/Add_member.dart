@@ -126,7 +126,7 @@ class _AddMemberScreenState extends State<AddMemberScreen> {
   //them cac thanh vien duoc moi vao nhom
       Future<void> addMemberGroup(List<String> listUSAdd) async{
         for(var item in listUSAdd){
-          var newValue = GroupMember(group_id: widget.groupID, user_id: item, role_id: 1, status_id: 0, joined_at: DateTime.now().toString());
+          var newValue = Groupmember(group_id: widget.groupID, user_id: item, role: 1, status_id: 0, joined_at: DateTime.now());
           await groupService.addDataGroupMember(newValue);
         }
       }

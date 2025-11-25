@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class Groups {
   final String id_group;
   final String name;
@@ -20,4 +22,19 @@ class Groups {
     this.avt,
     required this.type_id,
   });
+
+  factory Groups.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>? ?? {};
+    return Groups(
+      id_group: doc.id,
+      name: data['name'] ?? '',
+      description: data['description'],
+      created_by: data['created_by'] ?? '',
+      approval_mode: data['approval_mode'] ?? false,
+      faculty_id: data['faculty_id'] ?? 0,
+      member_quantity: data['member_quantity'] ?? 0,
+      avt: data['avt'],
+      type_id: data['type_id'] ?? 0,
+    );
+  }
 }

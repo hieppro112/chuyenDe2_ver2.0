@@ -1,11 +1,14 @@
+import 'dart:ffi';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:giao_tiep_sv_user/Data/groups.dart';
 import 'package:giao_tiep_sv_user/Data/groups_members.dart';
 
 class GroupserviceManeger {
   final FirebaseFirestore groupDb = FirebaseFirestore.instance;
 
   //them vao membergroup
-  Future<void> addDataGroupMember(GroupMember grMember) async {
+  Future<void> addDataGroupMember(Groupmember grMember) async {
     try {
       final querySnap = groupDb.collection("Groups_members");
       await querySnap.add({
@@ -112,4 +115,29 @@ class GroupserviceManeger {
       return Stream.empty();
     }
   }
+
+  //load cac group theo ma 
+  Future<List<String>> loadGroupsforId(String id) async {
+  try {
+    final snap = await FirebaseFirestore.instance.collection('Groups').get();
+    
+    final List<String> groupIds = snap.docs.where(
+      (element) {
+        final data = element.data();
+        int typeGroup = data["type_group"] ?? 2;
+        final facultyIdMap = data['faculty_id'];
+        if(facultyIdMap != null && facultyIdMap is Map && typeGroup == 0){
+          return facultyIdMap.containsKey(id);
+        }
+        return false;
+      },
+    ).map((e) {
+      return e.id;
+    },).toList();
+    return groupIds;
+  } catch (e) {
+    print('Lỗi khi lọc nhóm theo mã $id: $e');
+      return [];
+  }
+}
 }
