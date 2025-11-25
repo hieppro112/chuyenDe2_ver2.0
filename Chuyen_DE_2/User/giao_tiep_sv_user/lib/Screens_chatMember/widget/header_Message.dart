@@ -7,7 +7,8 @@ import 'package:giao_tiep_sv_user/Screens_chatMember/widget/featchMemberChat.dar
 class HeaderMessage extends StatelessWidget {
   final ChatRoom myInfo;
   final Dataroomchat dataroomchat;
-   HeaderMessage({super.key, required this.myInfo, required this.dataroomchat, });
+  final String myId;
+   HeaderMessage({super.key, required this.myInfo, required this.dataroomchat, required this.myId, });
 
   @override
   Widget build(BuildContext context) {
@@ -51,7 +52,8 @@ class HeaderMessage extends StatelessWidget {
 
         InkWell(
           onTap: () {
-            Navigator.push(context, MaterialPageRoute(builder: (context) => ShowMemberChat(idRoom: dataroomchat.id),));
+            print("${dataroomchat.id} - ${myInfo.roomId}");
+            Navigator.push(context, MaterialPageRoute(builder: (context) => ShowMemberChat(idRoom: dataroomchat.id, myId: myId,),));
           },
           child: ClipOval(
             child: Image.network((myInfo.typeId==1)?myInfo.avatarUrl:dataroomchat.avt,fit: BoxFit.cover,width: 45,height: 45,),

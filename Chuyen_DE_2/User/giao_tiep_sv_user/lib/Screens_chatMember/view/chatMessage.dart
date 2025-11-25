@@ -181,6 +181,7 @@ class ScreenMessageState extends State<ScreenMessage> {
     return HeaderMessage(
       myInfo: widget.sender_to,
       dataroomchat: widget.dataroomchat,
+      myId: widget.myId,
     );
   }
 }

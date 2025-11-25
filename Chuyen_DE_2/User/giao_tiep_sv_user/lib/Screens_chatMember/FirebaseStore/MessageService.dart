@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/rendering.dart';
+import 'package:giao_tiep_sv_user/Data/Users.dart';
 import 'dart:io';
 import 'package:giao_tiep_sv_user/Data/message.dart';
 import 'package:giao_tiep_sv_user/Data/room_chat.dart';
@@ -207,5 +208,19 @@ class MessageService {
       return [];
     },);
   }
+
+
+  //them danh sach thanh vien vao nhom chat
+  Future<void> addMembersToChatRoom(String roomId, List<String> userIds) async {
+  try {
+    await messDB.collection("ChatRooms").doc(roomId).update({
+      "users": FieldValue.arrayUnion(userIds),
+    });
+
+    print("Thêm danh sách thành viên thành công!");
+  } catch (e) {
+    print("Lỗi khi thêm danh sách thành viên: $e");
+  }
+}
 
 }

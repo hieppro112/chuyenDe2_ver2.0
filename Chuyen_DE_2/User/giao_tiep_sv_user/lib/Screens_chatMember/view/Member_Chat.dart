@@ -1,28 +1,61 @@
 import 'package:flutter/material.dart';
+import 'package:giao_tiep_sv_user/Screens_chatMember/widget/clicked_add_member.dart';
+import 'package:giao_tiep_sv_user/Screens_chatMember/widget/clicked_out_group.dart';
 import 'package:giao_tiep_sv_user/Screens_chatMember/widget/featchMemberChat.dart';
 
 class ShowMemberChat extends StatefulWidget {
   final String idRoom;
-  const ShowMemberChat({super.key, required this.idRoom});
+  final String myId;
+  const ShowMemberChat({super.key, required this.idRoom, required this.myId});
 
   @override
   State<ShowMemberChat> createState() => _ShowMemberChatState();
 }
 
 class _ShowMemberChatState extends State<ShowMemberChat> {
+  List<String> listFirst=[];
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,
-        title: Text("Thành viên",style: TextStyle(
-          color: Colors.black,
-          fontWeight: FontWeight.bold
-        ),),
+        title: Text(
+          "Thành viên",
+          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+        ),
         centerTitle: true,
       ),
-      body: Featchmemberchat(idRoomChat:widget.idRoom ),
+      body: Featchmemberchat(idRoomChat: widget.idRoom,onLoad: (value) {
+        
+        print("membergroup1: ${value.length}");
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if(!mounted){
+          return;
+        }
+
+        if(listFirst.length!=value.length){
+          setState(() {
+          listFirst = value;
+        });
+        }
+        },);
+      },),
+
+
+      //2 nut chuc nang
+      bottomNavigationBar: Container(
+        margin: EdgeInsets.only(bottom: 30),
+        child: Row(
+          //crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            // Text("aa:${listFirst.length}"),
+            ClickedAddMember(myId: widget.myId,ListFirst: listFirst,myRoom: widget.idRoom,),
+            ClickedOutGroup(),
+          ],
+        ),
+      ),
     );
   }
 }
