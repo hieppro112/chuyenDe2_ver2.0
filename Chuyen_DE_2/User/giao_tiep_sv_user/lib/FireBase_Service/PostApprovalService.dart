@@ -93,7 +93,7 @@ class PostApprovalService {
         images = [data['file_url']];
       }
 
-      // [SỬA - 15/11/2025 01:00] Lấy status_id từ Firestore
+      // Lấy status_id từ Firestore
       final int statusId = (data['status_id'] as num?)?.toInt() ?? 0;
       final String status = _statusIdToString(statusId);
 
@@ -102,10 +102,13 @@ class PostApprovalService {
           id: doc.id,
           authorName: userInfo['fullname']!,
           content: data['content'] ?? '',
-          image: images.isNotEmpty ? images[0] : '',
+          imageUrls: images,
           date: (data['date_created'] as Timestamp).toDate(),
           status: status, // Dùng status thực tế
           reviewType: 'post',
+          avatar:
+              userInfo['avatar'] ??
+              'https://cellphones.com.vn/sforum/wp-content/uploads/2023/10/avatar-trang-4.jpg',
         ),
       );
     }

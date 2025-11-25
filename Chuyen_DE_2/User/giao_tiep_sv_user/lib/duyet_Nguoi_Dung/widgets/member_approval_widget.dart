@@ -14,105 +14,171 @@ class MemberApprovalWidget extends StatelessWidget {
     required this.onReject,
   }) : super(key: key);
 
-  // member_approval_widget.dart
   @override
   Widget build(BuildContext context) {
     return Card(
       margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Padding(
-        padding: EdgeInsets.all(16),
+        padding: EdgeInsets.all(10),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 20,
-                      backgroundImage: NetworkImage(
-                        user.avatar.isNotEmpty
-                            ? user.avatar
-                            : 'https://ui-avatars.com/api/?name=${user.fullName}&background=0D8ABC&color=fff',
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          user.fullName,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 17,
-                            color: Colors.black87,
-                          ),
-                          overflow: TextOverflow.ellipsis,
+                // Avatar
+                CircleAvatar(
+                  radius: 26,
+                  backgroundColor: Colors.grey.shade300,
+                  backgroundImage: user.avatar.isNotEmpty
+                      ? NetworkImage(user.avatar)
+                      : NetworkImage(
+                          'https://ui-avatars.com/api/?name=${Uri.encodeComponent(user.fullName)}&background=0D8ABC&color=fff&bold=true',
                         ),
+                ),
 
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.school_outlined,
-                              size: 14,
-                              color: Colors.blueGrey[400],
+                const SizedBox(width: 14),
+
+                // Nội dung
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      /// Hàng tên + trạng thái + menu
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              user.fullName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 16.5,
+                                color: Colors.black87,
+                              ),
                             ),
+                          ),
+
+                          if (_buildStatusBadge(user.status) != null) ...[
+                            const SizedBox(width: 8),
+                            _buildStatusBadge(user.status)!,
+                          ],
+
+                          if (user.status == 'rejected') ...[
                             const SizedBox(width: 4),
-                            Text(
+                            PopupMenuButton<String>(
+                              padding: EdgeInsets.zero,
+                              icon: Icon(
+                                Icons.more_vert,
+                                size: 20,
+                                color: Colors.grey[700],
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              onSelected: (_) => onApprove(),
+                              itemBuilder: (_) => [
+                                const PopupMenuItem(
+                                  value: 'reapprove',
+                                  height: 42,
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.check_circle_outline,
+                                        color: Colors.green,
+                                        size: 18,
+                                      ),
+                                      SizedBox(width: 8),
+                                      Text(
+                                        'Duyệt lại',
+                                        style: TextStyle(color: Colors.green),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ],
+                      ),
+
+                      const SizedBox(height: 8),
+
+                      // Khoa
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.school_outlined,
+                            size: 16,
+                            color: Colors.blueGrey[600],
+                          ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
                               "Khoa: ${user.faculty ?? 'Chưa rõ'}",
                               style: TextStyle(
-                                fontSize: 13,
+                                fontSize: 14,
                                 color: Colors.grey[700],
                               ),
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
+                      ),
 
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.calendar_today_outlined,
-                              size: 13,
-                              color: Colors.blueGrey[400],
+                      const SizedBox(height: 6),
+
+                      // Ngày tham gia
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.calendar_today_outlined,
+                            size: 15,
+                            color: Colors.blueGrey[600],
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            "Tham gia: ${_formatDate(user.joinedAt)}",
+                            style: TextStyle(
+                              fontSize: 13.5,
+                              color: Colors.grey[600],
                             ),
-                            const SizedBox(width: 4),
-                            Text(
-                              "Tham gia: ${_formatDate(user.joinedAt)}",
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey[600],
-                              ),
+                          ),
+                        ],
+                      ),
+
+                      // Action buttons
+                      if (user.status == 'pending') ...[
+                        const SizedBox(height: 14),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            _buildActionButton(
+                              'Từ chối',
+                              const Color(0xFFE53935),
+                              onReject,
+                            ),
+                            _buildActionButton(
+                              'Duyệt',
+                              const Color(0xFF1E8E3E),
+                              onApprove,
                             ),
                           ],
                         ),
                       ],
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-                _buildStatusBadge(user.status),
               ],
             ),
             SizedBox(height: 8),
-            if (user.status == 'pending') ...[
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  _buildActionButton('Duyệt', Colors.green, onApprove),
-                  SizedBox(width: 8),
-                  _buildActionButton('Từ chối', Colors.red, onReject),
-                ],
-              ),
-            ],
           ],
         ),
       ),
     );
   }
 
-  // [THÊM - 14/11/2025 23:45] Hàm định dạng ngày giống bài viết
   String _formatDate(DateTime date) {
     return '${date.day}/${date.month}/${date.year}';
   }
@@ -155,6 +221,7 @@ class MemberApprovalWidget extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
+        alignment: Alignment.center,
         padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
           color: color.withOpacity(0.1),
