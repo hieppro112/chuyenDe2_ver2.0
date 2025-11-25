@@ -159,104 +159,96 @@ class _DuyetNhomAdminScreenState extends State<DuyetNhomAdminScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SizedBox(
-                  width: 200,
-                  child: Container(
-                    padding: EdgeInsets.symmetric(horizontal: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[200],
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: DropdownButton<GroupFilterType>(
-                            value: _currentFilter,
-                            onChanged: (v) =>
-                                setState(() => _currentFilter = v!),
-                            isExpanded: true,
-                            underline: SizedBox(),
-                            icon: Icon(
-                              Icons.keyboard_arrow_down,
-                              color: Colors.grey[700],
-                            ),
-
-                            items: [
-                              DropdownMenuItem(
-                                value: GroupFilterType.all,
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      Icons.filter_list,
-                                      size: 18,
-                                      color: Colors.black54,
-                                    ),
-                                    SizedBox(width: 6),
-                                    Text('Tất cả (${groups.length})'),
-                                  ],
-                                ),
-                              ),
-                              DropdownMenuItem(
-                                value: GroupFilterType.pending,
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      Icons.hourglass_empty_outlined,
-                                      size: 18,
-                                      color: Colors.orange,
-                                    ),
-                                    SizedBox(width: 6),
-                                    Text('Chờ duyệt ($pendingCount)'),
-                                  ],
-                                ),
-                              ),
-                              DropdownMenuItem(
-                                value: GroupFilterType.approved,
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      Icons.check_circle_outline,
-                                      size: 18,
-                                      color: Colors.green,
-                                    ),
-                                    SizedBox(width: 6),
-                                    Text('Đã duyệt ($approvedCount)'),
-                                  ],
-                                ),
-                              ),
-                              DropdownMenuItem(
-                                value: GroupFilterType.rejected,
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      Icons.cancel_outlined,
-                                      size: 18,
-                                      color: Colors.red,
-                                    ),
-                                    SizedBox(width: 6),
-                                    Text('Từ chối ($rejectedCount)'),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                // Dòng hiển thị tổng số nhóm và nút sắp xếp
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      'Hiển thị ${list.length} nhóm',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
+                    SizedBox(
+                      width: 170,
+                      child: Container(
+                        padding: EdgeInsets.symmetric(horizontal: 10),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[200],
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: DropdownButton<GroupFilterType>(
+                                value: _currentFilter,
+                                onChanged: (v) =>
+                                    setState(() => _currentFilter = v!),
+                                isExpanded: true,
+                                underline: SizedBox(),
+                                icon: Icon(
+                                  Icons.keyboard_arrow_down,
+                                  color: Colors.grey[700],
+                                ),
+
+                                items: [
+                                  DropdownMenuItem(
+                                    value: GroupFilterType.all,
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          Icons.filter_list,
+                                          size: 18,
+                                          color: Colors.black54,
+                                        ),
+                                        SizedBox(width: 6),
+                                        Text('Tất cả (${groups.length})'),
+                                      ],
+                                    ),
+                                  ),
+                                  DropdownMenuItem(
+                                    value: GroupFilterType.pending,
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          Icons.hourglass_empty_outlined,
+                                          size: 18,
+                                          color: Colors.orange,
+                                        ),
+                                        SizedBox(width: 6),
+                                        Text('Chờ duyệt ($pendingCount)'),
+                                      ],
+                                    ),
+                                  ),
+                                  DropdownMenuItem(
+                                    value: GroupFilterType.approved,
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          Icons.check_circle_outline,
+                                          size: 18,
+                                          color: Colors.green,
+                                        ),
+                                        SizedBox(width: 6),
+                                        Text('Đã duyệt ($approvedCount)'),
+                                      ],
+                                    ),
+                                  ),
+                                  DropdownMenuItem(
+                                    value: GroupFilterType.rejected,
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          Icons.cancel_outlined,
+                                          size: 18,
+                                          color: Colors.red,
+                                        ),
+                                        SizedBox(width: 6),
+                                        Text('Từ chối ($rejectedCount)'),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                     // nút sắp xếp
+                    SizedBox(width: 30),
                     OutlinedButton.icon(
                       onPressed: _toggleSort,
                       icon: Icon(
@@ -285,6 +277,20 @@ class _DuyetNhomAdminScreenState extends State<DuyetNhomAdminScreen> {
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(30),
                         ),
+                      ),
+                    ),
+                  ],
+                ),
+                // Dòng hiển thị tổng số nhóm và nút sắp xếp
+                SizedBox(height: 10),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Hiển thị ${list.length} nhóm',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
                       ),
                     ),
                   ],
