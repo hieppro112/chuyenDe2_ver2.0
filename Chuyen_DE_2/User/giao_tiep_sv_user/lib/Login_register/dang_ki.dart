@@ -50,7 +50,7 @@ class _DangKiState extends State<DangKi> {
       try {
         final query = await FirebaseFirestore.instance
             .collection("Faculty")
-            .where("id", isEqualTo: ma)
+            .where("id", isEqualTo: ma.toUpperCase())
             .get();
 
         setState(() {
