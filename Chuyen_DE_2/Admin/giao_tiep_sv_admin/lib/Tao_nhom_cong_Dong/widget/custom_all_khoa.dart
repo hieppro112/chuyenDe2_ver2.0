@@ -143,28 +143,6 @@ class CustomAllKhoaState extends State<CustomAllKhoa> {
   Future<void> fetchFaculty() async {
     try {
       setState(() => isLoading = true);
-      // //lay duong dan
-      // final snap = await FirebaseFirestore.instance.collection('Faculty').get();
-
-      //realtime
-      // FirebaseFirestore.instance.collection('Faculty').snapshots().listen((
-      //   event,
-      // ) {
-      //   final data = event.docs.map((e) {
-      //     final map = e.data();
-      //     return Faculty(id: e.id, name_faculty: map['name'] ?? '');
-      //   }).toList();
-
-      //   setState(() {
-      //     dsKhoa = data;
-
-      //     // Nếu chưa có key thì thêm, tránh reset chọn cũ
-      //     for (var item in dsKhoa) {
-      //       Selected.putIfAbsent(item.id, () => false);
-      //     }
-      //     isLoading = false;
-      //   });
-      // });
 
       firebaseServiceFaculty.streamBuilder().listen(
         (data) {

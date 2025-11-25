@@ -84,9 +84,9 @@ class _ScreenNotify extends State<ScreenNotify> {
     return InkWell(
       onTap: () async {
         if (nameGroup.text.trim().isEmpty ||
-            descriptionGroup.text.trim().isEmpty ||
-            listSelected_khoa.length <= 0 ||
-            listSelected_uyquyen.length <= 0) {
+            descriptionGroup.text.trim().isEmpty || (listSelected_khoa.length <= 0 &&
+            listSelected_uyquyen.length <= 0)
+             ) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Vui lòng nhập đầy đủ thông tin!'),
@@ -99,6 +99,8 @@ class _ScreenNotify extends State<ScreenNotify> {
           final String content = descriptionGroup.text;
           final int type_notify = 1;
           Map<String, dynamic> selectedReps = {};
+          
+
           if (listSelected_uyquyen.length > 0) {
             for (var item in listSelected_uyquyen) {
               selectedReps[item.id_user] = item.fullname;

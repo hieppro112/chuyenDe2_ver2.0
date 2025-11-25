@@ -9,6 +9,7 @@ class FirestoreServiceUser{
     return dbUser.collection("Users").snapshots().map((event) {
       return event.docs.map((e) {
         final mapData = e.data();
+        print("lay danh sach user thanh cong");
         return Users(
         id_user: e.id,
         email: mapData["email"] ?? "",
@@ -19,6 +20,7 @@ class FirestoreServiceUser{
         faculty_id: mapData["faculty_id"] ?? "",
       );
       },).toList();
+      
     },);
   }
 }
