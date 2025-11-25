@@ -51,17 +51,17 @@ class _CustomSenderMessage extends State<CustomSenderMessage>{
 
               SizedBox(width: 10),
 
-              GestureDetector(
-                onTap: () {
-                  // print("file");
-                },
-                child: Image.asset(
-                  "assets/icons/ic_file.png",
-                  fit: BoxFit.cover,
-                  width: 35,
-                  height: 35,
-                ),
-              ),
+              // GestureDetector(
+              //   onTap: () {
+              //     // print("file");
+              //   },
+              //   child: Image.asset(
+              //     "assets/icons/ic_file.png",
+              //     fit: BoxFit.cover,
+              //     width: 35,
+              //     height: 35,
+              //   ),
+              // ),
             ],
           ),
           flex: 2,

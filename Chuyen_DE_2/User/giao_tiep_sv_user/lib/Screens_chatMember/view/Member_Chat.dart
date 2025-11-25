@@ -4,9 +4,10 @@ import 'package:giao_tiep_sv_user/Screens_chatMember/widget/clicked_out_group.da
 import 'package:giao_tiep_sv_user/Screens_chatMember/widget/featchMemberChat.dart';
 
 class ShowMemberChat extends StatefulWidget {
+  final int thrown;
   final String idRoom;
   final String myId;
-  const ShowMemberChat({super.key, required this.idRoom, required this.myId});
+  const ShowMemberChat({super.key, required this.idRoom, required this.myId, required this.thrown});
 
   @override
   State<ShowMemberChat> createState() => _ShowMemberChatState();
@@ -51,8 +52,10 @@ class _ShowMemberChatState extends State<ShowMemberChat> {
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
             // Text("aa:${listFirst.length}"),
-            ClickedAddMember(myId: widget.myId,ListFirst: listFirst,myRoom: widget.idRoom,),
-            ClickedOutGroup(),
+            //chuc nang them thanh vien 
+            (widget.thrown==0 && listFirst.length==2)?SizedBox():ClickedAddMember(myId: widget.myId,ListFirst: listFirst,myRoom: widget.idRoom,thrown: widget.thrown,),
+            //chuc nang roi nhom
+            ClickedOutGroup(myId: widget.myId,roomId: widget.idRoom,),
           ],
         ),
       ),

@@ -44,8 +44,6 @@ class _PickedAddMemberChat extends State<PickedAddMemberChat> {
 
     print(" member length${widget.ListFirst.length}");
 
-    
-
     //load nguoi dung
     featchMembers();
     // Listsearch = listUyQuyen;
@@ -113,8 +111,17 @@ class _PickedAddMemberChat extends State<PickedAddMemberChat> {
         createChoseKhoa(),
         InkWell(
           onTap: () {
-            widget.GetList?.call(listUyQuyen_out);
-            Navigator.pop(context);
+            if (widget.throwss == 0 && listUyQuyen_out.length > 1) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text("Chỉ được chọn 1 thành viên"),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            } else {
+              widget.GetList?.call(listUyQuyen_out);
+              Navigator.pop(context);
+            }
           },
           child: Container(
             padding: EdgeInsets.symmetric(horizontal: 15, vertical: 5),
@@ -141,7 +148,7 @@ class _PickedAddMemberChat extends State<PickedAddMemberChat> {
     );
   }
 
-  //menu chon khoa tim tho+eo khoa
+  //menu chon khoa tim theo khoa
   Widget createChoseKhoa() {
     return PopupMenuButton<String>(
       child: Container(
@@ -195,7 +202,6 @@ class _PickedAddMemberChat extends State<PickedAddMemberChat> {
 
   //hiển thị toàn bộ người dùng
   Widget createListmember() {
-
     print(" member length${widget.ListFirst.length}");
 
     //hien thi cac nguoi dung chua co trong nhom chat

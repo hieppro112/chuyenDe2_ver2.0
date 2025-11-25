@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:giao_tiep_sv_user/Screens_chatMember/FirebaseStore/MessageService.dart';
-import 'package:giao_tiep_sv_user/Screens_chatMember/widget/pickedMemberChat.dart';
 import 'package:giao_tiep_sv_user/Screens_chatMember/widget/picked_add_member_chat.dart';
 
 class ClickedAddMember extends StatefulWidget {
   final String myRoom;
   final String myId;
+  final int thrown;
   final List<String> ListFirst;
 
   
   const ClickedAddMember({
     super.key,
     required this.myId,
-    required this.ListFirst, required this.myRoom,
+    required this.ListFirst, required this.myRoom, required this.thrown,
   });
 
   @override
@@ -52,7 +52,7 @@ class _ClickedAddMemberState extends State<ClickedAddMember> {
       context,
       MaterialPageRoute(
         builder: (context) => PickedAddMemberChat(
-          throwss: 1,
+          throwss: widget.thrown,
           myID: widget.myId,
           ListFirst: widget.ListFirst,
           GetList: (value)async {
