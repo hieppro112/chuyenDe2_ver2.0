@@ -70,9 +70,6 @@ class _ChatMemberScreenState extends State<ChatMemberScreen> {
               padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               child: createButtonMessage(),
             ),
-
-            
-
             //danh sach tin nhắn
             Expanded(child: createListMessage()),
           ],

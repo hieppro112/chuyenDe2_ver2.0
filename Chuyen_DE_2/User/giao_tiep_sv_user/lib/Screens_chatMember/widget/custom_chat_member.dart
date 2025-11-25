@@ -50,7 +50,7 @@ class _CustomChatMemberState extends State<CustomChatMember> {
     );
   }
 
-  //lay thogn tin nguoi dung tu id
+  //lay thong tin nguoi dung tu id
   Future<Users?> getInfoUser(String id) async {
     return await usDb.getUserForID(id);
   }
@@ -62,7 +62,7 @@ class _CustomChatMemberState extends State<CustomChatMember> {
       name_chat = widget.userInfo.name;
     } else if (widget.userInfo.typeId == 0) {
       for (var item in widget.userInfo.users) {
-        if (!item.trim().toLowerCase().contains(widget.myid)) {
+        if (!item.trim().toLowerCase().contains(widget.myid.toLowerCase())) {
           print("thang id ${widget.myid}");
           var user = await getInfoUser(item);
           if(mounted){
