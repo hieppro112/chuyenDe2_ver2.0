@@ -113,7 +113,7 @@ class _GroupInfoDialogState extends State<GroupInfoDialog> {
       onTap: () {
         Navigator.pop(context);
 
-        if (text == "Duyệt") {
+        if (text == "Quản lý") {
           Navigator.push(
             context,
             MaterialPageRoute(
