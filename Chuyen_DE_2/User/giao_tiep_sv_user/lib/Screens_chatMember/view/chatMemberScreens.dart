@@ -183,7 +183,14 @@ class _ChatMemberScreenState extends State<ChatMemberScreen> {
     bool isnew = true;
     return (isload == true)
         ? Center(child: CircularProgressIndicator())
-        : ListView.builder(
+        : RefreshIndicator(onRefresh: () async{
+          if(mounted){
+             setState(() {
+              
+            });
+          }
+        },
+        child: ListView.builder(
             shrinkWrap: true,
             itemCount: listMessageSearch.length,
             itemBuilder: (context, index) {
@@ -229,7 +236,8 @@ class _ChatMemberScreenState extends State<ChatMemberScreen> {
                 },
               );
             },
-          );
+          ),
+        );
   }
 
   //nut chon ban be va nhom

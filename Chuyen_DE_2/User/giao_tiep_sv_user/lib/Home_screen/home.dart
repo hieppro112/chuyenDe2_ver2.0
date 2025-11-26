@@ -102,7 +102,9 @@ class _HomeState extends State<Home> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: PageView(
+
+      //load laij trng
+      body: RefreshIndicator(child: PageView(
         controller: _pageController,
         onPageChanged: (index) {
           setState(() {
@@ -111,6 +113,13 @@ class _HomeState extends State<Home> {
         },
         children: _pages,
       ),
+      onRefresh:() async{
+        if(mounted){
+          setState(() {
+          
+        });
+        }
+      },),
       backgroundColor: Colors.grey.shade100,
       bottomNavigationBar: Container(
         margin: const EdgeInsets.all(12),

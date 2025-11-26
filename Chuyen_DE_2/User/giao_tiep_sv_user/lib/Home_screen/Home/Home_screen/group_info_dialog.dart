@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:giao_tiep_sv_user/FireBase_Service/group_service.dart';
 import 'package:giao_tiep_sv_user/duyet_Nguoi_Dung/member_post_screen.dart';
 import 'package:giao_tiep_sv_user/maneger_member_group_Screens/view/maneger_member_group.dart';
 import '../../../Data/global_state.dart';
 
 class GroupInfoDialog extends StatefulWidget {
+  final String myId;
   final String groupName;
   final String currentGroupId;
   final int currentUserRole;
@@ -16,6 +18,7 @@ class GroupInfoDialog extends StatefulWidget {
     required this.currentGroupId,
     required this.currentUserRole,
     required this.groupOwnerId,
+    required this.myId,
   });
 
   @override
@@ -23,6 +26,7 @@ class GroupInfoDialog extends StatefulWidget {
 }
 
 class _GroupInfoDialogState extends State<GroupInfoDialog> {
+  final groupService = GroupService();
   //  HÀM TRUY VẤN ROLE NGƯỜI DÙNG
   Future<int> _fetchCurrentUserRole() async {
     try {
@@ -85,6 +89,14 @@ class _GroupInfoDialogState extends State<GroupInfoDialog> {
                   Colors.blue,
                   widget.currentGroupId,
                 ),
+
+                _buildOption(
+                  context,
+                  Icons.output_sharp,
+                  "Rời nhóm",
+                  Colors.red,
+                  widget.currentGroupId,
+                ),
               ],
             ),
           ),
@@ -110,9 +122,11 @@ class _GroupInfoDialogState extends State<GroupInfoDialog> {
       dense: true,
       leading: Icon(icon, color: color),
       title: Text(text),
-      onTap: () {
+      onTap: () async {
+        
         Navigator.pop(context);
-
+        //luu trang thai context để tránh dispose gay chết app
+        final scaffoldContext = ScaffoldMessenger.of(context);
         if (text == "Quản lý") {
           Navigator.push(
             context,
@@ -129,11 +143,14 @@ class _GroupInfoDialogState extends State<GroupInfoDialog> {
             ),
           );
           return;
+        } else if (text.contains("Rời nhóm")) {
+          print("roi nhom");
+          print('myId=${widget.myId}, groupId=$groupId'); 
+          await groupService.deleteMemberByUserId(widget.myId, groupId);
+          print('đã gọi xong deleteMemberByUserId');
         }
 
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Đã chọn: $text")));
+        scaffoldContext.showSnackBar(SnackBar(content: Text("Đã chọn: $text")));
       },
     );
   }

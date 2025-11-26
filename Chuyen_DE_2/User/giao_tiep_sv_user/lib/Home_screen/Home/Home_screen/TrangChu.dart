@@ -401,6 +401,7 @@ class TrangChuState extends State<TrangChu> {
                                 context: context,
                                 builder: (_) => GroupInfoDialog(
                                   //groupId: currentGroupId,
+                                  myId: myIdLogin,
                                   groupName: currentGroupName,
                                   currentGroupId: currentGroupId,
                                   currentUserRole: _currentUserRole,
