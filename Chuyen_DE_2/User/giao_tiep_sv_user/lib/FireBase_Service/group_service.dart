@@ -84,4 +84,28 @@ class GroupService {
       'joined_at': FieldValue.serverTimestamp(),
     });
   }
+
+  // thanh vien roi nhom 
+  Future<void> deleteMemberByUserId(String userId,String roomId) async {
+  try {
+    final snap = await FirebaseFirestore.instance
+        .collection('Groups_members')
+        .where('user_id', isEqualTo: userId.toUpperCase())
+        .where("group_id", isEqualTo: roomId)
+        .get();
+
+    if (snap.docs.isEmpty) {
+      print('Không tìm thấy member nào có user_id = $userId');
+      return;
+    }
+
+    // Xóa tất cả document tìm được (thường chỉ có 1)
+    for (final doc in snap.docs) {
+      await doc.reference.delete();
+      print('Đã xóa member ${doc.id}');
+    }
+  } catch (e) {
+    print('Lỗi khi xóa member: $e');
+  }
+}
 }
